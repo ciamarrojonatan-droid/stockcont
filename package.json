@@ -1,0 +1,8 @@
+{
+  "name": "projeto-padrao",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "ecc-universal": "^2.2.2"
+  }
+}
