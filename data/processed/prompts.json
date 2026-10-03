@@ -1,0 +1,34 @@
+[
+  {
+    "source_id": "2090056954",
+    "source_title": "Faceless business team in a glass conference room reviewing financial dashboards, sharing printed reports and discussing performance trends while agreeing on strategy using",
+    "analysis": {
+      "style": "Cinematic corporate stock photography, commercial realism",
+      "lighting": "Low-key interior, cool blue screen glow, warm background bokeh",
+      "composition": "Eye-level shallow depth of field, sharp foreground laptop, blurred team in background",
+      "color_palette": "Deep navy, cool blue, cyan, neutral gray, warm amber accents"
+    },
+    "generated_prompts": [
+      {
+        "concept": "FinTech Trading Desk",
+        "prompt": "Close-up of laptop showing financial charts, hand holding pen over reports, blurred traders in night office background, cool blue lighting, cinematic bokeh, shallow depth of field."
+      },
+      {
+        "concept": "Late Night Software Engineering",
+        "prompt": "Foreground focus on laptop displaying code syntax, developer reviewing notes, blurred programmers collaborating in glass office at night, teal and amber cinematic ambient light."
+      },
+      {
+        "concept": "Cybersecurity Operations Center",
+        "prompt": "Laptop monitor showing threat intelligence telemetry, analyst interacting with tablet, blurred team in background control room, cool corporate blue glow, soft bokeh."
+      },
+      {
+        "concept": "Executive Strategy Review",
+        "prompt": "Selective focus on laptop showing KPI dashboard, hands reviewing printed graphs, blurred executives around boardroom table, evening mood, deep blue and neutral tones."
+      },
+      {
+        "concept": "Biotech Data Analysis",
+        "prompt": "Laptop showing molecular graphs and data tables on modern desk, researchers blurred in background lab, cool blue lighting, shallow depth of field, commercial aesthetic."
+      }
+    ]
+  }
+]
