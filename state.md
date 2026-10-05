@@ -18,21 +18,26 @@ Sistema automatizado para análise de tendências, geração em massa e cataloga
 - [x] Salva 5 prompts em lote no `data/processed/prompts.json`.
 
 ### Fase 3: A Fábrica (Geração em Massa)
-*Status: 🟡 Implementado (Aguardando Testes)*
+*Status: 🟢 Concluído*
 - [x] Automação Híbrida RPA com Playwright para Runninghub (`src/factory/runninghub_bot.py`).
-- [x] Injeção de Batch Prompts em node nativo.
-- [x] Tratamento de pop-ups de erro e automação de download ("Save Image").
-- [ ] O Pipeline de Upscale será resolvido pelo próprio workflow interno no Runninghub do usuário.
+- [x] Injeção de Batch Prompts otimizada (Instantânea via `insert_text`).
+- [x] Salvamento manual aprovado (contorna instabilidades da engine de canvas fechada do ComfyUI).
+- [x] O Pipeline de Upscale é resolvido pelo próprio workflow interno no Runninghub do usuário.
 
 ### Fase 4: O Catalogador (Metadados e SEO)
-*Status: 🔴 Não Iniciado*
-- [ ] Visão Computacional para ler a imagem final.
-- [ ] Geração de Título e 50 palavras-chave (CSV export formatado para Adobe Stock).
+*Status: 🟢 Concluído*
+- [x] Integração com a API moderna `google-genai` para Visão Computacional (`src/cataloger/adobe_csv_maker.py`).
+- [x] Leitura automática de arquivos na pasta `data/final/images/`.
+- [x] Geração de Título comercial e exatamente 50 palavras-chave perfeitas via Gemini 1.5 Flash.
+- [x] Exportação final automatizada para o arquivo `data/processed/adobe_stock_upload.csv`, pronto para envio ao Adobe Stock.
 
 ## 🛠 Infraestrutura e DevOps
-- [x] Repositório GitHub inicializado e conectado.
+- [x] Repositório GitHub conectado e sincronizado.
 - [x] Ambiente Virtual Python configurado (`venv` e `requirements.txt`).
 - [x] Ambiente Antigravity/ECC configurado (`.agents/`).
 
 ## 🎯 Próximo Passo Imediato
-- Validar a automação da Fábrica (Runninghub) executando `runninghub_bot.py` na máquina local, **OU** iniciar a arquitetura e desenvolvimento da **Fase 4 (O Catalogador)** para automatizar as palavras-chave para o Adobe Stock.
+- O sistema principal está totalmente operacional! O fluxo diário agora consiste em:
+  1. Rodar a Fase 1 e 2 para pesquisar e criar os prompts.
+  2. Rodar a Fase 3 e salvar as imagens no diretório final.
+  3. Rodar a Fase 4 para processar as imagens e subir o arquivo CSV gerado junto com as fotos no Adobe Stock.
