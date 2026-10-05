@@ -30,5 +30,165 @@
         "prompt": "Laptop showing molecular graphs and data tables on modern desk, researchers blurred in background lab, cool blue lighting, shallow depth of field, commercial aesthetic."
       }
     ]
+  },
+  {
+    "source_id": "510137608",
+    "source_title": "stock market trend chart",
+    "analysis": {
+      "style": "Abstract financial data visualization, digital trading monitor macro aesthetic with slight motion blur and chromatic aberration",
+      "lighting": "High-contrast dark mode with bright emissive luminescence from glowing lines and bars against deep black",
+      "composition": "Layered horizontal and vertical waveforms, shallow depth of field, linear telemetry flows across dark space",
+      "color_palette": "Deep black, neon emerald green, bright warning orange, cyber cyan blue, amber yellow"
+    },
+    "generated_prompts": [
+      {
+        "concept": "Crypto Candlestick Volatility",
+        "prompt": "Macro shot of digital crypto candlestick charts, neon cyan and fiery orange glow, deep black terminal background, dynamic motion blur, ultra-modern finance aesthetic."
+      },
+      {
+        "concept": "AI Neural Waveform",
+        "prompt": "Abstract glowing audio and neural data lines, neon green and electric blue pulses against dark screen, shallow depth of field, high-tech telemetry."
+      },
+      {
+        "concept": "Forex Market Momentum",
+        "prompt": "Vibrant currency index graph lines, sharp focus foreground, blurred background bokeh, bright orange spikes, pitch-black UI display, cinematic stock photography."
+      },
+      {
+        "concept": "Cybersecurity Telemetry Stream",
+        "prompt": "Glowing network traffic frequency bars and line charts, vivid red and cyan light trails, dark data center monitor texture, glitch chromatic aberration."
+      },
+      {
+        "concept": "Quantum Computing Telemetry",
+        "prompt": "Abstract quantum qubit fluctuation graph, illuminated lime green and bright amber wavelengths, dark futuristic interface, sleek minimalist analytics."
+      }
+    ]
+  },
+  {
+    "source_id": "2173808676",
+    "source_title": "Businessman points at upward trending graph showing planing and growth from 2027 to 2028\n                        ",
+    "analysis": {
+      "style": "Modern corporate conceptual photography with sleek infographic overlays",
+      "lighting": "Moody cool interior lighting, soft rim lights, bright glowing neon accents",
+      "composition": "Strong upward diagonal flow, hand leading to top-right focal point, blurred city background",
+      "color_palette": "Deep navy, charcoal black, glowing lime green, bright white, muted grey"
+    },
+    "generated_prompts": [
+      {
+        "concept": "AI Technology Surge",
+        "prompt": "Close-up of businessman hand touching glowing AI node atop rising data line, night office window, dark navy and cyan glow, sleek stock photo."
+      },
+      {
+        "concept": "Sustainable ESG Growth",
+        "prompt": "Corporate hand pointing to glowing eco leaf symbol on upward trend arrow, blurred city skyline background, deep blue and vibrant neon green lighting."
+      },
+      {
+        "concept": "Cybersecurity Metrics Rising",
+        "prompt": "Suit sleeve and hand interacting with glowing holographic shield at peak of ascending bar chart, dark skyscraper backdrop, electric blue and white neon."
+      },
+      {
+        "concept": "Global Market Investment",
+        "prompt": "Executive hand tapping luminous upward currency chart, blurred nighttime financial district view, high contrast, dark charcoal and vibrant gold-green accents."
+      },
+      {
+        "concept": "Startup Funding Milestone",
+        "prompt": "Professional hand guiding glowing exponential growth line toward bright target marker, modern glass high-rise background, corporate blue and vivid lime glow."
+      }
+    ]
+  },
+  {
+    "source_id": "2189545620",
+    "source_title": "Carbon credit market growth and environmental sustainability success concept with a transparent upward arrow graph over a vibrant green forest",
+    "analysis": {
+      "style": "Conceptual eco-business composite, aerial nature photography merged with glowing digital graphics",
+      "lighting": "Soft diffused morning sunlight, atmospheric haze, neon green luminescence",
+      "composition": "High-angle view with a dynamic diagonal upward trajectory",
+      "color_palette": "Emerald green, forest green, luminous mint, translucent white"
+    },
+    "generated_prompts": [
+      {
+        "concept": "Wind energy growth",
+        "prompt": "Aerial shot of offshore wind turbines in misty turquoise ocean, overlaid with glowing green rising line graph and bar chart, clean corporate aesthetic, soft morning light."
+      },
+      {
+        "concept": "Solar farm performance",
+        "prompt": "High-angle view of vast desert solar panel array, superimposed with an ascending translucent green trendline and upward arrow, diffused daylight, ESG concept."
+      },
+      {
+        "concept": "Sustainable smart city",
+        "prompt": "Aerial view of a futuristic green metropolis with vertical gardens, overlaid with glowing financial upward growth arrow and bar chart, atmospheric sunlight."
+      },
+      {
+        "concept": "Agri-tech yield growth",
+        "prompt": "Bird's-eye view of lush agricultural fields at sunrise, integrated with transparent glowing green upward metric bars and rising line, high commercial quality."
+      },
+      {
+        "concept": "Clean water investment",
+        "prompt": "Top-down view of pristine river winding through dense forest, featuring a bright green holographic ascending chart and arrow, crisp modern corporate look."
+      }
+    ]
+  },
+  {
+    "source_id": "1998295601",
+    "source_title": "Business hand interacting with rising financial graphs and glowing market indicators showing growth trend on futuristic blue digital background.",
+    "analysis": {
+      "style": "Modern corporate fintech with realistic photography and luminous holographic UI overlays",
+      "lighting": "Cool cinematic backlighting, high-contrast dark backdrop, glowing neon highlights",
+      "composition": "Angled close-up, shallow depth of field, dynamic upward diagonal flow",
+      "color_palette": "Deep navy, charcoal, electric cyan, luminous blue, crisp white"
+    },
+    "generated_prompts": [
+      {
+        "concept": "AI market prediction",
+        "prompt": "Businessman touching glowing neural network node with rising financial line graphs, dark corporate background, cyan neon highlights, photorealistic, 8k"
+      },
+      {
+        "concept": "Global logistics optimization",
+        "prompt": "Hand interacting with holographic world map and upward efficiency charts, blue digital interface, sleek dark corporate atmosphere, commercial stock style"
+      },
+      {
+        "concept": "Clean energy investments",
+        "prompt": "Close-up of hand selecting glowing digital wind turbine symbol surrounded by ascending stock market candlesticks, deep navy background, sharp focus"
+      },
+      {
+        "concept": "Blockchain security metrics",
+        "prompt": "Executive hand touching floating cryptographic block data and upward security index arrows, glowing icy blue holographic HUD, dark studio background"
+      },
+      {
+        "concept": "Biotech market growth",
+        "prompt": "Hand manipulating luminous floating DNA helix integrated with rising financial bar charts, high-tech fintech aesthetic, deep blue cinematic lighting"
+      }
+    ]
+  },
+  {
+    "source_id": "2126056380",
+    "source_title": "Financial Stock Market Graph with Glowing Data Visualization",
+    "analysis": {
+      "style": "3D futuristic data visualization, abstract financial tech",
+      "lighting": "Luminescent neon glow, cinematic bokeh, reflective ground lighting",
+      "composition": "Low-angle horizontal perspective, extreme shallow depth of field, selective macro focus",
+      "color_palette": "Electric cyan, neon amber, warm gold, deep charcoal black"
+    },
+    "generated_prompts": [
+      {
+        "concept": "AI Neural Network Analytics",
+        "prompt": "Macro 3D neural network, glowing cyan vertical bars, warm amber particle trails, shallow depth of field, glossy dark surface, bokeh --ar 16:9"
+      },
+      {
+        "concept": "Crypto Candlestick Wave",
+        "prompt": "Futuristic cryptocurrency market chart, glowing orange candlestick peaks, neon teal wave lines, dark background, tilt-shift blur --ar 16:9"
+      },
+      {
+        "concept": "Cybersecurity Data Stream",
+        "prompt": "Cybersecurity data visualization, cyan digital nodes, warm gold encrypted waveform, dark reflective glass, cinematic macro focus --ar 16:9"
+      },
+      {
+        "concept": "Global Supply Chain Metrics",
+        "prompt": "Logistics data stream, illuminated turquoise vertical meters, glowing amber connection paths, soft bokeh, sleek dark tech environment --ar 16:9"
+      },
+      {
+        "concept": "Biotech Genomic Dashboard",
+        "prompt": "Digital DNA sequencing visualization, glowing cyan bar graphs, amber particle wave, macro perspective, shallow focus, dark glossy floor --ar 16:9"
+      }
+    ]
   }
 ]

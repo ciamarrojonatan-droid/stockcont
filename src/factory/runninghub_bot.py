@@ -52,78 +52,83 @@ def run_factory_bot() -> None:
         user_data_dir = BASE_DIR / "playwright_session"
         with p.chromium.launch_persistent_context(
             user_data_dir=user_data_dir,
+            channel="chrome", # Usa o Chrome real instalado no PC (evita o bloqueio do Google)
             headless=False,
             viewport={"width": VIEWPORT_WIDTH, "height": VIEWPORT_HEIGHT},
-            accept_downloads=True
+            accept_downloads=True,
+            args=["--disable-blink-features=AutomationControlled"] # Oculta que é um robô
         ) as browser:
             page = browser.pages[0] if browser.pages else browser.new_page()
             
-            logger.info("Opening Runninghub... Please login if necessary.")
-            page.goto("https://www.runninghub.ai/") # Replace with the exact workflow URL if needed
+            logger.info("Opening Runninghub Workflow... Please login if necessary.")
+            page.goto("https://www.runninghub.ai/pt-br/workflow/2025818595460128770?source=workspace")
             
             input("👉 INTERAÇÃO HUMANA NECESSÁRIA:\n1. Faça login no Runninghub se necessário.\n2. Abra o seu Workflow.\n3. Dê zoom para que o node de 'Save Image' fique no CENTRO da tela.\n4. Quando estiver tudo pronto, aperte [ENTER] aqui no terminal para o bot assumir...")
             
             logger.info("Iniciando injeção de prompts...")
             
-            input("👉 Clique dentro da caixa de texto do seu nó de Prompts (para focar o cursor) e aperte [ENTER] no terminal...")
+            input("👉 Aperte [ENTER] aqui no terminal e DEPOIS você terá 5 SEGUNDOS para voltar ao navegador e CLICAR na sua ÚNICA caixa de texto (nó CR Text)...")
             
-            # O bot "digita" os prompts na caixa que está selecionada
-            page.evaluate("navigator.clipboard.writeText(arguments[0])", prompts_text)
-            page.keyboard.press("Control+V")
-            logger.info("Prompts colados com sucesso!")
-            
-            # Clicar em Queue Prompt / Generate
-            logger.info("Procurando o botão de gerar...")
-            try:
-                queue_btn = page.locator("button:has-text('Queue'), button:has-text('Generate'), #queue-button").first
-                queue_btn.click(timeout=5000)
-                logger.info("Geração iniciada! Aguardando o término (pode levar vários minutos)...")
-            except PlaywrightTimeoutError:
-                logger.error("Timeout: Não achei o botão de gerar automaticamente. Por favor clique nele.")
-                input("Aperte [ENTER] após clicar em gerar...")
-            except PlaywrightError as e:
-                logger.error(f"Erro do Playwright ao clicar no botão gerar: {e}")
-                input("Aperte [ENTER] após clicar em gerar...")
-
-            # Aguardar o pop-up de erro
-            logger.info("Monitorando tela em busca do pop-up de erro...")
-            # A maioria dos erros no ComfyUI/Runninghub aparecem em um dialog
-            error_dialog = page.locator(".comfy-modal, dialog, .error-popup").locator("button:has-text('OK'), button:has-text('Close')").first
-            
-            # Fica tentando achar o botão de OK do erro (isso trava até o erro aparecer)
-            error_dialog.wait_for(state="visible", timeout=0) # timeout=0 significa esperar para sempre
-            error_dialog.click()
-            logger.info("Pop-up de erro detectado e fechado!")
-            
-            # Tempo pro pop-up sumir visualmente
+            logger.info("⏳ Volte para o navegador e CLIQUE na caixa de texto! Começando em 5...")
             time.sleep(1)
-
-            logger.info("Iniciando download da imagem no canvas...")
-            # Clica com o botão direito bem no meio da tela (onde você deixou o nó 'Save Image')
-            viewport_size = page.viewport_size
-            if viewport_size:
-                center_x = viewport_size["width"] / 2
-                center_y = viewport_size["height"] / 2
-                page.mouse.click(center_x, center_y, button="right")
-                time.sleep(0.5)
+            logger.info("4...")
+            time.sleep(1)
+            logger.info("3...")
+            time.sleep(1)
+            logger.info("2...")
+            time.sleep(1)
+            logger.info("1... Escrevendo!")
+            time.sleep(1)
             
-            # Agora clica em "Save Image" no menu de contexto
+            logger.info("Iniciando injeção de todos os prompts na caixa de texto...")
+            # Opção B escolhida: Injetar todo o bloco de 20 prompts de uma só vez!
+            # O ComfyUI e o Runninghub cuidarão de gerar o batch (usando PromptLine ou similar).
+            
+            injetado = False
+            for frame in page.frames:
+                try:
+                    res = frame.evaluate("""(text) => {
+                        let el = document.activeElement;
+                        if (el && (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT')) {
+                            el.value = text;
+                            el.dispatchEvent(new Event('input', { bubbles: true }));
+                            el.dispatchEvent(new Event('change', { bubbles: true }));
+                            return true;
+                        }
+                        return false;
+                    }""", prompts_text)
+                    if res:
+                        injetado = True
+                        break
+                except Exception:
+                    pass
+            
+            if injetado:
+                logger.info("Todos os 20 prompts foram injetados com sucesso num único bloco de texto!")
+            else:
+                logger.warning("Caixa não focada. Usando fallback de Inserção Rápida...")
+                page.keyboard.press("Control+A")
+                page.keyboard.press("Backspace")
+                # insert_text cola todo o bloco de uma vez instantaneamente (como se fosse Ctrl+V)
+                page.keyboard.insert_text(prompts_text)
+            
+            # Clicar em Executar (Botão do Meio - Lite/Plus)
+            logger.info("Procurando o botão de Executar (Lite/Plus)...")
             try:
-                with page.expect_download(timeout=10000) as download_info:
-                    save_option = page.locator("td:has-text('Save Image'), li:has-text('Save Image'), div:has-text('Save Image')").first
-                    save_option.click()
-                
-                download = download_info.value
-                filepath = FINAL_IMAGES_DIR / download.suggested_filename
-                download.save_as(filepath)
-                logger.info(f"SUCESSO! Imagens salvas em: {filepath}")
+                queue_btn = page.get_by_text("Executar").nth(1)
+                queue_btn.click(timeout=5000)
+                logger.info("Geração de Lote iniciada!")
             except PlaywrightTimeoutError:
-                logger.error("Timeout ao aguardar o evento de download do navegador.")
-                input("Por favor, faça o download manualmente e aperte [ENTER] para encerrar...")
+                logger.error("Não achei o botão de gerar. Por favor clique nele e aperte [ENTER].")
+                input("Aperte [ENTER] após clicar em gerar...")
             except PlaywrightError as e:
-                logger.error(f"Falha ao automatizar o clique em 'Save Image'. Erro: {e}")
-                input("Por favor, faça o download manualmente e aperte [ENTER] para encerrar...")
-                
+                logger.error(f"Erro ao clicar: {e}")
+                input("Aperte [ENTER] após clicar em gerar...")
+
+            logger.info("A geração está rodando no site...")
+            logger.info("👉 COMO O CANVAS DO COMFYUI É FECHADO, O SALVAMENTO AUTOMÁTICO É INSTÁVEL.")
+            logger.info("👉 POR FAVOR, QUANDO AS IMAGENS TERMINAREM DE GERAR, SALVE-AS MANUALMENTE NA PASTA: data/final/images/")
+            input("Aperte [ENTER] para encerrar o robô...")
             logger.info("Fábrica finalizou este lote!")
 
 if __name__ == "__main__":
