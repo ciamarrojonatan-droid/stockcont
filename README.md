@@ -1,40 +1,50 @@
 # StockCont 📈🤖
 
-> **Automated pipeline for AI stock asset generation, trend analysis, and cataloging.**
+> **Automated end-to-end pipeline for AI stock asset generation, trend analysis, and cataloging.**
 
-StockCont is an end-to-end automation system designed to analyze market trends in microstock platforms (such as Adobe Stock), reverse-engineer visual aesthetics using Multimodal LLMs, and autonomously generate and catalog commercial-grade AI assets for passive income.
+StockCont is an autonomous data and production pipeline designed to analyze market trends in microstock platforms (such as Adobe Stock), reverse-engineer visual aesthetics using Multimodal LLMs, and autonomously generate, upscale, and catalog commercial-grade AI assets for microstock sales.
 
 ---
 
 ## 🏗️ Architecture & Pipeline
 
-The system is designed as a 4-phase data pipeline:
+The system is organized into a 4-phase production pipeline coordinated by a central CLI orchestrator (`main.py`):
+
+```mermaid
+flowchart LR
+    A[Fase 1: Scraper\nAdobe Stock Trends] --> B[Fase 2: Diretor de Arte\nDNA Visual + Prompts]
+    B --> C[Fase 3: A Fábrica\nRunninghub ComfyUI RPA]
+    C --> D[Fase 4: Catalogador\nGemini Vision + IPTC/EXIF + CSV]
+```
 
 ### 1. The "Scout" (Trend Analyzer)
-* **Module**: `src/scraper/adobe_stock.py`
-* **Function**: Uses Playwright to scrape top-trending assets on Adobe Stock. It downloads reference images and compiles metadata into a structured raw JSON dataset (`data/raw/trends.json`).
+* **Module**: [`src/scraper/adobe_stock.py`](file:///c:/Users/WDAGUtilityAccount/Downloads/Nova%20pasta%20%282%29/src/scraper/adobe_stock.py)
+* **Function**: Scrapes top-trending and best-selling assets on Adobe Stock with dynamic niche query support (`--query`, `--order`, `--type`). Downloads reference previews and indexes metadata into `data/raw/trends.json`.
 
 ### 2. The "Art Director" (Prompt Engineering)
-* **Module**: `src/analyzer/director.py`
-* **Function**: Leverages Google Gemini (1.5/3.8 Flash Vision) to analyze the "visual DNA" of trending images (lighting, composition, style, color palette). It generates highly commercial derivative prompts optimized for AI generators (Midjourney/ComfyUI), saving them to `data/processed/prompts.json`.
+* **Module**: [`src/analyzer/director.py`](file:///c:/Users/WDAGUtilityAccount/Downloads/Nova%20pasta%20%282%29/src/analyzer/director.py)
+* **Function**: Leverages Gemini Multimodal Vision to deconstruct the "visual DNA" (style, lighting, composition, color palette) of trending references, generating commercial derivative prompts stored in `data/processed/prompts.json`.
 
 ### 3. The "Factory" (Mass Generation)
-* **Module**: `src/factory/runninghub_bot.py`
-* **Function**: An RPA (Robotic Process Automation) hybrid bot using Playwright. It automatically injects the batch prompts into a Runninghub (ComfyUI) workflow, handles pop-ups, and downloads the final upscaled images autonomously.
+* **Module**: [`src/factory/runninghub_bot.py`](file:///c:/Users/WDAGUtilityAccount/Downloads/Nova%20pasta%20%282%29/src/factory/runninghub_bot.py)
+* **Function**: RPA automation with Playwright that launches your Runninghub/ComfyUI workflow in a persistent Chrome session and injects prompt batches instantaneously.
 
-### 4. The "Cataloger" (Metadata & SEO) *[WIP]*
-* **Module**: *Pending*
-* **Function**: Will use computer vision to analyze the final generated assets and produce a formatted CSV containing SEO-optimized titles and 50 target keywords per image, ready for Adobe Stock bulk upload.
+### 4. The "Cataloger" (Metadata, IPTC & SEO)
+* **Module**: [`src/cataloger/adobe_csv_maker.py`](file:///c:/Users/WDAGUtilityAccount/Downloads/Nova%20pasta%20%282%29/src/cataloger/adobe_csv_maker.py)
+* **Function**: Uses sub-3s Gemini Vision analysis on images in `data/final/images/`. Generates a commercial title, 50 ranked keywords, and the category ID. 
+  * **IPTC/EXIF Injection**: Embeds Object Name, Caption, and Keywords directly into the image binary, enabling **100% automated form filling** upon uploading to Adobe Stock.
+  * **CSV Export**: Appends records into `data/processed/adobe_stock_upload.csv` as a ready-to-use upload backup.
 
 ---
 
 ## 🚀 Technology Stack
 
 * **Language**: Python 3.11+
-* **Web Automation**: Playwright (Sync API)
-* **LLM Integration**: Google Generative AI SDK (Gemini Vision)
-* **Network & Data**: HTTPX, Pillow, JSON
-* **Testing**: Pytest
+* **Web Automation**: Playwright (Sync API with persistent Chrome profile)
+* **AI & Vision**: Gemini Multimodal Vision (`gemini-3.5-flash-lite` / `gemini-3.8-flash`) via high-speed REST
+* **Metadata Engineering**: `iptcinfo3`, `piexif`, `Pillow`
+* **Networking & Data**: `httpx`, `json`, `csv`
+* **Testing**: `pytest`, `pytest-playwright`
 
 ---
 
@@ -46,66 +56,70 @@ The system is designed as a 4-phase data pipeline:
    cd stockcont
    ```
 
-2. **Set up the Python Virtual Environment**:
+2. **Set up the Virtual Environment**:
    ```bash
    python -m venv venv
    
-   # Windows
-   .\venv\Scripts\activate
+   # Windows PowerShell
+   .\venv\Scripts\Activate.ps1
    
-   # Linux/macOS
+   # Linux / macOS
    source venv/bin/activate
    ```
 
 3. **Install Dependencies**:
    ```bash
    pip install -r requirements.txt
-   npm install
-   ```
-
-4. **Install Playwright Browsers**:
-   ```bash
    playwright install chromium
    ```
 
-5. **Environment Variables**:
-   Create a `.env` file in the root directory (or export directly) with your Gemini API key:
+4. **Environment Variables**:
+   Create a `.env` file in the project root:
    ```env
    GEMINI_API_KEY="your_google_gemini_api_key_here"
    ```
 
 ---
 
-## 💻 Usage
+## 💻 Unified CLI Usage (`main.py`)
 
-Execute the pipeline phases sequentially:
+StockCont features a master CLI orchestrator:
 
-**Phase 1: Run the Scraper**
+### 📊 Check Pipeline Dashboard Status
 ```bash
-python src/scraper/adobe_stock.py
+python main.py --status
 ```
-*(Scrapes Adobe Stock and saves images to `data/raw/images/` and metadata to `data/raw/trends.json`)*
 
-**Phase 2: Run the Art Director**
+### 1️⃣ Run Phase 1 (Niche Trend Scout)
 ```bash
-python src/analyzer/director.py
-```
-*(Analyzes images and generates prompts in `data/processed/prompts.json`)*
+# Scrape best-selling photos in a specific niche:
+python main.py --phase 1 --query "business technology team" --order nb_downloads --max-items 10
 
-**Phase 3: Run the Factory Bot**
-```bash
-python src/factory/runninghub_bot.py
+# Or general trending assets:
+python main.py --phase 1
 ```
-*(Automates image generation via Runninghub)*
+
+### 2️⃣ Run Phase 2 (Generate Prompts with Gemini Vision)
+```bash
+python main.py --phase 2
+```
+
+### 3️⃣ Run Phase 3 (Inject Prompts into Runninghub Bot)
+```bash
+python main.py --phase 3
+```
+
+### 4️⃣ Run Phase 4 (Catalog Images, Embed IPTC/EXIF & Generate CSV)
+```bash
+python main.py --phase 4
+```
+
+### 🔄 Run Entire End-to-End Pipeline
+```bash
+python main.py --all --query "modern architecture interior" --max-items 15
+```
 
 ---
-
-## 🛣️ Roadmap
-- [x] Trend scraping and image extraction.
-- [x] Vision-based visual DNA reverse engineering.
-- [x] RPA integration with Runninghub.
-- [ ] Automated upscaling validation.
-- [ ] Phase 4: Automated keyword and title generation for microstock CSV upload.
 
 ## 📄 License
 MIT License
