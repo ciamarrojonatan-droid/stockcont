@@ -19,7 +19,7 @@ from dotenv import load_dotenv
 
 # Root Directory
 BASE_DIR = Path(__file__).resolve().parent
-load_dotenv(BASE_DIR / ".env")
+load_dotenv(BASE_DIR / ".env", override=True)
 
 # Reconfigure stdout/stderr to UTF-8 on Windows consoles to prevent cp1252 UnicodeEncodeError
 if sys.platform.startswith("win"):

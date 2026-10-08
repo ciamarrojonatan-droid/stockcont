@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 
 # Configuration
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
-load_dotenv(BASE_DIR / ".env")
+load_dotenv(BASE_DIR / ".env", override=True)
 RAW_DATA_FILE = BASE_DIR / "data" / "raw" / "trends.json"
 PROCESSED_DATA_FILE = BASE_DIR / "data" / "processed" / "prompts.json"
 

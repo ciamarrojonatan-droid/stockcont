@@ -18,7 +18,7 @@ logging.getLogger("iptcinfo").setLevel(logging.ERROR)
 
 # Configuration
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
-load_dotenv(BASE_DIR / ".env")
+load_dotenv(BASE_DIR / ".env", override=True)
 FINAL_IMAGES_DIR = BASE_DIR / "data" / "final" / "images"
 PROCESSED_DIR = BASE_DIR / "data" / "processed"
 CSV_FILE = PROCESSED_DIR / "adobe_stock_upload.csv"

@@ -190,5 +190,101 @@
         "prompt": "Digital DNA sequencing visualization, glowing cyan bar graphs, amber particle wave, macro perspective, shallow focus, dark glossy floor --ar 16:9"
       }
     ]
+  },
+  {
+    "source_id": "2191200761",
+    "source_title": "Glowing green neon sign displaying hashtag trending symbol attached to metal wire frame against dark blurred background with bright illumination",
+    "analysis": {
+      "style": "3D render, realistic cyberpunk neon signage, glowing tubes, metal grid background",
+      "lighting": "vibrant neon glow casting green light, dark moody atmospheric background with subtle lens flares",
+      "composition": "centered subject, eye-level shot, bold graphic typography paired with a symbol",
+      "color_palette": "electric green neon, deep blacks, dark charcoal grays"
+    },
+    "generated_prompts": [
+      {
+        "concept": "Glowing neon question mark sign with the word MYSTERY",
+        "prompt": "3D render of a glowing electric green neon sign with a question mark symbol and the word MYSTERY below it, mounted on a dark metal grid backdrop, moody cyberpunk city night background, cinematic lighting, vibrant neon glow, photorealistic, 8k resolution --ar 16:9"
+      },
+      {
+        "concept": "Neon exclamation sign with the word ALERT",
+        "prompt": "Vibrant red and orange neon sign featuring an exclamation point symbol and the word ALERT, mounted on a dark industrial mesh wall, moody dark atmosphere, glowing neon light reflections, hyper-detailed 3D render, cinematic composition --ar 16:9"
+      },
+      {
+        "concept": "Glowing neon star symbol with the word FAVORITE",
+        "prompt": "Bright cyan blue neon sign shaped like a star symbol with the word FAVORITE underneath, attached to a dark grid structure, night city ambient background, cinematic neon glow, crisp 3D visualization, commercial microstock quality --ar 16:9"
+      },
+      {
+        "concept": "Neon dollar sign with the word PROFIT",
+        "prompt": "Luxurious golden-yellow neon sign of a dollar symbol and the word PROFIT, mounted on a dark textured metal backing, sleek corporate futuristic dark aesthetic, glowing neon tubes, sharp focus, 3D render --ar 16:9"
+      },
+      {
+        "concept": "Neon heart symbol with the word PASSION",
+        "prompt": "Pink and magenta glowing neon sign featuring a heart symbol and the word PASSION, dark moody background with subtle atmospheric fog, vibrant neon light bloom, highly detailed 3D artwork, commercial stock asset style --ar 16:9"
+      }
+    ]
+  },
+  {
+    "source_id": "2189042005",
+    "source_title": "3D illustration of business growth chart with rising bars and upward trend arrow on dark blue background",
+    "analysis": {
+      "style": "Minimalist 3D render, corporate infographic concept, clean surfaces, modern financial aesthetic",
+      "lighting": "Dramatic studio lighting with soft shadows, subtle reflections on a glossy floor, clean highlights on edges",
+      "composition": "Isometric perspective, shallow depth of field, centered subject featuring progressive growth bars and an upward trending arrow",
+      "color_palette": "Monochromatic deep navy blue background with crisp white and silver 3D elements"
+    },
+    "generated_prompts": [
+      {
+        "concept": "Glowing neon digital growth chart",
+        "prompt": "Minimalist 3D render of a business growth chart with glowing cyan and neon green data bars, sleek upward trending arrow, dark matte background, studio lighting, corporate finance concept, photorealistic 8k, highly detailed --ar 16:9"
+      },
+      {
+        "concept": "Gold and obsidian luxury financial success",
+        "prompt": "Luxurious 3D render of financial bar charts made of polished gold and dark obsidian blocks, ascending steps with a brilliant golden upward trending arrow, dark moody background, premium reflections, professional studio lighting --ar 16:9"
+      },
+      {
+        "concept": "Abstract translucent glass metrics concept",
+        "prompt": "Modern minimalist 3D render of frosted glass data bars of increasing height, transparent cryptocurrency or financial growth metrics, sleek white upward trend line, clean studio lighting, dark gradient background, highly detailed --ar 16:9"
+      },
+      {
+        "concept": "Vibrant startup success metrics",
+        "prompt": "Clean 3D render of progressive business growth bars in vibrant coral and teal colors, upward sloping trend arrow, dark charcoal studio background, soft cinematic lighting, sleek corporate identity aesthetic --ar 16:9"
+      },
+      {
+        "concept": "Futuristic AI data analytics visualization",
+        "prompt": "Futuristic 3D render of ascending analytics columns with glowing circuit board patterns, high-tech upward pointing laser arrow, dark futuristic workspace background, volumetric lighting, photorealistic corporate concept --ar 16:9"
+      }
+    ]
+  },
+  {
+    "source_id": "2204013188",
+    "source_title": "neon glowing blue curved arrow moving up concept of stock market business growth financial profit economic growth business grow up trend business growth upward arrow sign",
+    "analysis": {
+      "style": "3D futuristic data visualization, minimalist and sleek corporate tech aesthetic",
+      "lighting": "vibrant neon glow, edge lighting, high contrast against a dark background",
+      "composition": "dynamic diagonal upward trajectory with a prominent glowing arrow and vertical bar graphs",
+      "color_palette": "deep navy blue background with bright cyan, electric blue, and subtle white highlights"
+    },
+    "generated_prompts": [
+      {
+        "concept": "AI Neural Network Growth",
+        "prompt": "3D futuristic data visualization of an expanding neural network, glowing electric cyan and deep blue lines shooting upward, minimalist corporate tech aesthetic, high contrast neon lighting, dark navy background, commercial microstock quality --ar 16:9"
+      },
+      {
+        "concept": "Cryptocurrency Bull Market Surge",
+        "prompt": "3D futuristic financial candlestick charts with a massive glowing neon blue arrow surging upward, electric cyan light trails, dark navy background, sleek corporate wealth and investment theme, cinematic lighting --ar 16:9"
+      },
+      {
+        "concept": "Global Tech Innovation Leap",
+        "prompt": "3D futuristic tech illustration of a glowing holographic rocket launch leaving a trail of electric cyan light, vertical data bars below, deep navy blue background, high contrast neon glow, commercial microstock design --ar 16:9"
+      },
+      {
+        "concept": "Green Energy Sustainability Index",
+        "prompt": "3D futuristic sustainability growth chart, glowing emerald green and teal neon lines rising upward like plant shoots and data bars, dark sleek background, high contrast edge lighting, commercial tech style --ar 16:9"
+      },
+      {
+        "concept": "Cybersecurity Defense Shield Scaling",
+        "prompt": "3D futuristic cybersecurity scaling graph, glowing electric blue and purple neon data streams locking into a secure shield shape, dark navy background, vibrant edge lighting, corporate technology concept --ar 16:9"
+      }
+    ]
   }
 ]
