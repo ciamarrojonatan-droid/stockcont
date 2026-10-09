@@ -10,6 +10,8 @@ venv/
 data/raw/images/
 data/final/images/
 playwright_session/
+chrome_session/
+scratch*
 
 # Python & testing cache
 __pycache__/

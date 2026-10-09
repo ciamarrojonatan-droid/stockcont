@@ -8,15 +8,16 @@ Sistema automatizado para análise de tendências de microstock, engenharia reve
 ### Fase 1: O "Olheiro" (Trend Analyzer)
 *Status: 🟢 Concluído & Otimizado*
 - [x] Scraper desenvolvido em Python com Playwright (`src/scraper/adobe_stock.py`).
+- [x] Stealth antibot integrado com Chrome persistente (bypass de bloqueio 403 / DataDome).
 - [x] Parametrização dinâmica por Nicho (`--query`, `--order`, `--type`, `--max-items`).
 - [x] Filtros por ordem de relevância, mais baixados (`nb_downloads`) e tipo de asset (foto/ilustração).
-- [x] Armazenamento de metadados em `data/raw/trends.json` e imagens em `data/raw/images/`.
+- [x] Armazenamento de metadados em `data/raw/trends.json` (14 itens gravados) e imagens em `data/raw/images/`.
 
 ### Fase 2: Diretor de Arte (Engenharia de Prompts)
 *Status: 🟢 Concluído & Otimizado*
-- [x] Integração de alta velocidade com Gemini Multimodal (`src/analyzer/director.py`).
+- [x] Integração de alta velocidade com Gemini Multimodal via REST (`src/analyzer/director.py`).
 - [x] Engenharia reversa para "DNA visual" (estilo, iluminação, composição, paleta) e geração de prompts comerciais derivados.
-- [x] Fila de prompts salvos em lote no `data/processed/prompts.json` com escrita atômica contra falhas.
+- [x] Fila de 70 prompts prontos salvos em `data/processed/prompts.json` com escrita atômica contra falhas.
 
 ### Fase 3: A Fábrica (Geração em Massa)
 *Status: 🟢 Concluído*

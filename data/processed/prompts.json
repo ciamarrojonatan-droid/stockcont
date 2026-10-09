@@ -286,5 +286,165 @@
         "prompt": "3D futuristic cybersecurity scaling graph, glowing electric blue and purple neon data streams locking into a secure shield shape, dark navy background, vibrant edge lighting, corporate technology concept --ar 16:9"
       }
     ]
+  },
+  {
+    "source_id": "2041636369",
+    "source_title": "Happy diverse corporate business team analyzing complex financial data charts on large interactive digital whiteboard during creative modern office strategy meeting",
+    "analysis": {
+      "style": "Contemporary corporate photography, candid and professional lifestyle, sharp focus with natural background blur, highly commercial aesthetic.",
+      "lighting": "Bright natural daylight streaming through large office windows, complemented by clean modern indoor lighting creating an airy, positive atmosphere.",
+      "composition": "Medium shot focusing on a small team collaborating in front of a digital interactive display screen, dynamic angled framing with leading lines, shallow depth of field.",
+      "color_palette": "Professional corporate tones including slate blue, crisp white, warm wood accents, and muted pastel interior details."
+    },
+    "generated_prompts": [
+      {
+        "concept": "Tech startup team brainstorming on a glass whiteboard",
+        "prompt": "Modern tech startup office, a diverse team of three professionals collaborating around a glowing glass whiteboard covered in colorful diagrams and flowcharts, bright natural window light, corporate lifestyle photography, shallow depth of field, 8k resolution, photorealistic."
+      },
+      {
+        "concept": "Product design review with physical prototypes",
+        "prompt": "Creative agency workspace, a small group of colleagues analyzing new product prototypes laid out on a clean wooden table, modern interior design with large windows, candid corporate portrait, vibrant and professional lighting, highly detailed."
+      },
+      {
+        "concept": "Financial analysts reviewing data on tablets",
+        "prompt": "Bright open-plan financial office, colleagues in smart-casual business attire discussing market trends using digital tablets, natural daylight, modern minimalist interior, candid teamwork moment, commercial photography style, sharp focus."
+      },
+      {
+        "concept": "UX/UI designers testing interactive wireframes",
+        "prompt": "Modern digital agency office, UX designers pointing at a large curved monitor displaying wireframes and user interface designs, collaborative workplace setting, bright daylight, professional composition, shallow depth of field."
+      },
+      {
+        "concept": "Marketing team strategy meeting in a bright boardroom",
+        "prompt": "Contemporary corporate boardroom, marketing professionals smiling while reviewing quarterly performance metrics on a large wall display, bright interior lighting, professional lifestyle photography, high-end commercial look."
+      }
+    ]
+  },
+  {
+    "source_id": "627360189",
+    "source_title": "Meeting, collaboration and business people in discussion in the office while working together. Teamwork, planning and group of employees brainstorming with technology for a project in the workplace.",
+    "analysis": {
+      "style": "Contemporary corporate photography, candid and authentic storytelling style, high-end professional workplace setting, shallow depth of field with foreground glass reflections adding natural framing and depth.",
+      "lighting": "Natural soft ambient office lighting combined with bright interior diffusion, casting gentle highlights on subjects and creating a clean, modern atmosphere.",
+      "composition": "Medium shot across a meeting table, showing diverse professionals engaged in active discussion with expressive hand gestures, captured through a slightly obscured glass partition for a voyeuristic documentary feel.",
+      "color_palette": "Muted earth tones, olive greens, soft beige, warm skin tones, and neutral greys."
+    },
+    "generated_prompts": [
+      {
+        "concept": "Tech startup brainstorming session with holographic UI elements",
+        "prompt": "Contemporary corporate photography, candid moment of a diverse tech team brainstorming in a modern glass office, soft ambient lighting, natural skin tones, muted earth tones and cool blues, medium shot through a glass partition, shallow depth of field, highly detailed, commercial stock photo quality --ar 16:9"
+      },
+      {
+        "concept": "Creative agency review meeting with colorful mood boards",
+        "prompt": "Authentic professional photography, creative agency team reviewing colorful design mood boards around a bright white table, soft natural window light, candid gestures, modern minimalist office, muted color palette with warm wood accents, shot through clean glass with subtle reflections, commercial style --ar 16:9"
+      },
+      {
+        "concept": "Executive board meeting with focused leadership discussion",
+        "prompt": "Corporate lifestyle photography, senior executives in a sleek boardroom engaged in an intense strategic discussion, natural ambient lighting, professional attire, soft neutral color palette, medium framing through glass panel, documentary style corporate imagery, high-end editorial look --ar 16:9"
+      },
+      {
+        "concept": "Architectural team collaborating over blueprints and 3D models",
+        "prompt": "Professional architectural team collaborating over large blueprints and digital tablets in a bright modern studio, candid expressions and natural hand gestures, soft diffused lighting, earthy tones and minimalist interior, shot through a transparent wall, high commercial value --ar 16:9"
+      },
+      {
+        "concept": "Product design workshop with interactive prototyping",
+        "prompt": "Candid workplace photography, diverse product designers working together around a table with prototypes and laptops, warm natural lighting, modern industrial office background, muted greens and warm beige tones, shallow depth of field through a glass barrier, premium microstock style --ar 16:9"
+      }
+    ]
+  },
+  {
+    "source_id": "907520185",
+    "source_title": "Corporate team strategizing in a collaborative meeting with digital technology tools for advanced marketing data analysis and informed investment decision-making in a modern business environment",
+    "analysis": {
+      "style": "Modern corporate stock photography, double exposure, high-tech business conceptual art, sleek and professional",
+      "lighting": "Backlit silhouettes with cinematic blue ambient room light, bright lens flare highlights, glowing digital interface overlays",
+      "composition": "Eye-level wide shot of a group of professionals silhouetted around a boardroom table, centered focus with digital infographics superimposed across the scene",
+      "color_palette": "Deep cyan, electric blue, cool white highlights, subtle warm orange lens flare accents"
+    },
+    "generated_prompts": [
+      {
+        "concept": "Global Logistics & Supply Chain Strategy",
+        "prompt": "Double exposure silhouette of international executives meeting around a sleek table, glowing 3D holographic globe, global supply chain routes and trade data overlays, cinematic blue lighting, high-tech corporate aesthetic, photorealistic, 8k --ar 16:9"
+      },
+      {
+        "concept": "AI & Big Data Innovation Boardroom",
+        "prompt": "Silhouetted team of business leaders collaborating in a modern conference room, vibrant glowing neural network connections, data analytics dashboards, floating glowing code and graphs, deep cyan and cool blue tones, highly detailed, professional stock photo style --ar 16:9"
+      },
+      {
+        "concept": "Cybersecurity & Risk Management Discussion",
+        "prompt": "Backlit business executives reviewing security analytics in a high-tech boardroom, glowing digital firewall visualizations, shield icons, data streams, cyber threat intelligence graphs overlaying the room, cinematic corporate atmosphere --ar 16:9"
+      },
+      {
+        "concept": "FinTech & Algorithmic Trading Team",
+        "prompt": "Silhouettes of financial analysts seated at a conference table, glowing stock market charts, fluctuating candlestick graphs, quantitative trading algorithms streaming across transparent displays, sleek modern office interior, electric blue color palette --ar 16:9"
+      },
+      {
+        "concept": "Smart City Infrastructure Planning",
+        "prompt": "Diverse group of urban planners and executives in silhouette, glowing holographic smart city model in the center of the boardroom, architectural blueprints, IoT sensor data feeds, futuristic corporate design, high-end commercial photography --ar 16:9"
+      }
+    ]
+  },
+  {
+    "source_id": "2018477189",
+    "source_title": "Cybersecurity training session for a small business team in office",
+    "analysis": {
+      "style": "Contemporary corporate photography, candid and natural workplace interaction, high realism, editorial business style",
+      "lighting": "Bright natural daylight streaming through large factory-style windows, soft ambient interior fill lighting",
+      "composition": "Medium-wide shot, eye-level perspective, featuring a diverse team gathered around a modern organic-shaped conference table while a presenter points to a large digital screen displaying data graphics",
+      "color_palette": "Natural earthy tones mixed with muted corporate colors (navy blue, sage green, warm beige, soft wood textures)"
+    },
+    "generated_prompts": [
+      {
+        "concept": "Product design sprint with diverse team around a collaborative table",
+        "prompt": "Contemporary corporate photography, a diverse team of professionals collaborating around a modern wooden table during a product design sprint, sketching ideas and looking at prototypes, bright natural daylight from large windows, editorial style, candid moment --ar 16:9 --v 6.0"
+      },
+      {
+        "concept": "Tech startup roadmap strategy meeting in an industrial loft office",
+        "prompt": "Editorial business photography, a dynamic tech startup team in an industrial loft office reviewing a roadmap on a glass whiteboard, natural daylight, candid professional interaction, muted earth tones and modern corporate aesthetic --ar 16:9 --v 6.0"
+      },
+      {
+        "concept": "Sustainability metrics presentation in an eco-friendly modern office",
+        "prompt": "Commercial photography of a diverse corporate group in a light-filled eco-friendly office, a female team lead presenting sustainability charts on a wall screen, colleagues engaged and taking notes, warm wood and plant accents, soft natural lighting --ar 16:9 --v 6.0"
+      },
+      {
+        "concept": "Creative agency brainstorming session with sticky notes and laptops",
+        "prompt": "High-end stock photography, a creative agency team in a bright modern workspace during an active brainstorming session, surrounded by laptops and design boards, natural window light, authentic professional expressions, clean composition --ar 16:9 --v 6.0"
+      },
+      {
+        "concept": "UX/UI wireframe review meeting in a minimalist tech studio",
+        "prompt": "Contemporary corporate photography, diverse professionals reviewing mobile app wireframes on a large monitor in a minimalist tech studio, engaged discussion, soft natural daylight, stylish neutral color palette, editorial realism --ar 16:9 --v 6.0"
+      }
+    ]
+  },
+  {
+    "source_id": "2008905945",
+    "source_title": "Two professional women collaborating at office desk, reviewing data on laptop and tablet in meeting room, teamwork and business planning. Team of women using technology at work, doing analysing",
+    "analysis": {
+      "style": "Modern corporate stock photography, candid, professional, high-end editorial",
+      "lighting": "Natural daylight mixed with soft office ambient lighting, clean highlights on faces and tech devices",
+      "composition": "Medium shot, eye-level, dynamic three-quarter angle focusing on collaboration around tech devices, shallow depth of field with softly blurred background",
+      "color_palette": "Warm earth tones, terracotta brown, muted beige, charcoal gray accents, natural skin tones"
+    },
+    "generated_prompts": [
+      {
+        "concept": "Diverse team collaborating over architectural blueprints and tablet in modern studio",
+        "prompt": "Candid medium shot of a diverse group of architects collaborating around a wooden table in a bright modern studio, reviewing blueprints and a digital tablet, natural daylight, warm earthy tones, professional lifestyle stock photography, photorealistic, 8k resolution --ar 16:9"
+      },
+      {
+        "concept": "Tech startup founders reviewing analytics on laptop and smartphone",
+        "prompt": "Medium angle shot of two tech startup founders working together in a sleek minimalist office, pointing at data on a laptop screen, holding a smartphone, warm corporate lighting, professional casual attire, candid commercial photography style --ar 16:9"
+      },
+      {
+        "concept": "Creative directors brainstorming brand strategy with sticky notes and tablet",
+        "prompt": "Two creative professionals brainstorming brand strategy in a sunlit glass-walled conference room, colorful sticky notes on a glass board in background, holding a tablet and digital stylus, candid and engaging, warm color palette, professional stock photo --ar 16:9"
+      },
+      {
+        "concept": "Financial analysts reviewing market trends on dual screens",
+        "prompt": "Candid medium shot of financial analysts reviewing market trends together in a contemporary office, looking at financial charts on a laptop, warm ambient lighting, upscale corporate environment, natural expressions, professional advertising photography --ar 16:9"
+      },
+      {
+        "concept": "UX designers collaborating on wireframes using digital drawing tablet",
+        "prompt": "Two UX designers collaborating in a modern loft office space, reviewing digital wireframes on a tablet and laptop, natural light, terracotta and beige color scheme, professional corporate lifestyle photography, sharp focus, shallow depth of field --ar 16:9"
+      }
+    ]
   }
 ]

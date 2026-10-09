@@ -92,37 +92,69 @@ def scrape_adobe_stock_trends(
     search_url = build_adobe_stock_url(query=query, order=order, content_type=content_type)
     logger.info(f"Navigating to Adobe Stock: {search_url} (target items: {max_items})")
 
+    session_dir = BASE_DIR / "chrome_session"
+    session_dir.mkdir(parents=True, exist_ok=True)
+
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=headless)
-        context = browser.new_context(
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        )
-        page = context.new_page()
+        # Launch using installed Chrome or default chromium with stealth options
+        launch_kwargs = {
+            "user_data_dir": session_dir,
+            "headless": headless,
+            "args": [
+                "--disable-blink-features=AutomationControlled",
+                "--no-sandbox",
+                "--disable-setuid-sandbox"
+            ]
+        }
+        try:
+            browser = p.chromium.launch_persistent_context(channel="chrome", **launch_kwargs)
+        except Exception:
+            browser = p.chromium.launch_persistent_context(**launch_kwargs)
+
+        page = browser.pages[0] if browser.pages else browser.new_page()
+        page.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
 
         try:
-            page.goto(search_url, wait_until="networkidle", timeout=30000)
-            time.sleep(random.uniform(2.0, 3.5))
+            page.goto(search_url, wait_until="domcontentloaded", timeout=45000)
+            
+            # Wait for content or search cells to appear
+            try:
+                page.wait_for_selector("article.search-result-cell, div.search-result-cell, [data-content-id]", timeout=15000)
+            except Exception:
+                time.sleep(3)
 
             # Scroll down smoothly to load lazy images
             for _ in range(3):
                 page.mouse.wheel(0, 1000)
-                time.sleep(random.uniform(1.0, 2.0))
+                time.sleep(random.uniform(1.0, 1.8))
 
-            items = page.locator("article.search-result-cell, div.search-result-cell")
+            items = page.locator("article.search-result-cell, div.search-result-cell, [data-content-id]")
             all_items = items.all()
             logger.info(f"Found {len(all_items)} potential items on search page.")
 
-            for item in all_items[:max_items]:
+            seen_ids = set()
+            for item in all_items:
+                if len(scraped_data) >= max_items:
+                    break
+
                 try:
-                    item_id = item.get_attribute("data-content-id") or f"unknown_{random.randint(1000, 9999)}"
+                    item_id = item.get_attribute("data-content-id")
+                    if not item_id:
+                        continue
+                    if item_id in seen_ids:
+                        continue
 
                     img_locator = item.locator("img").first
+                    if img_locator.count() == 0:
+                        continue
+
                     title = img_locator.get_attribute("alt") or "Untitled"
                     img_url = img_locator.get_attribute("src") or img_locator.get_attribute("data-lazy")
 
-                    if not img_url:
+                    if not img_url or not img_url.startswith("http"):
                         continue
 
+                    seen_ids.add(item_id)
                     logger.info(f"Scraping asset [{item_id}]: {title[:40]}...")
                     local_path = download_image(img_url, item_id)
 
@@ -139,7 +171,7 @@ def scrape_adobe_stock_trends(
                 except Exception as e:
                     logger.warning(f"Error extracting item: {e}")
 
-                time.sleep(random.uniform(0.3, 0.8))
+                time.sleep(random.uniform(0.2, 0.5))
 
         except PlaywrightTimeoutError:
             logger.error("Timeout waiting for Adobe Stock search results.")

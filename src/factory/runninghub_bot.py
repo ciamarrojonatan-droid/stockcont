@@ -129,31 +129,58 @@ def run_factory_bot() -> None:
         ) as browser:
             page = browser.pages[0] if browser.pages else browser.new_page()
             
-            logger.info("Opening Runninghub Workflow... Please login if necessary.")
+            
+            logger.info("Opening Runninghub Workflow... Waiting for login if necessary.")
             try:
                 page.goto("https://www.runninghub.ai/pt-br/workflow/2025818595460128770?source=workspace", wait_until="domcontentloaded", timeout=60000)
             except Exception as e:
                 logger.warning(f"Aviso de rede ao abrir Runninghub ({e}). Prosseguindo com o navegador aberto...")
             
-            # 1. Login interaction
-            input("👉 INTERAÇÃO HUMANA NECESSÁRIA:\n1. Faça login se necessário.\n2. Abra o Workflow e posicione onde quiser.\n3. Quando estiver pronto, aperte [ENTER] aqui no terminal...")
+            # 1. Automate waiting for login and workflow load
+            logger.info("Verificando status de login e aguardando carregamento do workflow...")
+            workflow_url_part = "2025818595460128770"
             
-            # 2. Inject prompts
-            logger.info("Iniciando injeção de prompts...")
-            input("👉 Aperte [ENTER] aqui no terminal e DEPOIS você terá 5 SEGUNDOS para voltar ao navegador e CLICAR na caixa de texto do seu prompt (nó CR Text)...")
-            
-            logger.info("⏳ Volte para o navegador e CLIQUE na caixa de texto! Começando em 5...")
-            for i in range(5, 0, -1):
-                logger.info(f"{i}...")
-                time.sleep(1)
-            logger.info("Escrevendo!")
-            
+            loaded = False
+            for _ in range(60): # Até 5 minutos
+                if workflow_url_part in page.url:
+                    try:
+                        # Checa se existe tela de canvas ou botões nativos do comfyui/runninghub
+                        if page.locator("canvas").count() > 0 or page.locator("button:has-text('Executar'), [role='button']:has-text('Executar')").count() > 0:
+                            loaded = True
+                            break
+                    except Exception:
+                        pass
+                time.sleep(5)
+                logger.info("⏳ Aguardando login ou carregamento do workflow na tela...")
+                
+            if not loaded:
+                logger.error("Tempo limite atingido aguardando o workflow carregar. Encerrando o bot.")
+                return
+
+            logger.info("✅ Workflow carregado! Iniciando injeção de prompts automática...")
+            time.sleep(5) # Delay extra para garantir que iframes e nós do ComfyUI estejam instanciados
+
+            # 2. Inject prompts automatically into the DOM/Canvas
             injetado = False
             for frame in page.frames:
                 try:
                     res = frame.evaluate("""(text) => {
-                        let el = document.activeElement;
-                        if (el && (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT')) {
+                        // Tentar achar LiteGraph do ComfyUI nativo no window.app
+                        if (typeof window.app !== 'undefined' && window.app.graph) {
+                            for (let node of window.app.graph._nodes) {
+                                if (node.widgets && (node.type.includes('Text') || node.type.includes('Prompt') || node.title.includes('Text'))) {
+                                    node.widgets[0].value = text;
+                                    if(node.widgets[0].callback) node.widgets[0].callback(text);
+                                }
+                            }
+                            window.app.graph.setDirtyCanvas(true, true);
+                            return true;
+                        }
+                        
+                        // Tentar achar textarea aberta do nó no DOM
+                        let textareas = Array.from(document.querySelectorAll('textarea'));
+                        if (textareas.length > 0) {
+                            let el = textareas[0];
                             el.value = text;
                             el.dispatchEvent(new Event('input', { bubbles: true }));
                             el.dispatchEvent(new Event('change', { bubbles: true }));
@@ -168,57 +195,95 @@ def run_factory_bot() -> None:
                     pass
                     
             if injetado:
-                logger.info("Todos os prompts foram injetados com sucesso pelo DOM!")
+                logger.info("✅ Prompts injetados via DOM / App Graph com sucesso!")
             else:
-                logger.warning("Caixa não focada via DOM. Usando fallback de teclado...")
+                logger.warning("Caixa ou App Graph não encontrada diretamente. Usando fallback de injeção global...")
                 page.keyboard.press("Control+A")
                 page.keyboard.press("Backspace")
                 page.keyboard.insert_text(prompts_text)
 
-            # Capture existing images to ignore them
-            initial_image_srcs = get_all_image_srcs(page)
-            logger.info(f"Ignorando {len(initial_image_srcs)} imagens pré-existentes no canvas.")
+            # Capture existing images to ignore them (via Node 121 if possible)
+            initial_node_images = []
+            for frame in page.frames:
+                try:
+                    imgs = frame.evaluate("""() => {
+                        if (typeof window.app !== 'undefined' && window.app.graph) {
+                            let node = window.app.graph.getNodeById(121);
+                            if (node && node.imgs) {
+                                return node.imgs.map(i => i.src);
+                            }
+                        }
+                        return [];
+                    }""")
+                    if imgs:
+                        initial_node_images.extend(imgs)
+                except Exception:
+                    pass
+            
+            logger.info(f"Ignorando {len(initial_node_images)} imagens pré-existentes no Node #121.")
 
-            # 3. Click Executar
+            # 3. Click Executar (Lite/Plus - o do meio)
             logger.info("Procurando o botão de Executar (Lite/Plus)...")
             try:
-                queue_btn = page.get_by_text("Executar").nth(1)
-                queue_btn.click(timeout=5000)
-                logger.info("Geração de Lote iniciada automaticamente!")
+                # O usuário indicou que é o botão amarelo (o segundo botão Executar no topo)
+                btn = page.locator("button:has-text('Executar'), [role='button']:has-text('Executar')").nth(1)
+                if btn.count() > 0:
+                    btn.click(timeout=5000)
+                    logger.info("✅ Geração de Lote iniciada! (Botão Lite/Plus)")
+                else:
+                    logger.warning("Botão 'Executar' não encontrado visivelmente. Tentando atalho de teclado...")
+                    page.keyboard.press("Control+Enter")
             except Exception as e:
-                logger.error(f"Não achei o botão de gerar de forma automática: {e}")
-                input("Aperte [ENTER] APÓS clicar no botão 'Executar' manualmente...")
+                logger.error(f"Erro ao clicar em Executar: {e}. O lote pode não ter iniciado.")
             
-            # 4. Monitor and save images
+            # 4. Monitor and save images from Node #121
             expected_images = len(prompts_list)
-            logger.info(f"⏳ Monitorando {expected_images} novas imagens. Acompanhe pelo terminal...")
+            logger.info(f"⏳ Monitorando novas imagens no Node #121. A geração pode levar mais de 2 minutos...")
             
-            saved_srcs = set(initial_image_srcs)
+            saved_srcs = set(initial_node_images)
             images_saved = 0
             start_wait_time = time.time()
             
             while images_saved < expected_images:
-                current_srcs = get_all_image_srcs(page)
-                new_srcs = current_srcs - saved_srcs
+                # Dismiss any error popup if it appears (press Escape)
+                page.keyboard.press("Escape")
+                
+                current_node_images = []
+                for frame in page.frames:
+                    try:
+                        imgs = frame.evaluate("""() => {
+                            if (typeof window.app !== 'undefined' && window.app.graph) {
+                                let node = window.app.graph.getNodeById(121);
+                                if (node && node.imgs) {
+                                    return node.imgs.map(i => i.src);
+                                }
+                            }
+                            return [];
+                        }""")
+                        if imgs:
+                            current_node_images.extend(imgs)
+                    except Exception:
+                        pass
+                
+                new_srcs = set(current_node_images) - saved_srcs
                 
                 for src in new_srcs:
                     if save_image_from_src(page, src):
                         images_saved += 1
                         logger.info(f"✅ Imagem {images_saved}/{expected_images} salva na pasta data/final/images!")
                         start_wait_time = time.time() # Reset timeout
-                    saved_srcs.add(src) # Mark as processed whether success or fail to avoid retrying bad URLs
+                    saved_srcs.add(src) # Mark as processed whether success or fail
                 
-                # Check for timeout (e.g. 10 minutes without new images to allow slow generations)
-                if time.time() - start_wait_time > 600:
-                    logger.warning("⚠️ Tempo limite (10 minutos) atingido sem novas imagens. Encerrando lote...")
+                # Check for timeout (e.g. 15 minutes without new images to allow very slow generations)
+                if time.time() - start_wait_time > 900:
+                    logger.warning("⚠️ Tempo limite (15 minutos) atingido sem novas imagens. Encerrando lote...")
                     break
                     
-                time.sleep(3) # Polling interval
+                time.sleep(5) # Polling interval
                 
-            logger.info(f"🎉 Processo concluído! {images_saved} imagens geradas e salvas.")
+            logger.info(f"🎉 Processo concluído! {images_saved} imagens geradas e salvas do Node #121.")
             
             if images_saved > 0:
-                # Wait a bit before closing
                 time.sleep(3)
 
 if __name__ == "__main__":
