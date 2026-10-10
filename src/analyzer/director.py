@@ -40,7 +40,13 @@ Return ONLY a valid JSON object with this exact structure:
   "derivative_prompts": [
     {
       "concept": "string (short description)",
-      "prompt": "string (the actual generation prompt)"
+      "prompt_data": {
+        "subject": "string (main subject description)",
+        "style": "string",
+        "lighting": "string",
+        "color_palette": "string",
+        "composition": "string"
+      }
     }
   ]
 }

@@ -45,7 +45,10 @@ def load_prompts(batch_size: int = DEFAULT_BATCH_SIZE) -> List[str]:
     all_prompts: List[str] = []
     for item in data:
         for p in item.get("generated_prompts", []):
-            all_prompts.append(p["prompt"].replace("\n", " ").strip())
+            if "prompt_data" in p:
+                all_prompts.append(json.dumps(p["prompt_data"], ensure_ascii=False))
+            elif "prompt" in p:
+                all_prompts.append(p["prompt"].replace("\n", " ").strip())
             
     batch = all_prompts[:batch_size]
     logger.info(f"Loaded {len(batch)} prompts for this batch.")
@@ -160,47 +163,26 @@ def run_factory_bot() -> None:
             logger.info("✅ Workflow carregado! Iniciando injeção de prompts automática...")
             time.sleep(5) # Delay extra para garantir que iframes e nós do ComfyUI estejam instanciados
 
-            # 2. Inject prompts automatically into the DOM/Canvas
-            injetado = False
-            for frame in page.frames:
-                try:
-                    res = frame.evaluate("""(text) => {
-                        // Tentar achar LiteGraph do ComfyUI nativo no window.app
-                        if (typeof window.app !== 'undefined' && window.app.graph) {
-                            for (let node of window.app.graph._nodes) {
-                                if (node.widgets && (node.type.includes('Text') || node.type.includes('Prompt') || node.title.includes('Text'))) {
-                                    node.widgets[0].value = text;
-                                    if(node.widgets[0].callback) node.widgets[0].callback(text);
-                                }
-                            }
-                            window.app.graph.setDirtyCanvas(true, true);
-                            return true;
-                        }
-                        
-                        // Tentar achar textarea aberta do nó no DOM
-                        let textareas = Array.from(document.querySelectorAll('textarea'));
-                        if (textareas.length > 0) {
-                            let el = textareas[0];
-                            el.value = text;
-                            el.dispatchEvent(new Event('input', { bubbles: true }));
-                            el.dispatchEvent(new Event('change', { bubbles: true }));
-                            return true;
-                        }
-                        return false;
-                    }""", prompts_text)
-                    if res:
-                        injetado = True
-                        break
-                except Exception:
-                    pass
-                    
-            if injetado:
-                logger.info("✅ Prompts injetados via DOM / App Graph com sucesso!")
-            else:
-                logger.warning("Caixa ou App Graph não encontrada diretamente. Usando fallback de injeção global...")
+            # 2. Inject prompts via Keyboard TAB Loop
+            logger.info("Iniciando injeção de prompts nas múltiplas caixas...")
+            input("👉 Aperte [ENTER] aqui no terminal e DEPOIS você terá 5 SEGUNDOS para voltar ao navegador e CLICAR na PRIMEIRA caixa de texto do seu nó Prompt List...")
+            
+            logger.info("⏳ Volte para o navegador e CLIQUE na primeira caixa! Começando em 5...")
+            for i in range(5, 0, -1):
+                logger.info(f"{i}...")
+                time.sleep(1)
+            
+            logger.info("Escrevendo JSONs...")
+            for prompt_json_str in prompts_list:
                 page.keyboard.press("Control+A")
                 page.keyboard.press("Backspace")
-                page.keyboard.insert_text(prompts_text)
+                page.keyboard.insert_text(prompt_json_str)
+                time.sleep(0.1)
+                page.keyboard.press("Tab")
+                time.sleep(0.1)
+
+            logger.info("✅ Todos os JSONs foram colados nas caixas com sucesso!")
+
 
             # Capture existing images to ignore them (via Node 121 if possible)
             initial_node_images = []
