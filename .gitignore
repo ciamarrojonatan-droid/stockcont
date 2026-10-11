@@ -9,6 +9,8 @@ venv/
 # Image data & sessions
 data/raw/images/
 data/final/images/
+data/final/rejected/
+data/final/
 playwright_session/
 chrome_session/
 scratch*

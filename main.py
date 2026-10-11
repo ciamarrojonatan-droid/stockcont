@@ -126,18 +126,37 @@ def check_status() -> None:
         print(f"  💡 Next Recommended Action: Run Phase 1 & 2 (`python main.py --phase 1 -q 'minimalist interior'`)")
     print("=" * 65 + "\n")
 
-def run_phase_1(query: str = "trending", order: str = "relevance", content_type: str = "all", max_items: int = 10, headless: bool = False) -> None:
-    """Execute Phase 1: Adobe Stock Trend Scraper."""
-    logger.info(f"--- Starting Phase 1: Scout (Query: '{query}', Order: '{order}', Max: {max_items}) ---")
-    from src.scraper.adobe_stock import scrape_adobe_stock_trends
-    scraped = scrape_adobe_stock_trends(
-        query=query,
-        order=order,
-        content_type=content_type,
-        max_items=max_items,
-        headless=headless
-    )
-    logger.info(f"Phase 1 finished. Scraped {len(scraped)} assets.")
+def run_phase_1(
+    mode: str = "insights",
+    query: str = "trending",
+    order: str = "relevance",
+    content_type: str = "photo",
+    max_items: int = 15,
+    min_downloads: int = 0,
+    deep_profile: bool = False,
+    headless: bool = False
+) -> None:
+    """Execute Phase 1: Adobe Stock Trend & Contributor Insights Scraper."""
+    from src.scraper.adobe_stock import scrape_contributor_insights, scrape_adobe_stock_trends
+    if mode == "insights":
+        logger.info(f"--- Iniciando Fase 1: Olheiro (Contributor Insights, Tipo: '{content_type}', Max: {max_items}, Deep: {deep_profile}) ---")
+        scraped = scrape_contributor_insights(
+            content_type=content_type,
+            max_items=max_items,
+            min_downloads=min_downloads,
+            deep_profile=deep_profile,
+            headless=headless
+        )
+    else:
+        logger.info(f"--- Iniciando Fase 1: Olheiro (Busca Pública por Termo: '{query}', Ordem: '{order}', Max: {max_items}) ---")
+        scraped = scrape_adobe_stock_trends(
+            query=query,
+            order=order,
+            content_type=content_type,
+            max_items=max_items,
+            headless=headless
+        )
+    logger.info(f"Fase 1 finalizada. Minerados {len(scraped)} assets.")
 
 def run_phase_2() -> None:
     """Execute Phase 2: Art Director Prompt Generator."""
@@ -164,7 +183,7 @@ def run_all_pipeline(query: str, max_items: int) -> None:
     """Run all phases sequentially."""
     print_banner()
     logger.info("Starting Full End-to-End StockCont Pipeline...")
-    run_phase_1(query=query, max_items=max_items)
+    run_phase_1(max_items=max_items)
     run_phase_2()
     run_phase_3()
     run_phase_4()
@@ -181,10 +200,13 @@ def main() -> None:
 
     # Options for Phase 1
     p1_group = parser.add_argument_group("Phase 1 Options")
-    p1_group.add_argument("--query", "-q", default="trending", help="Niche or search keyword for Phase 1 (e.g., 'minimalist office')")
-    p1_group.add_argument("--order", "-o", default="relevance", choices=["relevance", "nb_downloads", "creation"], help="Sorting method")
-    p1_group.add_argument("--type", "-t", default="all", choices=["all", "photo", "illustration"], help="Asset type")
-    p1_group.add_argument("--max-items", "-m", type=int, default=10, help="Max items to scrape in Phase 1")
+    p1_group.add_argument("--mode", default="insights", choices=["insights", "search"], help="Phase 1 mode: 'insights' (Contributor Top Sellers) or 'search' (Public keyword)")
+    p1_group.add_argument("--query", "-q", default="trending", help="Niche or search keyword for Phase 1 search mode (e.g., 'minimalist office')")
+    p1_group.add_argument("--order", "-o", default="relevance", choices=["relevance", "nb_downloads", "creation"], help="Sorting method (search mode)")
+    p1_group.add_argument("--type", "-t", default="photo", choices=["all", "photo", "illustration", "vector"], help="Asset type")
+    p1_group.add_argument("--max-items", "-m", type=int, default=15, help="Max items to scrape in Phase 1")
+    p1_group.add_argument("--min-downloads", type=int, default=0, help="Minimum contributor lifetime downloads threshold")
+    p1_group.add_argument("--deep-profile", action="store_true", help="Mine deeper into top contributors' full portfolios")
     p1_group.add_argument("--headless", action="store_true", help="Run scraper browser in headless mode")
 
     args = parser.parse_args()
@@ -202,10 +224,13 @@ def main() -> None:
 
     if args.phase == 1:
         run_phase_1(
+            mode=args.mode,
             query=args.query,
             order=args.order,
             content_type=args.type,
             max_items=args.max_items,
+            min_downloads=args.min_downloads,
+            deep_profile=args.deep_profile,
             headless=args.headless
         )
     elif args.phase == 2:

@@ -446,5 +446,935 @@
         "prompt": "Two UX designers collaborating in a modern loft office space, reviewing digital wireframes on a tablet and laptop, natural light, terracotta and beige color scheme, professional corporate lifestyle photography, sharp focus, shallow depth of field --ar 16:9"
       }
     ]
+  },
+  {
+    "source_id": "197060572",
+    "source_title": "Gorodenkoff",
+    "analysis": {
+      "style": "Cinematic sci-fi film still, photorealistic, highly detailed spacesuit textures",
+      "lighting": "Backlit golden hour, dramatic rim lighting, atmospheric haze, warm lens flare",
+      "composition": "Medium full shot, centered subject from behind, walking away, expansive dusty terrain",
+      "color_palette": "Warm golden amber, burnt orange, earthy browns, deep shadows"
+    },
+    "generated_prompts": [
+      {
+        "concept": "Astronaut discovering an alien artifact",
+        "prompt_data": {
+          "subject": "An astronaut in a detailed white spacesuit kneeling before a glowing geometric alien monolith",
+          "style": "Cinematic sci-fi film still, hyper-detailed textures, photorealistic",
+          "lighting": "Backlit golden hour, dramatic rim lighting, intense ethereal glow from the artifact, atmospheric dust particles",
+          "color_palette": "Warm amber, deep burnt orange, vibrant cyan energy accents, dark earthy tones",
+          "composition": "Medium shot, low angle, centered subject, vast alien desert landscape background"
+        }
+      },
+      {
+        "concept": "Lone astronaut looking out at twin suns setting",
+        "prompt_data": {
+          "subject": "A lone explorer in a futuristic exploration suit standing on a rocky outcrop, observing twin suns on the horizon",
+          "style": "High-end cinematic photography, epic scale, crisp detail",
+          "lighting": "Golden hour sunlight, strong backlighting, lens flare, volumetric haze",
+          "color_palette": "Warm yellow, deep orange, crimson, dark slate grey",
+          "composition": "Wide landscape shot, rule of thirds, explorer silhouetted against the bright double sunset"
+        }
+      },
+      {
+        "concept": "Rover companion and astronaut traversing dusty dunes",
+        "prompt_data": {
+          "subject": "An astronaut walking ahead of a rugged, solar-paneled planetary rover across a vast desert canyon",
+          "style": "Commercial sci-fi photography, pristine gear detail, realistic motion dust",
+          "lighting": "Low sun angle, dramatic rim lighting, warm golden glow casting long shadows",
+          "color_palette": "Dusty gold, terracotta orange, deep sepia, metallic silver highlights",
+          "composition": "Diagonal dynamic composition, medium-wide shot, tracking perspective from behind"
+        }
+      },
+      {
+        "concept": "Botanist astronaut examining alien plant life in a greenhouse dome",
+        "prompt_data": {
+          "subject": "An astronaut with a helmet visor reflecting a bioluminescent alien plant specimen inside an industrial dome",
+          "style": "Cinematic documentary style, ultra-realistic surfaces, intricate engineering details",
+          "lighting": "Soft warm external sunset mixing with cool internal bioluminescent glow, hazy atmosphere",
+          "color_palette": "Amber sunset exterior, emerald green plant glow, industrial steel grey",
+          "composition": "Close-up over-the-shoulder shot, shallow depth of field, focused subject"
+        }
+      },
+      {
+        "concept": "Future colonist looking toward a distant terraforming base",
+        "prompt_data": {
+          "subject": "A space colonist in a lightweight atmospheric suit walking up a ridge towards a glowing horizon base",
+          "style": "Epic adventure concept art, cinematic lighting, ultra-detailed photorealism",
+          "lighting": "Warm golden hour sun directly behind the subject, atmospheric dust catching the sunbeams",
+          "color_palette": "Golden yellow, burnt sienna, dusty ochre, deep charcoal shadows",
+          "composition": "Wide panoramic shot, centered subject viewed from behind, emphasizing vast scale"
+        }
+      }
+    ]
+  },
+  {
+    "source_id": "2008639739",
+    "source_title": "View content",
+    "analysis": {
+      "style": "Modern corporate editorial photography, authentic office environment, candid atmosphere",
+      "lighting": "Natural daylight mixed with cool interior fluorescent lighting, soft shadows",
+      "composition": "Framed through glass walls, medium shot, eye-level perspective, focus on the speaker standing in front of seated colleagues",
+      "color_palette": "Cool blues, crisp whites, dark charcoal suits, warm neutral skin tones"
+    },
+    "generated_prompts": [
+      {
+        "concept": "Tech startup brainstorming session",
+        "prompt_data": {
+          "subject": "A diverse team of tech professionals collaborating around a modern white table, one member sketching UI wireframes on a tablet",
+          "style": "Modern corporate editorial photography, authentic office environment, candid atmosphere",
+          "lighting": "Natural daylight mixed with cool interior fluorescent lighting, soft shadows",
+          "color_palette": "Cool blues, crisp whites, vibrant teal accents, warm neutral skin tones",
+          "composition": "Medium shot, framed through glass walls, eye-level perspective, dynamic interaction between team members"
+        }
+      },
+      {
+        "concept": "Creative agency pitch meeting",
+        "prompt_data": {
+          "subject": "A confident art director presenting mood boards pinned to a glass wall to an engaged team of creative professionals",
+          "style": "Modern corporate editorial photography, authentic office environment, candid atmosphere",
+          "lighting": "Bright studio office lighting, soft natural window light, subtle highlights",
+          "color_palette": "Cool blues, monochrome grays, warm wood tones, pops of mustard yellow",
+          "composition": "Medium-wide shot, framed through architectural glass partitions, dynamic perspective"
+        }
+      },
+      {
+        "concept": "Financial strategy review",
+        "prompt_data": {
+          "subject": "An experienced female executive analyzing financial charts on a laptop screen while leading a boardroom strategy meeting",
+          "style": "Modern corporate editorial photography, authentic office environment, candid atmosphere",
+          "lighting": "Cool interior office lighting, soft rim light from large windows, professional atmosphere",
+          "color_palette": "Deep navy blues, charcoal grays, crisp whites, metallic silver accents",
+          "composition": "Close-medium shot, slightly obstructed foreground glass reflection, focused depth of field"
+        }
+      },
+      {
+        "concept": "Product design workshop",
+        "prompt_data": {
+          "subject": "A product manager leading an agile workshop, explaining 3D prototypes to attentive software engineers",
+          "style": "Modern corporate editorial photography, authentic office environment, candid atmosphere",
+          "lighting": "Natural daylight mixed with cool interior fluorescent lighting, soft shadows",
+          "color_palette": "Cool slate blues, clean whites, industrial grays, natural wood tones",
+          "composition": "Medium shot, framed through glass walls, eye-level perspective, candid interaction"
+        }
+      },
+      {
+        "concept": "Executive leadership briefing",
+        "prompt_data": {
+          "subject": "A senior consultant delivering a keynote presentation on digital transformation to corporate executives in a sleek glass conference room",
+          "style": "Modern corporate editorial photography, authentic office environment, candid atmosphere",
+          "lighting": "Professional office lighting, ambient window glow, clean highlights",
+          "color_palette": "Sophisticated navy blues, slate grays, crisp whites, subtle warm skin tones",
+          "composition": "Wide medium shot, architectural framing through glass panels, professional editorial composition"
+        }
+      }
+    ]
+  },
+  {
+    "source_id": "2008639266",
+    "source_title": "View content",
+    "analysis": {
+      "style": "Contemporary corporate photography, candid and professional documentary style, candid office meeting through glass wall",
+      "lighting": "Natural ambient indoor office lighting with soft reflections on glass partitions and subtle screen glow",
+      "composition": "Medium shot framed through glass frames and architectural elements, slightly angled perspective focusing on team collaboration around a meeting table",
+      "color_palette": "Cool corporate tones, slate blue, navy, neutral grays, with warm skin tones and subtle accents of yellow from table legs"
+    },
+    "generated_prompts": [
+      {
+        "concept": "Tech startup brainstorming session with modern holographic display",
+        "prompt_data": {
+          "subject": "Diverse team of young tech professionals collaborating around a sleek conference table, pointing at a floating holographic data visualization",
+          "style": "Contemporary corporate photography, candid documentary style, crisp focus, commercial quality",
+          "lighting": "Bright soft office lighting combined with cool neon glow from holographic elements, clean highlights",
+          "color_palette": "Deep blues, cyan, slate gray, and warm skin tones",
+          "composition": "Medium shot through a modern glass office wall, dynamic framing with natural depth of field"
+        }
+      },
+      {
+        "concept": "Creative agency review meeting with colorful mood boards",
+        "prompt_data": {
+          "subject": "Creative team of designers reviewing colorful printouts and sketches laid out on a large wooden workshop table, expressive gestures",
+          "style": "Modern corporate lifestyle photography, lifestyle editorial, authentic expressions",
+          "lighting": "Warm directional natural daylight streaming through large factory windows",
+          "color_palette": "Warm neutrals, terracotta, mustard yellow, and slate blue accents",
+          "composition": "Eye-level collaborative group shot, slightly framed through architectural framing elements"
+        }
+      },
+      {
+        "concept": "Architectural firm reviewing blueprints and 3D models",
+        "prompt_data": {
+          "subject": "Professional architects in modern minimalist attire analyzing architectural blueprints and a physical scale model on a drafting table",
+          "style": "Commercial corporate documentary, clean composition, high detail",
+          "lighting": "Diffuse overhead studio-style office lighting casting soft, subtle shadows",
+          "color_palette": "Monochromatic grays, crisp whites, brushed steel, and warm wood tones",
+          "composition": "Wide medium shot capturing the full collaborative workspace through glass partitioning"
+        }
+      },
+      {
+        "concept": "Financial analysts reviewing stock market trends on multiple screens",
+        "prompt_data": {
+          "subject": "Focused financial strategy team in a glass-walled boardroom analyzing complex financial charts displayed on large wall monitors",
+          "style": "Corporate editorial photography, crisp details, professional atmosphere",
+          "lighting": "Cool screen glow illumination balanced with neutral ambient interior office lighting",
+          "color_palette": "Navy blue, charcoal gray, cool white, and subtle green accents",
+          "composition": "Cinematic framing from outside the glass office suite, emphasizing transparency and focus"
+        }
+      },
+      {
+        "concept": "Product design sprint with sticky notes on a glass whiteboard",
+        "prompt_data": {
+          "subject": "Diverse product management team actively engaged in an agile sprint planning session, writing ideas on colorful sticky notes",
+          "style": "Authentic corporate lifestyle, candid documentary capture, crisp textures",
+          "lighting": "Bright, even indoor office lighting with reflections on clear glass surfaces",
+          "color_palette": "Cool corporate grays, vibrant post-it note colors (yellow, pink, blue), and neutral tones",
+          "composition": "Medium angle shot through a transparent collaborative wall with foreground framing"
+        }
+      }
+    ]
+  },
+  {
+    "source_id": "2156890163",
+    "source_title": "View content",
+    "analysis": {
+      "style": "Cinematic commercial photography, corporate tech documentary style, sharp focus, high production value",
+      "lighting": "Cool industrial overhead fluorescent lighting with dramatic reflections on glass doors and polished server chassis, high-tech glow from LED status lights",
+      "composition": "Eye-level wide shot, full-body portrait of an IT technician in the foreground interacting with server racks, leading lines from floor tiles and rows of servers creating depth",
+      "color_palette": "Cool blue, slate gray, steel silver, with subtle accents of green and amber status LED lights"
+    },
+    "generated_prompts": [
+      {
+        "concept": "Female engineer inspecting fiber optic cables in a next-gen data center",
+        "prompt_data": {
+          "subject": "A professional female systems engineer wearing a high-vis vest and safety glasses, meticulously inspecting fiber optic patch cables in a massive data center server rack",
+          "style": "Cinematic commercial photography, hyper-detailed, corporate tech documentation style",
+          "lighting": "Cool volumetric ambient light, bright fiber optic glow, subtle blue and teal LED accents",
+          "color_palette": "Deep blues, silver metals, neon teal, and warm fiber optic orange highlights",
+          "composition": "Medium full shot, dynamic angle showing depth of server corridors receding into the background"
+        }
+      },
+      {
+        "concept": "AI-powered automated robotics unit patrolling server aisles",
+        "prompt_data": {
+          "subject": "An advanced autonomous maintenance robot with glowing optical sensors rolling down the aisle of a futuristic quantum computing facility",
+          "style": "Commercial sci-fi industrial photography, pristine tech aesthetic, ultra-clean look",
+          "lighting": "Futuristic cyan overhead wash, pinpoint LED diagnostic glows, polished metallic reflections",
+          "color_palette": "Monochromatic silver and white with electric cyan and purple accent lighting",
+          "composition": "Low-angle perspective emphasizing the scale of the facility and the advanced technology"
+        }
+      },
+      {
+        "concept": "Diverse IT team collaborating on mainframe upgrades",
+        "prompt_data": {
+          "subject": "Two diverse data center technicians collaborating over a ruggedized tablet, analyzing server health diagnostics in front of open server cabinets",
+          "style": "Corporate editorial photography, authentic workplace interaction, sharp focus",
+          "lighting": "Natural mix of high-ceiling industrial lighting and bright screen glows reflecting on faces",
+          "color_palette": "Steel grays, muted blues, crisp whites, and warm skin tones",
+          "composition": "Slightly off-center framing, strong depth of field with endless server rows blurring into the background"
+        }
+      },
+      {
+        "concept": "Cybersecurity expert monitoring real-time server threat visualizations",
+        "prompt_data": {
+          "subject": "A focused cybersecurity specialist standing in a high-security server room holding a transparent holographic tablet showing network security graphs",
+          "style": "High-end commercial tech advertising photography, sleek and premium finish",
+          "lighting": "Moody blue-shifted lighting with vibrant augmented reality data projections illuminating the technician",
+          "color_palette": "Deep navy, obsidian black, holographic cyan, and emergency amber alerts",
+          "composition": "Close-medium shot focusing on the technician's expressive engagement with the interactive display"
+        }
+      },
+      {
+        "concept": "Green energy sustainable data center with liquid cooling systems",
+        "prompt_data": {
+          "subject": "An eco-friendly data center technician reviewing sustainable liquid-cooling immersion tanks bubbling with green-lit server blades",
+          "style": "Modern corporate environmental photography, sustainable tech aesthetic, crisp detail",
+          "lighting": "Clean, eco-conscious green and white architectural lighting reflecting off glass fluid chambers",
+          "color_palette": "Clean whites, brushed aluminum, leaf green accents, and deep shadow grays",
+          "composition": "Symmetrical wide shot capturing the innovative cooling technology architecture and worker scale"
+        }
+      }
+    ]
+  },
+  {
+    "source_id": "2153094152",
+    "source_title": "View content",
+    "analysis": {
+      "style": "Cinematic sci-fi industrial tech integration, augmented reality HUD overlays, highly detailed photorealistic composition",
+      "lighting": "Cool blue ambient factory lights combined with glowing cyan augmented reality holograms and edge-light wireframes",
+      "composition": "Low angle, symmetrical perspective shot looking down a central factory aisle with a lone technician walking away into the distance",
+      "color_palette": "Steel grays, metallic silvers, and deep industrial navy blues accented by glowing electric cyan and neon blue interface graphics"
+    },
+    "generated_prompts": [
+      {
+        "concept": "Automotive assembly line with holographic quality control diagnostics",
+        "prompt_data": {
+          "subject": "Robotic assembly arms in a modern car manufacturing plant with floating holographic 3D wireframe models and analytics graphs",
+          "style": "Cinematic industrial tech visualization, high-end commercial microstock photography, hyper-detailed",
+          "lighting": "Bright overhead industrial LEDs mixed with luminous blue and purple augmented reality HUD projections",
+          "color_palette": "Cool steel grey, chrome, electric blue, and crisp white",
+          "composition": "Eye-level medium shot focusing on automated machinery with depth-of-field blurring the background"
+        }
+      },
+      {
+        "concept": "Aerospace turbine engine manufacturing with real-time stress test overlays",
+        "prompt_data": {
+          "subject": "A precision engineer examining a massive jet turbine engine surrounded by floating diagnostic telemetry and structural heat-map data",
+          "style": "Sci-fi industrial documentary, sharp focus, clean crisp details",
+          "lighting": "Dramatic rim lighting from ceiling fixtures combined with bright cyan holographic wireframes casting ambient glow",
+          "color_palette": "Metallic titanium, deep charcoal, glowing teal, and vivid orange highlights",
+          "composition": "Wide angle shot capturing the scale of the engine and the detailed technical environment"
+        }
+      },
+      {
+        "concept": "Smart logistics warehouse with autonomous drone fleet management HUD",
+        "prompt_data": {
+          "subject": "High-tech distribution center interior with automated guided vehicles (AGVs) moving along glowing grid lines on the floor under flight path holograms",
+          "style": "Futuristic commercial tech photography, polished and pristine",
+          "lighting": "High-key clean architectural lighting accented by electric blue navigation beams and data displays",
+          "color_palette": "Industrial yellow, concrete gray, pitch black, and neon blue",
+          "composition": "Elevated dynamic angle showing movement and precise geometric alignment of warehouse aisles"
+        }
+      },
+      {
+        "concept": "Semiconductor cleanroom microchip fabrication with molecular AR visualizations",
+        "prompt_data": {
+          "subject": "Technician in cleanroom gear inspecting silicon wafer lithography machines with translucent interactive nanotech holograms floating nearby",
+          "style": "Ultra-clean commercial technology aesthetic, clinical precision, vivid detail",
+          "lighting": "Bright sterile yellow/white cleanroom overheads contrasted with high-tech azure interface screens",
+          "color_palette": "Pristine white, stainless steel, amber safety tones, and brilliant cyan",
+          "composition": "Close-up shot emphasizing intricate machinery and detailed holographic data overlays"
+        }
+      },
+      {
+        "concept": "Next-gen green energy power grid control room with digital twin telemetry",
+        "prompt_data": {
+          "subject": "Operators monitoring a massive curved holographic wall display showing global power generation networks, wind turbines, and solar grids",
+          "style": "Futuristic command center cinematic render, high-end enterprise stock photo style",
+          "lighting": "Low-ambient room illumination dominated by massive glowing blue and emerald-green holographic dashboards",
+          "color_palette": "Dark slate, deep navy, electric blue, and vibrant green",
+          "composition": "Symmetrical wide-angle perspective looking toward the panoramic control screens"
+        }
+      }
+    ]
+  },
+  {
+    "source_id": "2156890196",
+    "source_title": "View content",
+    "analysis": {
+      "style": "Cinematic commercial photography, corporate documentary style, crisp and professional",
+      "lighting": "Cool-toned atmospheric server room glow with soft key light on the subject, accentuating LED status lights",
+      "composition": "Medium shot profile view of a technician examining server racks, rule of thirds, depth of field highlighting the foreground subject with blurred server corridors in the background",
+      "color_palette": "Deep blues, cool grays, contrasting with sharp green and white LED indicator lights and warm amber cable accents"
+    },
+    "generated_prompts": [
+      {
+        "concept": "AI Engineer checking quantum server matrix",
+        "prompt_data": {
+          "subject": "A diverse male AI engineer holding a holographic interface panel, inspecting futuristic quantum server infrastructure",
+          "style": "Cinematic commercial photography, highly detailed tech documentary",
+          "lighting": "Vibrant cyan and violet data-glow, soft rim lighting emphasizing facial features",
+          "color_palette": "Deep cyber blues, electric violet, neon cyan, crisp whites",
+          "composition": "Low-angle medium close-up, dramatic perspective looking down a sprawling server hall"
+        }
+      },
+      {
+        "concept": "Cybersecurity specialist monitoring live network traffic",
+        "prompt_data": {
+          "subject": "A focused female cybersecurity specialist in a modern data center, looking at advanced visualization screens reflecting security metrics",
+          "style": "High-end corporate commercial, sharp focus, professional tech aesthetic",
+          "lighting": "Cool ambient server illumination mixed with soft front key lighting",
+          "color_palette": "Midnight blues, gunmetal gray, emerald green data accents, subtle warm skin tones",
+          "composition": "Over-the-shoulder medium shot framing the technician against endless rows of illuminated server racks"
+        }
+      },
+      {
+        "concept": "Cloud infrastructure architect upgrading blade servers",
+        "prompt_data": {
+          "subject": "An experienced IT architect carefully sliding a high-density blade server into a rack enclosure",
+          "style": "Commercial stock photography, authentic workplace realism, cinematic grade",
+          "lighting": "Moody high-tech interior lighting with sharp specular highlights on metal chassis and glass doors",
+          "color_palette": "Steel grays, deep navy, vibrant LED indicator bursts of amber and green",
+          "composition": "Wide medium shot with deep depth of field capturing the expansive scale of the server facility"
+        }
+      },
+      {
+        "concept": "Data center manager reviewing network diagnostics on tablet",
+        "prompt_data": {
+          "subject": "A confident data center manager holding a sleek tablet, analyzing network topology diagrams in front of main distribution frames",
+          "style": "Polished editorial photography, modern enterprise tech vibe",
+          "lighting": "Balanced studio-grade illumination combined with realistic ambient server rack glow",
+          "color_palette": "Charcoal, cool teal, electric blue, clean neutral tones",
+          "composition": "Symmetrical centered framing emphasizing scale, clean architectural lines of server rows"
+        }
+      },
+      {
+        "concept": "Next-gen tech specialist managing fiber optic connections",
+        "prompt_data": {
+          "subject": "A tech specialist meticulously organizing bright yellow and blue fiber optic patch cables in a high-capacity telecommunications rack",
+          "style": "Commercial stock photography, ultra-sharp detail, professional documentary look",
+          "lighting": "Subdued ambient blue lighting contrasted sharply by bright illumination inside the open server cabinet",
+          "color_palette": "Dark corporate blues, stark blacks, vibrant yellow and blue cable highlights",
+          "composition": "Dynamic action shot, tight focus on hands and cables with softly blurred background corridor"
+        }
+      }
+    ]
+  },
+  {
+    "source_id": "2008639642",
+    "source_title": "View content",
+    "analysis": {
+      "style": "Modern corporate stock photography, candid business meeting, architectural or engineering planning context",
+      "lighting": "Natural daylight mixed with cool indoor office fluorescent illumination, subtle glass reflections and highlights",
+      "composition": "Medium wide shot framed through glass office partitions, shallow depth of field focusing on the team around a conference table",
+      "color_palette": "Cool neutrals, muted greys, sterile whites, accented with high-visibility neon yellow safety vests"
+    },
+    "generated_prompts": [
+      {
+        "concept": "Tech startup founders reviewing wireframes on large monitors",
+        "prompt_data": {
+          "subject": "Diverse team of young tech entrepreneurs collaborating around a sleek standing desk, pointing at multiple large digital screens showing UI/UX designs",
+          "style": "Modern corporate stock photography, candid office culture, high-end commercial look",
+          "lighting": "Soft ambient office lighting with warm glow from computer monitors and soft window daylight",
+          "color_palette": "Clean greys, crisp whites, accented with warm oranges and electric blues",
+          "composition": "Medium shot framed slightly off-center, modern glass office walls in the foreground, shallow depth of field"
+        }
+      },
+      {
+        "concept": "Medical research team analyzing patient data charts",
+        "prompt_data": {
+          "subject": "Group of doctors and medical researchers in white coats and scrubs discussing lab reports and digital charts around a minimalist conference table",
+          "style": "Professional medical stock photography, clean corporate aesthetic, authentic collaborative atmosphere",
+          "lighting": "Bright clinical lighting with crisp highlights, clean stainless steel and glass reflections",
+          "color_palette": "Sterile whites, clinical teals, muted metallic greys, subtle navy accents",
+          "composition": "Eye-level medium wide shot framed through a transparent hospital consultation room partition"
+        }
+      },
+      {
+        "concept": "Financial analysts reviewing stock market charts on glass boards",
+        "prompt_data": {
+          "subject": "Multiracial team of corporate finance analysts in sharp business attire writing financial trends and stock graphs on a clear glass whiteboard",
+          "style": "High-end corporate commercial photography, professional business environment, natural expressions",
+          "lighting": "Professional office lighting, cool directional spotlights, soft edge glare on glass surfaces",
+          "color_palette": "Charcoal greys, slate blues, crisp whites, accented with muted green financial indicators",
+          "composition": "Dynamic side-angle shot through a modern glass-walled boardroom, focused depth of field"
+        }
+      },
+      {
+        "concept": "Automotive designers reviewing clay model blueprints",
+        "prompt_data": {
+          "subject": "Automotive design engineers in modern industrial studio discussing aerodynamic sketches and blueprint schematics on a large drafting table",
+          "style": "Industrial design studio photography, high-end commercial production, candid interaction",
+          "lighting": "Industrial track lighting casting clean specular highlights, natural daylight from large warehouse windows",
+          "color_palette": "Industrial greys, matte blacks, metallic silvers, accented with construction-orange details",
+          "composition": "Wide medium shot framed through architectural steel and glass beams, cinematic perspective"
+        }
+      },
+      {
+        "concept": "Green energy engineers analyzing solar farm schematics",
+        "prompt_data": {
+          "subject": "Renewable energy project managers in hardhats and smart business-casual wear examining large architectural blueprints in a modern eco-office",
+          "style": "Commercial sustainability stock photography, modern clean-tech corporate aesthetic",
+          "lighting": "Bright natural daylight streaming through large floor-to-ceiling windows, balanced interior fill light",
+          "color_palette": "Eco-friendly greens, earthy neutrals, crisp whites, modern concrete greys",
+          "composition": "Balanced rule-of-thirds composition, layered interior depth with blurred glass panels in the foreground"
+        }
+      }
+    ]
+  },
+  {
+    "source_id": "2153095123",
+    "source_title": "View content",
+    "analysis": {
+      "style": "Cinematic high-tech enterprise photography, ultra-realistic, sleek corporate tech environment",
+      "lighting": "Cool blue ambient floor lighting, LED strip accents along the racks, high-contrast overhead studio highlights",
+      "composition": "Symmetrical one-point perspective hallway framing rows of server racks leading to a distant glowing doorway",
+      "color_palette": "Deep blacks, electric blues, cool steel grays, subtle silver highlights"
+    },
+    "generated_prompts": [
+      {
+        "concept": "Quantum computing facility",
+        "prompt_data": {
+          "subject": "Futuristic quantum computing cleanroom with cylindrical golden dilution refrigerators in a high-tech corridor",
+          "style": "Cinematic high-tech enterprise photography, ultra-realistic, sleek corporate tech environment",
+          "lighting": "Cool blue ambient floor lighting, golden and cyan LED accents, high-contrast overhead highlights",
+          "color_palette": "Deep blacks, electric blues, polished gold, cool steel grays",
+          "composition": "Symmetrical one-point perspective hallway framing advanced quantum hardware leading to a bright exit"
+        }
+      },
+      {
+        "concept": "AI supercluster hub",
+        "prompt_data": {
+          "subject": "Massive AI supercluster data center filled with glowing blade servers and liquid cooling tubes",
+          "style": "Cinematic high-tech enterprise photography, ultra-realistic, sleek corporate tech environment",
+          "lighting": "Pulsing teal and cool blue floor lighting, intense LED status light grids",
+          "color_palette": "Deep blacks, vibrant teal, electric blue, gunmetal gray",
+          "composition": "Symmetrical one-point perspective corridor leading into an infinite depth of powerful computing nodes"
+        }
+      },
+      {
+        "concept": "Cybersecurity operations center server room",
+        "prompt_data": {
+          "subject": "High-security corporate server room with active monitoring displays on rack doors and biometric scanners",
+          "style": "Cinematic high-tech enterprise photography, ultra-realistic, sleek corporate tech environment",
+          "lighting": "Sharp blue and clinical white lighting, subtle red alarm status highlights",
+          "color_palette": "Deep blacks, cool steel grays, electric blue, accent crimson",
+          "composition": "Symmetrical one-point perspective hallway lined with locked server enclosures and glowing status panels"
+        }
+      },
+      {
+        "concept": "Bio-tech cloud storage vault",
+        "prompt_data": {
+          "subject": "Next-generation genetic data storage facility with glass-enclosed DNA synthesis racks and cryogenic tubes",
+          "style": "Cinematic high-tech enterprise photography, ultra-realistic, sleek corporate tech environment",
+          "lighting": "Soft blue under-cabinet lighting, pristine sterile white overhead spotlights",
+          "color_palette": "Deep blacks, medical whites, electric blue, brushed silver",
+          "composition": "Symmetrical one-point perspective aisle flanked by futuristic biocomputing hardware"
+        }
+      },
+      {
+        "concept": "Autonomous robotics fleet management hub",
+        "prompt_data": {
+          "subject": "High-tech server corridor dedicated to autonomous robot fleet navigation and edge computing",
+          "style": "Cinematic high-tech enterprise photography, ultra-realistic, sleek corporate tech environment",
+          "lighting": "Electric blue strip lighting running along the floor edges, crisp overhead spotlights",
+          "color_palette": "Deep blacks, electric blue, titanium gray, cool white",
+          "composition": "Symmetrical one-point perspective tunnel perspective with sleek automated docking bays along the walls"
+        }
+      }
+    ]
+  },
+  {
+    "source_id": "2008639417",
+    "source_title": "View content",
+    "analysis": {
+      "style": "Contemporary corporate photography, cinematic, editorial, high-end professional stock imagery, sharp focus on subjects with a soft-focus background.",
+      "lighting": "Natural ambient indoor lighting combined with subtle modern office illumination, soft shadows, cool blue tones mixed with warm interior accents.",
+      "composition": "Medium shot, side profile, shallow depth of field, focused interaction between two colleagues looking at a digital tablet, dynamic hand gestures.",
+      "color_palette": "Cool blues, slate grays, navy, subtle warm skin tones, and neutral professional attire."
+    },
+    "generated_prompts": [
+      {
+        "concept": "Diverse creative team collaborating over a tablet in a modern design studio",
+        "prompt_data": {
+          "subject": "Diverse creative professionals reviewing project designs on a digital tablet in a sleek, modern co-working space",
+          "style": "Contemporary corporate photography, cinematic, editorial, high-end professional stock imagery, sharp focus with soft-focus background",
+          "lighting": "Natural ambient daylight through large windows, soft diffused shadows, clean modern interior lighting",
+          "color_palette": "Cool blues, muted earthy greens, warm wood accents, and professional neutral tones",
+          "composition": "Medium close-up, dynamic interaction, shallow depth of field, natural candid posture"
+        }
+      },
+      {
+        "concept": "Tech startup founders analyzing data on a tablet during a strategy meeting",
+        "prompt_data": {
+          "subject": "Two tech startup founders in smart-casual business attire analyzing financial growth charts on a tablet device",
+          "style": "High-end commercial stock photography, cinematic lighting, editorial business lifestyle, ultra-sharp detail",
+          "lighting": "Cool moody office lighting, soft rim light on subjects, blurred neon city lights in the distant background",
+          "color_palette": "Deep navy, cool steel gray, subtle amber highlights, and crisp whites",
+          "composition": "Profile medium shot, focused expressions, engaged conversation, shallow depth of field"
+        }
+      },
+      {
+        "concept": "Architects reviewing blueprint mockups on a digital screen in a glass-walled conference room",
+        "prompt_data": {
+          "subject": "Two architects collaborating over interactive architectural 3D models on a sleek tablet in a modern glass boardroom",
+          "style": "Professional architectural corporate photography, editorial style, pristine clarity, elegant framing",
+          "lighting": "Bright diffused architectural lighting, clean reflections on glass surfaces, soft natural fill light",
+          "color_palette": "Monochromatic grays, cool whites, industrial steel blue, and warm skin tones",
+          "composition": "Medium wide shot, balanced framing, clear point of interest on the digital device, cinematic depth"
+        }
+      },
+      {
+        "concept": "Healthcare executives strategizing hospital management metrics on a tablet",
+        "prompt_data": {
+          "subject": "Two medical professionals in executive attire reviewing hospital analytics on a sleek tablet inside a modern clinic lobby",
+          "style": "Modern medical corporate stock imagery, polished editorial aesthetic, sharp focus, high production value",
+          "lighting": "Clean clinical ambient lighting mixed with warm interior tones, soft cinematic shadows",
+          "color_palette": "Teal, cool slate, crisp white, and professional dark business suits",
+          "composition": "Over-the-shoulder medium shot emphasizing collaboration, natural posture, shallow depth of field"
+        }
+      },
+      {
+        "concept": "Marketing strategists discussing campaign metrics on a tablet in a vibrant loft office",
+        "prompt_data": {
+          "subject": "Two marketing strategists reviewing social media engagement dashboards on a digital tablet in a sunlit industrial loft office",
+          "style": "Contemporary lifestyle corporate photography, cinematic look, vibrant yet professional color grading",
+          "lighting": "Golden hour sunlight filtering through large industrial windows, soft warm fill, balanced interior light",
+          "color_palette": "Warm bronze, cool slate gray, rich navy, and natural skin tones",
+          "composition": "Dynamic medium profile shot, candid interaction, shallow focus on the foreground tablet"
+        }
+      }
+    ]
+  },
+  {
+    "source_id": "2008639728",
+    "source_title": "View content",
+    "analysis": {
+      "style": "Modern corporate editorial photography, cinematic documentary style, professional business environment, through-glass framing perspective",
+      "lighting": "Natural daylight mixed with cool interior office lighting, soft shadows, reflections on glass partitions",
+      "composition": "Medium shot captured through a glass wall framing a group meeting around a conference table, eye-level perspective, focused on dynamic interactions",
+      "color_palette": "Cool corporate tones, deep blues, charcoal grays, muted whites, and warm natural skin tones"
+    },
+    "generated_prompts": [
+      {
+        "concept": "Tech startup founders collaborating over a holographic blueprint in a modern glass office",
+        "prompt_data": {
+          "subject": "Diverse team of three tech startup founders collaborating around a sleek conference table, looking at a glowing interactive blueprint interface",
+          "style": "Modern corporate editorial photography, cinematic documentary style",
+          "lighting": "Cool interior office lighting with soft ambient blue glow from interface, reflections on glass partitions",
+          "color_palette": "Cool corporate tones, deep cyan, slate gray, crisp white, warm skin tones",
+          "composition": "Medium shot captured through a glass wall, eye-level perspective, professional tech meeting"
+        }
+      },
+      {
+        "concept": "Creative agency directors reviewing design boards in a minimalist boardroom",
+        "prompt_data": {
+          "subject": "Two creative directors in stylish business attire reviewing colorful mood boards spread across a minimalist white table",
+          "style": "Editorial business photography, high-end commercial style, sharp focus",
+          "lighting": "Bright natural daylight through large windows, soft diffused interior lighting, subtle glass reflections",
+          "color_palette": "Monochromatic grays accented with vibrant design board swatches, warm neutral skin tones",
+          "composition": "Framed shot through a clear office window, side angle capturing collaborative focus"
+        }
+      },
+      {
+        "concept": "Executive board meeting with an Asian female leader presenting strategy",
+        "prompt_data": {
+          "subject": "Confident Asian female executive standing and presenting business strategy charts to attentive colleagues across a conference desk",
+          "style": "Corporate storytelling photography, cinematic documentary, shallow depth of field",
+          "lighting": "Balanced ambient office light and soft window side-light casting gentle highlights",
+          "color_palette": "Navy blues, charcoal, taupe, warm natural tones",
+          "composition": "Medium long shot framed through architectural glass elements, capturing professional engagement"
+        }
+      },
+      {
+        "concept": "Finance team analyzing market trends on dual laptops in a glass-walled conference room",
+        "prompt_data": {
+          "subject": "Two financial analysts working intently together in front of open laptops displaying stock market graphs and data sheets",
+          "style": "Commercial workplace photography, sharp candid corporate documentary",
+          "lighting": "Cool screen illumination blending with soft overhead interior office lighting",
+          "color_palette": "Deep slate, steel blue, white, muted earth tones",
+          "composition": "Over-the-shoulder perspective framed through structural glass panels"
+        }
+      },
+      {
+        "concept": "Product design workshop with multicultural team brainstorming around prototypes",
+        "prompt_data": {
+          "subject": "Multicultural team of product designers brainstorming around a conference table filled with product sketches and physical prototypes",
+          "style": "Modern corporate lifestyle photography, clean editorial aesthetic",
+          "lighting": "Natural daylight with clean professional interior illumination, soft window shadows",
+          "color_palette": "Cool gray, crisp white, rich wood accents, natural skin tones",
+          "composition": "Wide medium shot viewed through a transparent conference room divider"
+        }
+      }
+    ]
+  },
+  {
+    "source_id": "2156889309",
+    "source_title": "View content",
+    "analysis": {
+      "style": "High-end commercial stock photography, authentic, professional workplace documentary",
+      "lighting": "Natural cool daylight mixed with subtle artificial server rack illumination, soft cinematic bounce",
+      "composition": "Medium shot, eye-level, framed through server rack doors for depth of field, balanced central focus on the subject",
+      "color_palette": "Cool steely blues, muted neutrals, warm yellow highlights from fiber optic cables"
+    },
+    "generated_prompts": [
+      {
+        "concept": "Male engineer analyzing cloud server architecture",
+        "prompt_data": {
+          "subject": "A focused male IT specialist in a button-down shirt holding a tablet, reviewing modern data center architecture",
+          "style": "Cinematic commercial corporate photography, hyper-realistic, professional depth of field",
+          "lighting": "Cool corporate ambient light with dramatic LED accents from high-density server blades",
+          "color_palette": "Deep navy blues, gunmetal grays, subtle amber cable accents",
+          "composition": "Medium full shot, angled perspective inside a brightly lit enterprise server room"
+        }
+      },
+      {
+        "concept": "Diverse team collaborating in a massive server facility",
+        "prompt_data": {
+          "subject": "Two tech professionals, a diverse man and woman, collaborating over a diagnostic laptop in front of glowing server racks",
+          "style": "Authentic commercial workplace stock photography, high detail, professional editorial feel",
+          "lighting": "Balanced mix of industrial overhead lighting and cool blue digital glow",
+          "color_palette": "Teal, slate gray, clean whites, warm fiber optic yellow",
+          "composition": "Wide medium shot showing scale of the data center, dynamic framing through server aisle"
+        }
+      },
+      {
+        "concept": "Cybersecurity specialist monitoring network security",
+        "prompt_data": {
+          "subject": "A concentrated female network security expert typing on an ultra-slim laptop, illuminated by glowing code reflections",
+          "style": "High-end commercial tech campaign style, sharp focus, cinematic atmosphere",
+          "lighting": "Moody low-key lighting with cyan and purple digital dashboard glow illuminating the face",
+          "color_palette": "Deep cyber blues, electric purple, dark charcoal",
+          "composition": "Close-up medium portrait, shallow depth of field, towering server backdrop blurred"
+        }
+      },
+      {
+        "concept": "AI hardware engineer inspecting advanced quantum servers",
+        "prompt_data": {
+          "subject": "A senior data systems architect examining advanced futuristic hardware blades in a sleek server rack",
+          "style": "Futuristic corporate tech photography, ultra-clean, commercial grade",
+          "lighting": "Pristine white lab-style ambient light combined with neon status indicators",
+          "color_palette": "Silver, metallic gray, cool fluorescent blue, emerald green status lights",
+          "composition": "Symmetrical centered composition emphasizing structural order and cutting-edge technology"
+        }
+      },
+      {
+        "concept": "Telecommunications technician troubleshooting fiber optics",
+        "prompt_data": {
+          "subject": "A focused technician carefully managing yellow and orange fiber optic cable routing in a massive telecom hub",
+          "style": "Professional documentary style commercial photography, crisp focus on hands and cables",
+          "lighting": "Bright, even industrial lighting casting soft shadows",
+          "color_palette": "Vibrant orange and yellow cable highlights against dark metallic equipment",
+          "composition": "Dynamic over-the-shoulder medium shot highlighting intricate technical work"
+        }
+      }
+    ]
+  },
+  {
+    "source_id": "2008639715",
+    "source_title": "View content",
+    "analysis": {
+      "style": "Modern corporate stock photography, candid business meeting, professional lifestyle, cinematic and clean depth of field.",
+      "lighting": "Bright interior office lighting, cool blue ambient light with natural window highlights, slight reflection on glass partitions.",
+      "composition": "Medium shot framed through glass walls, showing a diverse team collaborating around a modern table, one woman standing and presenting with a tablet while colleagues listen and interact.",
+      "color_palette": "Professional corporate tones dominated by deep blues, crisp whites, warm skin tones, and subtle yellow accents on table legs."
+    },
+    "generated_prompts": [
+      {
+        "concept": "Tech startup brainstorming session with holographic UI",
+        "prompt_data": {
+          "subject": "A diverse team of software developers in a sleek glass conference room gathered around a table reviewing interactive holographic project data.",
+          "style": "Modern corporate stock photography, cinematic and clean depth of field, high commercial value.",
+          "lighting": "Bright interior office lighting, cool blue screen glow combined with warm architectural highlights.",
+          "color_palette": "Deep cyan, electric blue, crisp white, and warm natural skin tones.",
+          "composition": "Medium shot through a transparent glass wall, emphasizing collaboration and dynamic interaction."
+        }
+      },
+      {
+        "concept": "Creative agency pitch meeting with colorful mood boards",
+        "prompt_data": {
+          "subject": "An energetic creative director presenting a vibrant design campaign layout on a large table to attentive marketing executives.",
+          "style": "Professional corporate lifestyle photography, candid moment, high-end commercial aesthetic.",
+          "lighting": "Clean natural daylight mixed with warm overhead office spotlights.",
+          "color_palette": "Vibrant accent colors on neutral gray, crisp white, and deep charcoal backgrounds.",
+          "composition": "Over-the-shoulder framed view through a modern partition, focusing on teamwork and engagement."
+        }
+      },
+      {
+        "concept": "Financial strategy review in a high-rise executive suite",
+        "prompt_data": {
+          "subject": "Corporate executives analyzing quarterly financial charts on digital tablets inside a glass-walled skyscraper meeting room.",
+          "style": "Polished editorial stock photography, sharp focus, professional atmosphere.",
+          "lighting": "Cool evening city light blending with refined interior ambient illumination.",
+          "color_palette": "Muted corporate blues, slate grays, polished silver, and warm interior wood accents.",
+          "composition": "Wide medium shot capturing the dynamic scale of the meeting space and engaged professional expressions."
+        }
+      },
+      {
+        "concept": "Product design workshop with physical prototypes",
+        "prompt_data": {
+          "subject": "Industrial designers collaborating around a table filled with miniature prototypes, sketches, and design tools.",
+          "style": "Modern corporate lifestyle imagery, crisp detail, authentic candid feel.",
+          "lighting": "Soft diffused overhead office lighting with bright natural sidelight.",
+          "color_palette": "Warm neutrals, earthy tones, clean whites, and subtle metallic highlights.",
+          "composition": "Framed through clear glass panels, highlighting hands-on teamwork and creative discussion."
+        }
+      },
+      {
+        "concept": "Green energy innovation team discussing sustainability metrics",
+        "prompt_data": {
+          "subject": "A diverse group of sustainability consultants reviewing eco-friendly architectural models and data analytics on a sleek conference table.",
+          "style": "Clean commercial photography, modern workspace aesthetic, high-end professional quality.",
+          "lighting": "Bright daylight streaming through floor-to-ceiling windows with soft interior fill.",
+          "color_palette": "Fresh forest greens, crisp whites, slate gray, and natural wood tones.",
+          "composition": "Medium-wide angle shot captured through a transparent glass divider for a natural documentary feel."
+        }
+      }
+    ]
+  },
+  {
+    "source_id": "2008639252",
+    "source_title": "View content",
+    "analysis": {
+      "style": "Modern corporate stock photography, documentary style, candid business meeting through glass partition, high-end professional atmosphere",
+      "lighting": "Soft ambient interior office lighting, cool blue-toned window reflections mixed with warm task lighting from displays and screens",
+      "composition": "Medium shot framed through glass frames with foreground blur elements, perspective looking into a modern conference room, multi-ethnic corporate team engaged in discussion around a white table",
+      "color_palette": "Corporate cool tones (slate blue, deep navy, sterile white, charcoal gray, with subtle warm skin tones and bright yellow table legs accent)"
+    },
+    "generated_prompts": [
+      {
+        "concept": "Tech startup founders reviewing code and wireframes on dual screens in a glass-walled conference room",
+        "prompt_data": {
+          "subject": "A diverse team of young tech startup entrepreneurs collaborating over laptops and digital tablets in a sleek glass boardroom",
+          "style": "Modern corporate stock photography, candid documentary style, professional business setting",
+          "lighting": "Natural daylight from large windows combined with cool screen glow and soft interior spotlights",
+          "color_palette": "Deep grays, cool steel blues, crisp whites, and vibrant orange accents from UI designs on screens",
+          "composition": "Medium shot through a transparent glass divider, capturing natural interactions and focused expressions"
+        }
+      },
+      {
+        "concept": "Creative directors analyzing design layouts and mood boards during an agency pitch meeting",
+        "prompt_data": {
+          "subject": "A multi-ethnic group of creative professionals reviewing printed portfolios and color swatches around a minimalist meeting table",
+          "style": "High-end commercial stock photography, editorial business lifestyle, authentic candid moments",
+          "lighting": "Bright studio-office hybrid lighting, diffused natural light with neutral shadow gradients",
+          "color_palette": "Neutral slate grays, muted pastels, clean whites, and warm earthy brown tones",
+          "composition": "Over-the-shoulder perspective framing the meeting through a sleek modern architectural opening"
+        }
+      },
+      {
+        "concept": "Financial analysts collaborating on market forecasts with interactive data visualizations on a large touchscreen",
+        "prompt_data": {
+          "subject": "Financial advisors pointing at dynamic stock charts and bar graphs displayed on a large smart board in a modern office",
+          "style": "Corporate editorial photography, clean and professional, documentary realism",
+          "lighting": "Cool digital glow reflecting off faces, balanced with bright professional overhead office illumination",
+          "color_palette": "Monochromatic cool palette with pops of neon blue and soft emerald green from financial charts",
+          "composition": "Wide-angle medium shot capturing both the team dynamics and the large digital data screen"
+        }
+      },
+      {
+        "concept": "Global business strategy session with executives collaborating across a sleek glass conference desk",
+        "prompt_data": {
+          "subject": "Diverse international business executives in smart casual blazers discussing strategy over tablet computers",
+          "style": "Modern commercial microstock photography, high production value, clean corporate aesthetic",
+          "lighting": "Subtle rim lighting from architectural ceiling fixtures, soft contrast shadows",
+          "color_palette": "Charcoal, obsidian black, crisp silver, and professional navy blue tones",
+          "composition": "Eye-level medium-long shot with shallow depth of field, framing the team naturally in a contemporary office"
+        }
+      },
+      {
+        "concept": "Product design team brainstorming user experience workflows with sticky notes and digital prototypes",
+        "prompt_data": {
+          "subject": "UX designers and product managers engaged in a dynamic whiteboard and tablet brainstorming workshop",
+          "style": "Authentic corporate lifestyle photography, collaborative team environment, candid expressions",
+          "lighting": "Bright, even ambient office lighting with soft reflections on glass surfaces",
+          "color_palette": "Off-white, slate gray, muted teal, and vibrant yellow accent notes",
+          "composition": "Dynamic diagonal composition looking into a glass-enclosed modern workshop space"
+        }
+      }
+    ]
+  },
+  {
+    "source_id": "1973530428",
+    "source_title": "View content",
+    "analysis": {
+      "style": "Realistic commercial photography, shallow depth of field, corporate tech integration",
+      "lighting": "Bright, even indoor warehouse lighting with natural highlights on the smartphone screen and hand",
+      "composition": "Close-up of a person's hand holding a smartphone displaying a logistics app in the foreground, with a blurred warehouse and delivery truck in the background",
+      "color_palette": "Cool grays, industrial whites, neutral skin tones, with vibrant blue and red accents on the phone UI"
+    },
+    "generated_prompts": [
+      {
+        "concept": "Drone delivery tracker",
+        "prompt_data": {
+          "subject": "A close-up of a hand holding a smartphone showing a drone flight path map, with a blurred modern fulfillment center and landing pad in the background",
+          "style": "Photorealistic, corporate stock photography, shallow depth of field",
+          "lighting": "Clean, bright natural daylight streaming through warehouse skylights",
+          "color_palette": "Cool metallic grays, industrial whites, warm skin tones, vibrant UI blues",
+          "composition": "Macro focus on smartphone in hand, background softly out of focus showing automated drone operations"
+        }
+      },
+      {
+        "concept": "Global cargo shipping manager",
+        "prompt_data": {
+          "subject": "Hand holding a smartphone displaying a world map with shipping routes and container tracking metrics, busy seaport blurred in the background",
+          "style": "High-end commercial photography, sharp focus on device, cinematic background blur",
+          "lighting": "Golden hour natural sunlight reflecting on the smartphone screen and ocean backdrop",
+          "color_palette": "Deep sea blues, industrial grays, warm golden highlights, crisp white UI elements",
+          "composition": "Over-the-shoulder handheld perspective with cargo vessels blurred in the distance"
+        }
+      },
+      {
+        "concept": "Warehouse inventory AR scanner",
+        "prompt_data": {
+          "subject": "A worker holding a tablet showing augmented reality inventory and shelf-picking analytics, high-tech automated warehouse in the background",
+          "style": "Professional commercial stock image, crisp device details, soft bokeh background",
+          "lighting": "Bright modern LED warehouse lighting highlighting high-tech shelving units",
+          "color_palette": "Steel grays, warehouse concrete tones, neon green and blue AR interface highlights",
+          "composition": "Foreground device focus with high-tech storage racks fading into the blurred distance"
+        }
+      },
+      {
+        "concept": "Last-mile courier signature app",
+        "prompt_data": {
+          "subject": "A delivery driver holding a rugged smartphone showing a digital proof-of-delivery signature screen, suburban neighborhood out of focus in the background",
+          "style": "Commercial lifestyle photography, realistic textures, shallow depth of field",
+          "lighting": "Soft overcast daylight, natural and even illumination",
+          "color_palette": "Earthy outdoor tones, industrial grays, warm skin tones, crisp screen illumination",
+          "composition": "Close-up shot emphasizing the mobile screen interface with residential delivery context blurred behind"
+        }
+      },
+      {
+        "concept": "Smart freight fleet telematics",
+        "prompt_data": {
+          "subject": "Fleet manager holding a smartphone displaying real-time truck diagnostics and fuel efficiency data, large digital command center screen in background",
+          "style": "Corporate tech stock photography, ultra-realistic device screen details",
+          "lighting": "Cool indoor ambient tech office lighting with warm glow from dashboard monitors",
+          "color_palette": "Dark corporate blues, charcoal grays, vibrant orange and green telematics UI indicators",
+          "composition": "Handheld smartphone prominently featured in the lower right, command center blurred in the background"
+        }
+      }
+    ]
+  },
+  {
+    "source_id": "2187817501",
+    "source_title": "View content",
+    "analysis": {
+      "style": "Realistic commercial photography, documentary style corporate meeting, natural candid moment",
+      "lighting": "Soft natural indoor window light creating gentle highlights and realistic shadows",
+      "composition": "Close-up over-the-shoulder perspective focusing on hands, documents, laptop, and tablet on a wooden conference table",
+      "color_palette": "Muted earth tones, warm wooden brown, crisp white paper, cool laptop screen glow"
+    },
+    "generated_prompts": [
+      {
+        "concept": "Diverse creative team collaborating over mood boards and color swatches",
+        "prompt_data": {
+          "subject": "Diverse group of creative professionals pointing at color swatches and design layouts spread across a rustic wooden table",
+          "style": "Realistic commercial photography, lifestyle documentary, sharp focus on hands and details",
+          "lighting": "Warm side window lighting with soft ambient fill",
+          "color_palette": "Warm amber, terracotta, cream white, slate grey",
+          "composition": "Top-down angled perspective emphasizing teamwork, stationery, and creative tools"
+        }
+      },
+      {
+        "concept": "Tech startup brainstorming session with sticky notes and digital tablets",
+        "prompt_data": {
+          "subject": "Colleagues collaborating over a tablet displaying user interface wireframes, surrounded by sticky notes and coffee cups",
+          "style": "Professional corporate stock photography, candid and natural",
+          "lighting": "Clean diffused overhead office lighting combined with natural window glow",
+          "color_palette": "Neutral greys, clean whites, soft blues, warm wood tones",
+          "composition": "Medium close-up shot focusing on hands interacting with digital and physical notes"
+        }
+      },
+      {
+        "concept": "Architectural planning meeting with blueprints and 3D models",
+        "prompt_data": {
+          "subject": "Architects reviewing architectural blueprints and scale models on a large drafting table",
+          "style": "High-end corporate photography, editorial style",
+          "lighting": "Natural daylight streaming from a large studio window",
+          "color_palette": "Monochromatic blues, crisp white blueprints, natural oak wood",
+          "composition": "Overhead perspective capturing hands holding pencils and measuring tools over blueprints"
+        }
+      },
+      {
+        "concept": "Financial audit team reviewing quarterly reports and spreadsheets",
+        "prompt_data": {
+          "subject": "Finance professionals analyzing complex charts, financial spreadsheets, and calculator on a desk",
+          "style": "Clean commercial photography, corporate lifestyle",
+          "lighting": "Soft indoor office lighting with subtle warm accents",
+          "color_palette": "Charcoal grey, paper white, muted gold, espresso brown",
+          "composition": "Dynamic diagonal composition focusing on hands pointing at key data points"
+        }
+      },
+      {
+        "concept": "Product design workshop with sketches and prototyping materials",
+        "prompt_data": {
+          "subject": "Industrial designers sketching product concepts on paper alongside 3D printed prototypes",
+          "style": "Modern documentary photography, authentic and engaging",
+          "lighting": "Bright studio daylight with natural soft shadows",
+          "color_palette": "Off-white, industrial grey, warm wood, subtle pastel accents",
+          "composition": "Close-up macro focus on sketching hands and physical prototypes"
+        }
+      }
+    ]
   }
 ]

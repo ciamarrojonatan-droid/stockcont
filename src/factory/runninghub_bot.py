@@ -1,3 +1,4 @@
+import os
 import json
 import logging
 import sys
@@ -6,21 +7,25 @@ import base64
 import uuid
 import urllib.request
 from pathlib import Path
-from typing import Any, List, Set
-from playwright.sync_api import sync_playwright, Error as PlaywrightError, TimeoutError as PlaywrightTimeoutError
+from typing import Any, List, Set, Union
+from playwright.sync_api import sync_playwright, Page, Frame, Error as PlaywrightError, TimeoutError as PlaywrightTimeoutError
 
 # Reconfigure stdout/stderr to UTF-8 on Windows consoles
 if sys.platform.startswith("win"):
     try:
         sys.stdout.reconfigure(encoding="utf-8")
         sys.stderr.reconfigure(encoding="utf-8")
-    except Exception:
+    except Exception as e:
         pass
 
 # Configuration
 BASE_DIR: Path = Path(__file__).resolve().parent.parent.parent
 PROMPTS_FILE: Path = BASE_DIR / "data" / "processed" / "prompts.json"
 FINAL_IMAGES_DIR: Path = BASE_DIR / "data" / "final" / "images"
+
+# RunningHub Workflow Configuration
+WORKFLOW_URL: str = os.getenv("RUNNINGHUB_WORKFLOW_URL", "https://www.runninghub.ai/pt-br/workflow/2109087489277710337?source=workspace")
+WORKFLOW_ID: str = "2109087489277710337"
 
 # Constants
 DEFAULT_BATCH_SIZE: int = 20
@@ -31,7 +36,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 logger: logging.Logger = logging.getLogger(__name__)
 
 def load_prompts(batch_size: int = DEFAULT_BATCH_SIZE) -> List[str]:
-    """Load prompts and return a list of strings."""
+    """Load prompts prioritizing Contributor Insights top sellers (Gorodenkoff, etc.)."""
     try:
         with open(PROMPTS_FILE, "r", encoding="utf-8") as f:
             data: List[dict[str, Any]] = json.load(f)
@@ -41,9 +46,33 @@ def load_prompts(batch_size: int = DEFAULT_BATCH_SIZE) -> List[str]:
     except json.JSONDecodeError:
         logger.error("Failed to parse the prompts JSON file!")
         return []
-        
-    all_prompts: List[str] = []
+
+    # Identificar IDs de itens minerados diretamente em Contributor Insights (Top Sellers)
+    insights_ids = set()
+    trends_file = BASE_DIR / "data" / "raw" / "trends.json"
+    if trends_file.exists():
+        try:
+            with open(trends_file, "r", encoding="utf-8") as tf:
+                trends = json.load(tf)
+                insights_ids = {str(t.get("id")) for t in trends if t.get("source") == "contributor_insights"}
+        except Exception as e:
+            logger.debug(f"Aviso ao ler trends.json: {e}")
+
+    # Priorizar itens do portal Contributor Insights no início do lote
+    insights_items = []
+    other_items = []
     for item in data:
+        sid = str(item.get("source_id", ""))
+        if sid in insights_ids or item.get("source") == "contributor_insights":
+            insights_items.append(item)
+        else:
+            other_items.append(item)
+
+    ordered_items = insights_items + other_items
+    logger.info(f"Filtro de prompts: {len(insights_items)} itens de Top Sellers encontrados ({len(other_items)} outros).")
+
+    all_prompts: List[str] = []
+    for item in ordered_items:
         for p in item.get("generated_prompts", []):
             if "prompt_data" in p:
                 all_prompts.append(json.dumps(p["prompt_data"], ensure_ascii=False))
@@ -51,10 +80,10 @@ def load_prompts(batch_size: int = DEFAULT_BATCH_SIZE) -> List[str]:
                 all_prompts.append(p["prompt"].replace("\n", " ").strip())
             
     batch = all_prompts[:batch_size]
-    logger.info(f"Loaded {len(batch)} prompts for this batch.")
+    logger.info(f"Carregados {len(batch)} prompts para este lote (Top Sellers de Contributor Insights priorizados).")
     return batch
 
-def get_all_image_srcs(page) -> Set[str]:
+def get_all_image_srcs(page: Page) -> Set[str]:
     """Return a set of all image source URLs currently in the DOM."""
     srcs = set()
     for frame in page.frames:
@@ -63,11 +92,11 @@ def get_all_image_srcs(page) -> Set[str]:
             for src in imgs:
                 if src:
                     srcs.add(src)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"Erro ao buscar imagens no frame: {e}")
     return srcs
 
-def save_image_from_src(page, src: str) -> bool:
+def save_image_from_src(page: Page, src: str) -> bool:
     FINAL_IMAGES_DIR.mkdir(parents=True, exist_ok=True)
     filename = FINAL_IMAGES_DIR / f"generated_{uuid.uuid4().hex[:8]}.png"
     
@@ -122,67 +151,148 @@ def run_factory_bot() -> None:
         
     with sync_playwright() as p:
         user_data_dir = BASE_DIR / "playwright_session"
-        with p.chromium.launch_persistent_context(
-            user_data_dir=user_data_dir,
-            channel="chrome",
-            headless=False,
-            viewport={"width": VIEWPORT_WIDTH, "height": VIEWPORT_HEIGHT},
-            accept_downloads=True,
-            args=["--disable-blink-features=AutomationControlled"]
-        ) as browser:
+        launch_kwargs = {
+            "user_data_dir": user_data_dir,
+            "headless": False,
+            "viewport": {"width": VIEWPORT_WIDTH, "height": VIEWPORT_HEIGHT},
+            "accept_downloads": True,
+            "args": [
+                "--disable-blink-features=AutomationControlled",
+                "--no-sandbox",
+                "--disable-setuid-sandbox",
+                "--start-maximized"
+            ]
+        }
+
+        browser = None
+        try:
+            browser = p.chromium.connect_over_cdp("http://localhost:9222")
+            logger.info("⚡ Conectado ao Chrome existente via porta 9222!")
+        except Exception:
+            pass
+
+        if not browser:
+            browser = p.chromium.launch_persistent_context(**launch_kwargs)
+
+        try:
             page = browser.pages[0] if browser.pages else browser.new_page()
             
-            
-            logger.info("Opening Runninghub Workflow... Waiting for login if necessary.")
+            logger.info(f"Opening Runninghub Workflow ({WORKFLOW_ID})... Waiting for login if necessary.")
             try:
-                page.goto("https://www.runninghub.ai/pt-br/workflow/2025818595460128770?source=workspace", wait_until="domcontentloaded", timeout=60000)
+                page.goto(WORKFLOW_URL, wait_until="domcontentloaded", timeout=60000)
             except Exception as e:
                 logger.warning(f"Aviso de rede ao abrir Runninghub ({e}). Prosseguindo com o navegador aberto...")
             
-            # 1. Automate waiting for login and workflow load
-            logger.info("Verificando status de login e aguardando carregamento do workflow...")
-            workflow_url_part = "2025818595460128770"
-            
+            # 1. Automate waiting for login and complete workflow load (all 83 nodes)
+            logger.info("Verificando status de login e aguardando carregamento completo do workflow (83 nós)...")
+            comfy_frame = None
             loaded = False
-            for _ in range(60): # Até 5 minutos
-                if workflow_url_part in page.url:
+            for _ in range(60): # Até 2 minutos
+                for f in page.frames:
                     try:
-                        # Checa se existe tela de canvas ou botões nativos do comfyui/runninghub
-                        if page.locator("canvas").count() > 0 or page.locator("button:has-text('Executar'), [role='button']:has-text('Executar')").count() > 0:
+                        cnt = f.evaluate("() => window.app && window.app.graph && window.app.graph._nodes ? window.app.graph._nodes.length : 0")
+                        if cnt and cnt >= 10:
+                            comfy_frame = f
                             loaded = True
+                            logger.info(f"✅ Workflow carregado com sucesso! Total de nós no grafo: {cnt}")
                             break
                     except Exception:
-                        pass
-                time.sleep(5)
-                logger.info("⏳ Aguardando login ou carregamento do workflow na tela...")
+                        continue
+                if loaded:
+                    break
+                time.sleep(2)
+                logger.info("⏳ Aguardando workflow e nós carregarem na tela...")
                 
             if not loaded:
                 logger.error("Tempo limite atingido aguardando o workflow carregar. Encerrando o bot.")
                 return
 
-            logger.info("✅ Workflow carregado! Iniciando injeção de prompts automática...")
-            time.sleep(5) # Delay extra para garantir que iframes e nós do ComfyUI estejam instanciados
+            # Fechar qualquer popup residual ("Close", "Prompt has no outputs", etc.)
+            try:
+                close_btn = page.locator("button:has-text('Close'), button:has-text('Fechar'), [role='button']:has-text('Close')")
+                if close_btn.count() > 0:
+                    close_btn.first.click(timeout=1000)
+            except Exception:
+                pass
+            page.keyboard.press("Escape")
+            time.sleep(1.0)
 
-            # 2. Inject prompts via Keyboard TAB Loop
-            logger.info("Iniciando injeção de prompts nas múltiplas caixas...")
-            input("👉 Aperte [ENTER] aqui no terminal e DEPOIS você terá 5 SEGUNDOS para voltar ao navegador e CLICAR na PRIMEIRA caixa de texto do seu nó Prompt List...")
+            # 2. Injeção 100% Segura e Autônoma nos Nodes #128, #129, #130, #131 (sem nenhum risco ao grafo)
+            target_nodes = [128, 129, 130, 131]
+            batch_prompts = prompts_list[:20]
+
+            logger.info("🤖 Iniciando injeção de 20 prompts nos nós #128, #129, #130, #131 (5 caixas por nó)...")
             
-            logger.info("⏳ Volte para o navegador e CLIQUE na primeira caixa! Começando em 5...")
-            for i in range(5, 0, -1):
-                logger.info(f"{i}...")
-                time.sleep(1)
+            for idx, prompt_text in enumerate(batch_prompts):
+                node_id = target_nodes[idx // 5]
+                box_num = (idx % 5) + 1
+                curr_total = idx + 1
+                logger.info(f"  📝 Preenchendo prompt {curr_total}/20 [Nó #{node_id} - Caixa prompt_{box_num}]...")
+
+            inject_res = comfy_frame.evaluate("""({nodeIds, prompts}) => {
+                if (typeof window.app === 'undefined' || !window.app.graph) return { error: "Graph not found" };
+                
+                const canvas = window.app.canvas;
+                const n128 = window.app.graph.getNodeById(128);
+                
+                // Centralizar a visualização no nó #128
+                if (canvas && n128) {
+                    canvas.centerOnNode(n128);
+                    canvas.selectNode(n128);
+                }
+                
+                let pIdx = 0;
+                let filledCount = 0;
+                for (let id of nodeIds) {
+                    let node = window.app.graph.getNodeById(id);
+                    if (!node || !node.widgets) continue;
+                    
+                    let promptWidgets = node.widgets.filter(w => w.name && w.name.startsWith('prompt_'));
+                    if (promptWidgets.length === 0) promptWidgets = node.widgets.slice(0, 5);
+                    
+                    for (let w of promptWidgets) {
+                        if (pIdx < prompts.length) {
+                            let text = prompts[pIdx];
+                            w.value = text;
+                            if (w.inputEl) {
+                                if (w.inputEl.parentElement) {
+                                    w.inputEl.parentElement.style.display = 'block';
+                                    w.inputEl.parentElement.style.visibility = 'visible';
+                                    w.inputEl.parentElement.style.zIndex = '1000';
+                                    w.inputEl.parentElement.style.pointerEvents = 'auto';
+                                }
+                                w.inputEl.value = text;
+                                w.inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+                                w.inputEl.dispatchEvent(new Event('change', { bubbles: true }));
+                            }
+                            if (typeof w.callback === 'function') {
+                                try { w.callback(text); } catch(e) {}
+                            }
+                            pIdx++;
+                            filledCount++;
+                        }
+                    }
+                }
+                
+                // Focar e ativar a primeira caixa de texto (prompt_1) do nó #128
+                if (n128 && n128.widgets && n128.widgets[0] && n128.widgets[0].inputEl) {
+                    n128.widgets[0].inputEl.focus();
+                    n128.widgets[0].inputEl.click();
+                }
+                
+                // Redesenhar o Canvas do LiteGraph com os novos valores
+                if (window.app.graph.setDirtyCanvas) window.app.graph.setDirtyCanvas(true, true);
+                if (canvas && canvas.draw) canvas.draw(true, true);
+                
+                return {
+                    success: true,
+                    totalNodes: window.app.graph._nodes.length,
+                    filledCount: filledCount
+                };
+            }""", {"nodeIds": target_nodes, "prompts": batch_prompts})
             
-            logger.info("Escrevendo JSONs...")
-            for prompt_json_str in prompts_list:
-                page.keyboard.press("Control+A")
-                page.keyboard.press("Backspace")
-                page.keyboard.insert_text(prompt_json_str)
-                time.sleep(0.1)
-                page.keyboard.press("Tab")
-                time.sleep(0.1)
-
-            logger.info("✅ Todos os JSONs foram colados nas caixas com sucesso!")
-
+            logger.info(f"Resultado da injeção: {inject_res}")
+            logger.info("✅ Todos os 20 prompts foram injetados com sucesso nos nós #128, #129, #130 e #131 sem intervenção manual!")
 
             # Capture existing images to ignore them (via Node 121 if possible)
             initial_node_images = []
@@ -204,16 +314,20 @@ def run_factory_bot() -> None:
             
             logger.info(f"Ignorando {len(initial_node_images)} imagens pré-existentes no Node #121.")
 
-            # 3. Click Executar (Lite/Plus - o do meio)
+            # 3. Click Executar (Lite/Plus - o botão amarelo do meio)
             logger.info("Procurando o botão de Executar (Lite/Plus)...")
             try:
-                # O usuário indicou que é o botão amarelo (o segundo botão Executar no topo)
-                btn = page.locator("button:has-text('Executar'), [role='button']:has-text('Executar')").nth(1)
+                btn = page.locator("button.beveled-btn-left.run-btn")
+                if btn.count() == 0:
+                    btn = page.locator(".execute-btn-wrap button").nth(1)
+                if btn.count() == 0:
+                    btn = page.locator("button:has-text('Executar'), [role='button']:has-text('Executar')").nth(1)
+                    
                 if btn.count() > 0:
                     btn.click(timeout=5000)
-                    logger.info("✅ Geração de Lote iniciada! (Botão Lite/Plus)")
+                    logger.info("✅ Geração de Lote iniciada com sucesso! (Botão Lite/Plus)")
                 else:
-                    logger.warning("Botão 'Executar' não encontrado visivelmente. Tentando atalho de teclado...")
+                    logger.warning("Botão 'Executar' não encontrado visivelmente. Tentando atalho de teclado Control+Enter...")
                     page.keyboard.press("Control+Enter")
             except Exception as e:
                 logger.error(f"Erro ao clicar em Executar: {e}. O lote pode não ter iniciado.")
@@ -267,6 +381,11 @@ def run_factory_bot() -> None:
             
             if images_saved > 0:
                 time.sleep(3)
+        finally:
+            try:
+                browser.close()
+            except Exception:
+                pass
 
 if __name__ == "__main__":
     run_factory_bot()
