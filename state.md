@@ -19,19 +19,22 @@ Sistema automatizado para análise de tendências de microstock, engenharia reve
 ### Fase 2: Diretor de Arte (Engenharia de Prompts)
 *Status: 🟢 Concluído & Otimizado*
 - [x] Integração de alta velocidade com Gemini Multimodal via REST (`src/analyzer/director.py`).
-- [x] Engenharia reversa para "DNA visual" (estilo, iluminação, composição, paleta) e geração de prompts comerciais derivados.
-- [x] Fila de **145 prompts prontos** (29 itens analisados) salvos em `data/processed/prompts.json` com estrutura `prompt_data` e escrita atômica.
+- [x] Migração para o **System Prompt v2.0 (Visual DNA & Commercial Prompt Architect)** com análise rigorosa em 8 dimensões (Subject, Style, Lighting, Composition, Color Science, Materials/Textures, Camera/Rendering, Commercial Positioning).
+- [x] Geração estrita de **exatamente 10 prompts comerciais derivados por lote/imagem** com scoring de confiança multidimensional.
+- [x] Contrato JSON estruturado v2.0 com retrocompatibilidade automática (`prompt` populado a partir de `prompt_data.final_prompt`).
+- [x] Integração aprimorada com a Fase 3 (`src/factory/runninghub_bot.py`), extraindo diretamente o `final_prompt` refinado para injeção nos nós ComfyUI `#128` e `#129`.
+- [x] Fila de prompts salvos em `data/processed/prompts.json` com estrutura `prompt_data` e escrita atômica.
 
 ### Fase 3: A Fábrica (Geração em Massa & Injeção 100% Autônoma)
 *Status: 🟢 Concluído & Otimizado*
 - [x] Automação 100% autônoma com Playwright para Runninghub (`src/factory/runninghub_bot.py`).
 - [x] Zero cliques manuais: espera ativa até o carregamento completo dos 83 nós do grafo.
 - [x] Centralização da câmera no Node **#128 Easy-Use** e foco visível imediato em `prompt_1`.
-- [x] Injeção atômica e segura nos nós **#128, #129, #130 e #131** (5 caixas por nó = 20 caixas preenchidas por lote).
+- [x] Injeção atômica de **10 prompts por lote nos nós #128 e #129** (5 caixas por nó), com limpeza automática dos nós #130 e #131.
 - [x] Sincronização direta via DOM + LiteGraph API com repintura forçada do canvas (`setDirtyCanvas`), eliminando risco de deleção acidental de nós via atalhos globais.
 - [x] Disparo automático via botão Executar Lite/Plus (`button.beveled-btn-left.run-btn`) e monitoramento em tempo real do **Node #192** (saída final com Upscale 4K).
-- [x] Captura streaming item a item: salva imediatamente cada nova imagem 4K gerada no nó #192 antes da iteração seguinte do loop ComfyUI substituir a imagem anterior.
-- [x] Priorização inteligente do lote: prompts minerados em Contributor Insights (Top Sellers Gorodenkoff e onephoto) são priorizados no carregamento de lotes.
+- [x] Captura streaming item a item: salva imediatamente cada uma das **10 imagens 4K** geradas no nó #192.
+- [x] Cancelamento automático da task em "Lista de tarefas": imediatamente após salvar a **10ª imagem**, o bot clica em "Cancelar" para interromper o upscale da 11ª imagem excedente/irrelevante e poupar créditos/tempo.
 - [x] Fluxo de persistência do Chrome com profile dedicado (`playwright_session`).
 
 ### Fase 4: O Catalogador (Metadados e SEO)

@@ -28,7 +28,7 @@ WORKFLOW_URL: str = os.getenv("RUNNINGHUB_WORKFLOW_URL", "https://www.runninghub
 WORKFLOW_ID: str = "2109087489277710337"
 
 # Constants
-DEFAULT_BATCH_SIZE: int = 20
+DEFAULT_BATCH_SIZE: int = 10
 DEFAULT_OUTPUT_NODE: int = int(os.getenv("RUNNINGHUB_OUTPUT_NODE", "192"))
 VIEWPORT_WIDTH: int = 1280
 VIEWPORT_HEIGHT: int = 800
@@ -75,10 +75,12 @@ def load_prompts(batch_size: int = DEFAULT_BATCH_SIZE) -> List[str]:
     all_prompts: List[str] = []
     for item in ordered_items:
         for p in item.get("generated_prompts", []):
-            if "prompt_data" in p:
-                all_prompts.append(json.dumps(p["prompt_data"], ensure_ascii=False))
-            elif "prompt" in p:
+            if "prompt_data" in p and isinstance(p["prompt_data"], dict) and "final_prompt" in p["prompt_data"]:
+                all_prompts.append(p["prompt_data"]["final_prompt"].replace("\n", " ").strip())
+            elif "prompt" in p and isinstance(p["prompt"], str):
                 all_prompts.append(p["prompt"].replace("\n", " ").strip())
+            elif "prompt_data" in p:
+                all_prompts.append(json.dumps(p["prompt_data"], ensure_ascii=False))
             
     batch = all_prompts[:batch_size]
     logger.info(f"Carregados {len(batch)} prompts para este lote (Top Sellers de Contributor Insights priorizados).")
@@ -166,6 +168,153 @@ def save_image_from_src(page: Page, src: str) -> bool:
         logger.debug(f"Falha ao processar src de imagem: {e}")
     return False
 
+def cancel_runninghub_task(page: Page, max_wait_sec: int = 45) -> bool:
+    """
+    Cancela imediatamente a tarefa em execução no RunningHub ('Lista de tarefas').
+    Acionado imediatamente após salvar a 20ª imagem para interromper o upscale excedente.
+    """
+    logger.info("🛑 [Lista de tarefas] Localizando e acionando 'Cancelar' para a tarefa ativa...")
+    start_time = time.time()
+    
+    while time.time() - start_time < max_wait_sec:
+        try:
+            # 1. Se 'Cancelar' não estiver visível, tentar abrir o painel 'Lista de tarefas' caso esteja recolhido
+            has_cancel = False
+            for frame in page.frames:
+                try:
+                    c = frame.locator("text='Cancelar', text='Cancel', text='取消'")
+                    if c.count() > 0 and c.first.is_visible():
+                        has_cancel = True
+                        break
+                except Exception:
+                    pass
+            
+            if not has_cancel:
+                for drawer_sel in [
+                    "text='Lista de tarefas'",
+                    "text='Tarefas'",
+                    "[title*='tarefa']",
+                    "[title*='Tarefa']",
+                    "[title*='Task']",
+                    "[aria-label*='tarefa']",
+                    "[aria-label*='Tarefa']",
+                    ".task-list-btn",
+                    ".task-btn"
+                ]:
+                    try:
+                        drawer_btn = page.locator(drawer_sel)
+                        if drawer_btn.count() > 0 and drawer_btn.first.is_visible():
+                            logger.info(f"📂 Abrindo painel 'Lista de tarefas' ({drawer_sel})...")
+                            drawer_btn.first.click(timeout=1500)
+                            time.sleep(1.0)
+                            break
+                    except Exception:
+                        pass
+
+            # 2. Localizar o botão/link 'Cancelar'
+            clicked = False
+            
+            # Prioridade A: 'Cancelar' associado ao card da tarefa (próximo de 'Gerando' ou 'taskid')
+            for frame in page.frames:
+                try:
+                    specific_cancel = frame.locator("xpath=//*[contains(text(), 'Gerando') or contains(text(), 'taskid')]/ancestor::*[position()<=5]//*[text()='Cancelar' or text()='Cancel' or text()='取消']")
+                    if specific_cancel.count() > 0 and specific_cancel.first.is_visible():
+                        logger.info("🎯 Botão 'Cancelar' da tarefa ativa encontrado! Clicando...")
+                        specific_cancel.first.click(timeout=3000)
+                        clicked = True
+                        break
+                except Exception:
+                    pass
+                if clicked:
+                    break
+
+            # Prioridade B: Qualquer elemento com texto exato 'Cancelar' visível
+            if not clicked:
+                for frame in page.frames:
+                    try:
+                        general_cancels = frame.locator("button:has-text('Cancelar'), a:has-text('Cancelar'), span:has-text('Cancelar'), div:has-text('Cancelar'), text='Cancelar'")
+                        for idx in range(general_cancels.count()):
+                            item = general_cancels.nth(idx)
+                            if item.is_visible():
+                                txt = item.inner_text().strip()
+                                if txt in ["Cancelar", "Cancel", "取消"]:
+                                    logger.info(f"🎯 Botão '{txt}' encontrado no painel! Clicando...")
+                                    item.click(timeout=3000)
+                                    clicked = True
+                                    break
+                    except Exception:
+                        pass
+                    if clicked:
+                        break
+
+            # Prioridade C: Injeção direta via JS no DOM do frame
+            if not clicked:
+                for frame in page.frames:
+                    try:
+                        res = frame.evaluate("""() => {
+                            const all = Array.from(document.querySelectorAll('*'));
+                            for (let el of all) {
+                                if (el.children.length === 0) {
+                                    const t = el.textContent ? el.textContent.trim() : '';
+                                    if (t === 'Cancelar' || t === 'Cancel' || t === '取消') {
+                                        const r = el.getBoundingClientRect();
+                                        if (r.width > 0 && r.height > 0) {
+                                            el.click();
+                                            return { clicked: true, tag: el.tagName };
+                                        }
+                                    }
+                                }
+                            }
+                            return { clicked: false };
+                        }""")
+                        if res and res.get("clicked"):
+                            logger.info(f"🎯 'Cancelar' clicado via injeção DOM JS ({res.get('tag')})!")
+                            clicked = True
+                            break
+                    except Exception:
+                        pass
+
+            # 3. Se clicou em Cancelar, verificar se abriu modal de confirmação
+            if clicked:
+                time.sleep(1.0)
+                modal_confirmed = False
+                for frame in page.frames:
+                    try:
+                        for confirm_sel in [
+                            ".el-message-box__btns button.el-button--primary",
+                            ".el-dialog__footer button.el-button--primary",
+                            ".el-message-box__btns button:not(.el-button--default)",
+                            "[role='dialog'] button.primary",
+                            "[role='dialog'] button:has-text('Confirmar')",
+                            "[role='dialog'] button:has-text('Determinar')",
+                            "[role='dialog'] button:has-text('Sim')",
+                            "[role='dialog'] button:has-text('OK')",
+                            "button:has-text('Confirmar')",
+                            "button:has-text('Determinar')",
+                            "button:has-text('Sim')"
+                        ]:
+                            btn = frame.locator(confirm_sel)
+                            if btn.count() > 0 and btn.first.is_visible():
+                                logger.info(f"🔔 Modal de confirmação detectado ({confirm_sel}). Confirmando...")
+                                btn.first.click(timeout=2000)
+                                modal_confirmed = True
+                                break
+                    except Exception:
+                        pass
+                    if modal_confirmed:
+                        break
+
+                logger.info("✅ Tarefa cancelada com sucesso na 'Lista de tarefas'! O upscale da imagem excedente foi abortado.")
+                return True
+
+        except Exception as e:
+            logger.debug(f"Aviso durante tentativa de cancelamento: {e}")
+
+        time.sleep(1.5)
+
+    logger.warning("⚠️ Tempo limite atingido tentando cancelar a tarefa na 'Lista de tarefas'.")
+    return False
+
 def run_factory_bot(output_node_id: int = DEFAULT_OUTPUT_NODE) -> None:
     FINAL_IMAGES_DIR.mkdir(parents=True, exist_ok=True)
     
@@ -243,19 +392,20 @@ def run_factory_bot(output_node_id: int = DEFAULT_OUTPUT_NODE) -> None:
             page.keyboard.press("Escape")
             time.sleep(1.0)
 
-            # 2. Injeção 100% Segura e Autônoma nos Nodes #128, #129, #130, #131 (sem nenhum risco ao grafo)
-            target_nodes = [128, 129, 130, 131]
-            batch_prompts = prompts_list[:20]
+            # 2. Injeção 100% Segura e Autônoma nos Nodes #128 e #129 (5 caixas por nó = 10 prompts por lote)
+            target_nodes = [128, 129]
+            clear_nodes = [130, 131]
+            batch_prompts = prompts_list[:DEFAULT_BATCH_SIZE]
 
-            logger.info("🤖 Iniciando injeção de 20 prompts nos nós #128, #129, #130, #131 (5 caixas por nó)...")
+            logger.info(f"🤖 Iniciando injeção de {len(batch_prompts)} prompts nos nós #128 e #129 (5 caixas por nó)...")
             
             for idx, prompt_text in enumerate(batch_prompts):
                 node_id = target_nodes[idx // 5]
                 box_num = (idx % 5) + 1
                 curr_total = idx + 1
-                logger.info(f"  📝 Preenchendo prompt {curr_total}/20 [Nó #{node_id} - Caixa prompt_{box_num}]...")
+                logger.info(f"  📝 Preenchendo prompt {curr_total}/{len(batch_prompts)} [Nó #{node_id} - Caixa prompt_{box_num}]...")
 
-            inject_res = comfy_frame.evaluate("""({nodeIds, prompts}) => {
+            inject_res = comfy_frame.evaluate("""({targetNodeIds, clearNodeIds, prompts}) => {
                 if (typeof window.app === 'undefined' || !window.app.graph) return { error: "Graph not found" };
                 
                 const canvas = window.app.canvas;
@@ -269,7 +419,9 @@ def run_factory_bot(output_node_id: int = DEFAULT_OUTPUT_NODE) -> None:
                 
                 let pIdx = 0;
                 let filledCount = 0;
-                for (let id of nodeIds) {
+                
+                // 1. Preencher os 10 prompts nos nós #128 e #129
+                for (let id of targetNodeIds) {
                     let node = window.app.graph.getNodeById(id);
                     if (!node || !node.widgets) continue;
                     
@@ -300,6 +452,27 @@ def run_factory_bot(output_node_id: int = DEFAULT_OUTPUT_NODE) -> None:
                     }
                 }
                 
+                // 2. Limpar nós #130 e #131 para garantir que apenas os 10 prompts sejam gerados
+                for (let id of clearNodeIds) {
+                    let node = window.app.graph.getNodeById(id);
+                    if (!node || !node.widgets) continue;
+                    
+                    let promptWidgets = node.widgets.filter(w => w.name && w.name.startsWith('prompt_'));
+                    if (promptWidgets.length === 0) promptWidgets = node.widgets.slice(0, 5);
+                    
+                    for (let w of promptWidgets) {
+                        w.value = "";
+                        if (w.inputEl) {
+                            w.inputEl.value = "";
+                            w.inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+                            w.inputEl.dispatchEvent(new Event('change', { bubbles: true }));
+                        }
+                        if (typeof w.callback === 'function') {
+                            try { w.callback(""); } catch(e) {}
+                        }
+                    }
+                }
+                
                 // Focar e ativar a primeira caixa de texto (prompt_1) do nó #128
                 if (n128 && n128.widgets && n128.widgets[0] && n128.widgets[0].inputEl) {
                     n128.widgets[0].inputEl.focus();
@@ -315,10 +488,10 @@ def run_factory_bot(output_node_id: int = DEFAULT_OUTPUT_NODE) -> None:
                     totalNodes: window.app.graph._nodes.length,
                     filledCount: filledCount
                 };
-            }""", {"nodeIds": target_nodes, "prompts": batch_prompts})
+            }""", {"targetNodeIds": target_nodes, "clearNodeIds": clear_nodes, "prompts": batch_prompts})
             
             logger.info(f"Resultado da injeção: {inject_res}")
-            logger.info("✅ Todos os 20 prompts foram injetados com sucesso nos nós #128, #129, #130 e #131 sem intervenção manual!")
+            logger.info("✅ Todos os 10 prompts foram injetados com sucesso nos nós #128 e #129 (nós #130 e #131 limpos) sem intervenção manual!")
 
             # Capture existing images to ignore them (via Node output_node_id)
             initial_node_images = get_node_images(page, output_node_id)
@@ -343,9 +516,9 @@ def run_factory_bot(output_node_id: int = DEFAULT_OUTPUT_NODE) -> None:
                 logger.error(f"Erro ao clicar em Executar: {e}. O lote pode não ter iniciado.")
             
             # 4. Monitor and save 4K upscaled images from Node output_node_id in real-time
-            expected_images = len(prompts_list)
+            expected_images = min(len(batch_prompts), DEFAULT_BATCH_SIZE)
             logger.info(f"⏳ Monitorando novas imagens com Upscale 4K em tempo real no Node #{output_node_id}...")
-            logger.info(f"🎯 Captura instantânea ativada: cada imagem será salva uma a uma assim que renderizada.")
+            logger.info(f"🎯 Captura instantânea ativada: cada imagem será salva uma a uma assim que renderizada (limite: {expected_images} imagens).")
             
             saved_srcs = set(initial_node_images)
             images_saved = 0
@@ -364,6 +537,13 @@ def run_factory_bot(output_node_id: int = DEFAULT_OUTPUT_NODE) -> None:
                         logger.info(f"✅ [Upscale 4K] Imagem {images_saved}/{expected_images} capturada e salva com sucesso do Node #{output_node_id}!")
                         start_wait_time = time.time() # Reset timeout
                     saved_srcs.add(src) # Mark as processed whether success or fail
+                    
+                    if images_saved >= expected_images:
+                        logger.info(f"🎯 Meta de {expected_images} imagens atingida! Interrompendo captura imediatamente.")
+                        break
+                
+                if images_saved >= expected_images:
+                    break
                 
                 # Check for timeout (e.g. 15 minutes without new images to allow very slow generations)
                 if time.time() - start_wait_time > 900:
@@ -372,7 +552,14 @@ def run_factory_bot(output_node_id: int = DEFAULT_OUTPUT_NODE) -> None:
                     
                 time.sleep(2) # Polling ágil a cada 2s para não perder transição entre iterações do loop
                 
-            logger.info(f"🎉 Processo concluído! {images_saved} imagens 4K geradas e salvas do Node #{output_node_id}.")
+            logger.info(f"🎉 Captura do lote finalizada! Total de {images_saved} imagens salvas do Node #{output_node_id}.")
+            
+            # 5. Cancelar a tarefa imediatamente após salvar a 10ª imagem para ignorar upscale excedente
+            if images_saved >= expected_images:
+                logger.info(f"⚡ 10ª imagem salva com sucesso! Acionando cancelamento imediato em 'Lista de tarefas' para descartar upscale excedente...")
+                cancel_runninghub_task(page)
+            else:
+                logger.warning(f"Lote finalizado com {images_saved}/{expected_images} imagens geradas.")
             
             if images_saved > 0:
                 time.sleep(3)
