@@ -24,8 +24,8 @@ PROMPTS_FILE: Path = BASE_DIR / "data" / "processed" / "prompts.json"
 FINAL_IMAGES_DIR: Path = BASE_DIR / "data" / "final" / "images"
 
 # RunningHub Workflow Configuration
-WORKFLOW_URL: str = os.getenv("RUNNINGHUB_WORKFLOW_URL", "https://www.runninghub.ai/pt-br/workflow/2109087489277710337?source=workspace")
-WORKFLOW_ID: str = "2109087489277710337"
+WORKFLOW_URL: str = os.getenv("RUNNINGHUB_WORKFLOW_URL", "https://www.runninghub.ai/pt-br/workflow/2109838304543002625?source=workspace")
+WORKFLOW_ID: str = "2109838304543002625"
 
 # Constants
 DEFAULT_BATCH_SIZE: int = 10
