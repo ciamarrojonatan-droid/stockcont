@@ -29,7 +29,8 @@ Sistema automatizado para análise de tendências de microstock, engenharia reve
 - [x] Centralização da câmera no Node **#128 Easy-Use** e foco visível imediato em `prompt_1`.
 - [x] Injeção atômica e segura nos nós **#128, #129, #130 e #131** (5 caixas por nó = 20 caixas preenchidas por lote).
 - [x] Sincronização direta via DOM + LiteGraph API com repintura forçada do canvas (`setDirtyCanvas`), eliminando risco de deleção acidental de nós via atalhos globais.
-- [x] Disparo automático via botão Executar Lite/Plus (`button.beveled-btn-left.run-btn`) e monitoramento do Node #121 para download dos assets.
+- [x] Disparo automático via botão Executar Lite/Plus (`button.beveled-btn-left.run-btn`) e monitoramento em tempo real do **Node #192** (saída final com Upscale 4K).
+- [x] Captura streaming item a item: salva imediatamente cada nova imagem 4K gerada no nó #192 antes da iteração seguinte do loop ComfyUI substituir a imagem anterior.
 - [x] Priorização inteligente do lote: prompts minerados em Contributor Insights (Top Sellers Gorodenkoff e onephoto) são priorizados no carregamento de lotes.
 - [x] Fluxo de persistência do Chrome com profile dedicado (`playwright_session`).
 

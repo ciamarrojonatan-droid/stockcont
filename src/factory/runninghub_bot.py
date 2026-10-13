@@ -29,6 +29,7 @@ WORKFLOW_ID: str = "2109087489277710337"
 
 # Constants
 DEFAULT_BATCH_SIZE: int = 20
+DEFAULT_OUTPUT_NODE: int = int(os.getenv("RUNNINGHUB_OUTPUT_NODE", "192"))
 VIEWPORT_WIDTH: int = 1280
 VIEWPORT_HEIGHT: int = 800
 
@@ -96,6 +97,26 @@ def get_all_image_srcs(page: Page) -> Set[str]:
             logger.debug(f"Erro ao buscar imagens no frame: {e}")
     return srcs
 
+def get_node_images(page: Page, node_id: int) -> List[str]:
+    """Extrai URLs de imagens renderizadas no nó especificado do ComfyUI/LiteGraph."""
+    node_images = []
+    for frame in page.frames:
+        try:
+            imgs = frame.evaluate("""(id) => {
+                if (typeof window.app !== 'undefined' && window.app.graph) {
+                    let node = window.app.graph.getNodeById(id);
+                    if (node && node.imgs && node.imgs.length > 0) {
+                        return node.imgs.map(i => i.src).filter(Boolean);
+                    }
+                }
+                return [];
+            }""", node_id)
+            if imgs:
+                node_images.extend(imgs)
+        except Exception:
+            pass
+    return node_images
+
 def save_image_from_src(page: Page, src: str) -> bool:
     FINAL_IMAGES_DIR.mkdir(parents=True, exist_ok=True)
     filename = FINAL_IMAGES_DIR / f"generated_{uuid.uuid4().hex[:8]}.png"
@@ -107,11 +128,13 @@ def save_image_from_src(page: Page, src: str) -> bool:
             with open(filename, "wb") as f:
                 f.write(data)
             return True
-        elif src.startswith("blob:"):
+        elif src.startswith("blob:") or src.startswith("http"):
+            # 1. Tentar extrair diretamente no contexto autenticado do navegador (preserva cookies e resolução 4K)
             for frame in page.frames:
                 try:
                     b64_data = frame.evaluate("""async (url) => {
-                        const response = await fetch(url);
+                        const response = await fetch(url, { credentials: 'include' });
+                        if (!response.ok) return null;
                         const blob = await response.blob();
                         return new Promise((resolve, reject) => {
                             const reader = new FileReader();
@@ -120,19 +143,22 @@ def save_image_from_src(page: Page, src: str) -> bool:
                             reader.readAsDataURL(blob);
                         });
                     }""", src)
-                    if b64_data:
+                    if b64_data and "," in b64_data:
                         header, encoded = b64_data.split(",", 1)
                         data = base64.b64decode(encoded)
-                        with open(filename, "wb") as f:
-                            f.write(data)
-                        return True
+                        if len(data) > 30000: # Ignorar ícones ou thumbnails < 30KB
+                            with open(filename, "wb") as f:
+                                f.write(data)
+                            return True
                 except Exception:
                     continue
-        elif src.startswith("http"):
+
+        # 2. Fallback para urllib caso não tenha sido baixado e seja HTTP
+        if src.startswith("http"):
             req = urllib.request.Request(src, headers={'User-Agent': 'Mozilla/5.0'})
             with urllib.request.urlopen(req) as response:
                 data = response.read()
-                if len(data) > 30000: # Ignore tiny icons < 30KB
+                if len(data) > 30000:
                     with open(filename, "wb") as f:
                         f.write(data)
                     return True
@@ -140,7 +166,7 @@ def save_image_from_src(page: Page, src: str) -> bool:
         logger.debug(f"Falha ao processar src de imagem: {e}")
     return False
 
-def run_factory_bot() -> None:
+def run_factory_bot(output_node_id: int = DEFAULT_OUTPUT_NODE) -> None:
     FINAL_IMAGES_DIR.mkdir(parents=True, exist_ok=True)
     
     prompts_list = load_prompts(batch_size=DEFAULT_BATCH_SIZE)
@@ -294,25 +320,9 @@ def run_factory_bot() -> None:
             logger.info(f"Resultado da injeção: {inject_res}")
             logger.info("✅ Todos os 20 prompts foram injetados com sucesso nos nós #128, #129, #130 e #131 sem intervenção manual!")
 
-            # Capture existing images to ignore them (via Node 121 if possible)
-            initial_node_images = []
-            for frame in page.frames:
-                try:
-                    imgs = frame.evaluate("""() => {
-                        if (typeof window.app !== 'undefined' && window.app.graph) {
-                            let node = window.app.graph.getNodeById(121);
-                            if (node && node.imgs) {
-                                return node.imgs.map(i => i.src);
-                            }
-                        }
-                        return [];
-                    }""")
-                    if imgs:
-                        initial_node_images.extend(imgs)
-                except Exception:
-                    pass
-            
-            logger.info(f"Ignorando {len(initial_node_images)} imagens pré-existentes no Node #121.")
+            # Capture existing images to ignore them (via Node output_node_id)
+            initial_node_images = get_node_images(page, output_node_id)
+            logger.info(f"Ignorando {len(initial_node_images)} imagens pré-existentes no Node #{output_node_id}.")
 
             # 3. Click Executar (Lite/Plus - o botão amarelo do meio)
             logger.info("Procurando o botão de Executar (Lite/Plus)...")
@@ -332,9 +342,10 @@ def run_factory_bot() -> None:
             except Exception as e:
                 logger.error(f"Erro ao clicar em Executar: {e}. O lote pode não ter iniciado.")
             
-            # 4. Monitor and save images from Node #121
+            # 4. Monitor and save 4K upscaled images from Node output_node_id in real-time
             expected_images = len(prompts_list)
-            logger.info(f"⏳ Monitorando novas imagens no Node #121. A geração pode levar mais de 2 minutos...")
+            logger.info(f"⏳ Monitorando novas imagens com Upscale 4K em tempo real no Node #{output_node_id}...")
+            logger.info(f"🎯 Captura instantânea ativada: cada imagem será salva uma a uma assim que renderizada.")
             
             saved_srcs = set(initial_node_images)
             images_saved = 0
@@ -344,29 +355,13 @@ def run_factory_bot() -> None:
                 # Dismiss any error popup if it appears (press Escape)
                 page.keyboard.press("Escape")
                 
-                current_node_images = []
-                for frame in page.frames:
-                    try:
-                        imgs = frame.evaluate("""() => {
-                            if (typeof window.app !== 'undefined' && window.app.graph) {
-                                let node = window.app.graph.getNodeById(121);
-                                if (node && node.imgs) {
-                                    return node.imgs.map(i => i.src);
-                                }
-                            }
-                            return [];
-                        }""")
-                        if imgs:
-                            current_node_images.extend(imgs)
-                    except Exception:
-                        pass
-                
-                new_srcs = set(current_node_images) - saved_srcs
+                current_node_images = get_node_images(page, output_node_id)
+                new_srcs = [src for src in current_node_images if src not in saved_srcs]
                 
                 for src in new_srcs:
                     if save_image_from_src(page, src):
                         images_saved += 1
-                        logger.info(f"✅ Imagem {images_saved}/{expected_images} salva na pasta data/final/images!")
+                        logger.info(f"✅ [Upscale 4K] Imagem {images_saved}/{expected_images} capturada e salva com sucesso do Node #{output_node_id}!")
                         start_wait_time = time.time() # Reset timeout
                     saved_srcs.add(src) # Mark as processed whether success or fail
                 
@@ -375,9 +370,9 @@ def run_factory_bot() -> None:
                     logger.warning("⚠️ Tempo limite (15 minutos) atingido sem novas imagens. Encerrando lote...")
                     break
                     
-                time.sleep(5) # Polling interval
+                time.sleep(2) # Polling ágil a cada 2s para não perder transição entre iterações do loop
                 
-            logger.info(f"🎉 Processo concluído! {images_saved} imagens geradas e salvas do Node #121.")
+            logger.info(f"🎉 Processo concluído! {images_saved} imagens 4K geradas e salvas do Node #{output_node_id}.")
             
             if images_saved > 0:
                 time.sleep(3)

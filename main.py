@@ -165,11 +165,11 @@ def run_phase_2() -> None:
     director_main()
     logger.info("Phase 2 finished.")
 
-def run_phase_3() -> None:
+def run_phase_3(node: int = 192) -> None:
     """Execute Phase 3: The Factory RPA Bot."""
-    logger.info("--- Starting Phase 3: The Factory (Runninghub Automation Bot) ---")
+    logger.info(f"--- Starting Phase 3: The Factory (Runninghub Automation Bot - Output Node #{node}) ---")
     from src.factory.runninghub_bot import run_factory_bot
-    run_factory_bot()
+    run_factory_bot(output_node_id=node)
     logger.info("Phase 3 finished.")
 
 def run_phase_4() -> None:
@@ -179,13 +179,13 @@ def run_phase_4() -> None:
     results = run_cataloger()
     logger.info(f"Phase 4 finished. Processed {len(results)} assets.")
 
-def run_all_pipeline(query: str, max_items: int) -> None:
+def run_all_pipeline(query: str, max_items: int, node: int = 192) -> None:
     """Run all phases sequentially."""
     print_banner()
     logger.info("Starting Full End-to-End StockCont Pipeline...")
     run_phase_1(max_items=max_items)
     run_phase_2()
-    run_phase_3()
+    run_phase_3(node=node)
     run_phase_4()
     logger.info("Full pipeline execution completed!")
 
@@ -197,6 +197,8 @@ def main() -> None:
     parser.add_argument("--status", "-s", action="store_true", help="Display the current pipeline dashboard status")
     parser.add_argument("--phase", "-p", type=int, choices=[1, 2, 3, 4], help="Execute a specific phase (1, 2, 3, or 4)")
     parser.add_argument("--all", "-a", action="store_true", help="Run all 4 phases sequentially")
+
+    parser.add_argument("--node", type=int, default=192, help="Output Node ID in Runninghub ComfyUI to capture upscaled 4K images (default: 192)")
 
     # Options for Phase 1
     p1_group = parser.add_argument_group("Phase 1 Options")
@@ -219,7 +221,7 @@ def main() -> None:
         return
 
     if args.all:
-        run_all_pipeline(query=args.query, max_items=args.max_items)
+        run_all_pipeline(query=args.query, max_items=args.max_items, node=args.node)
         return
 
     if args.phase == 1:
@@ -236,7 +238,7 @@ def main() -> None:
     elif args.phase == 2:
         run_phase_2()
     elif args.phase == 3:
-        run_phase_3()
+        run_phase_3(node=args.node)
     elif args.phase == 4:
         run_phase_4()
 
