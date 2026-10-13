@@ -107,8 +107,15 @@ def get_node_images(page: Page, node_id: int) -> List[str]:
             imgs = frame.evaluate("""(id) => {
                 if (typeof window.app !== 'undefined' && window.app.graph) {
                     let node = window.app.graph.getNodeById(id);
-                    if (node && node.imgs && node.imgs.length > 0) {
-                        return node.imgs.map(i => i.src).filter(Boolean);
+                    if (node) {
+                        let res = [];
+                        if (node.imgs && node.imgs.length > 0) {
+                            res.push(...node.imgs.map(i => i.src || i.currentSrc).filter(Boolean));
+                        }
+                        if (node.image && (node.image.src || node.image.currentSrc)) {
+                            res.push(node.image.src || node.image.currentSrc);
+                        }
+                        return res;
                     }
                 }
                 return [];
@@ -181,28 +188,25 @@ def cancel_runninghub_task(page: Page, max_wait_sec: int = 45) -> bool:
             # 1. Se 'Cancelar' não estiver visível, tentar abrir o painel 'Lista de tarefas' caso esteja recolhido
             has_cancel = False
             for frame in page.frames:
-                try:
-                    c = frame.locator("text='Cancelar', text='Cancel', text='取消'")
-                    if c.count() > 0 and c.first.is_visible():
-                        has_cancel = True
-                        break
-                except Exception:
-                    pass
+                for word in ["Cancelar", "Cancel", "取消"]:
+                    try:
+                        c = frame.get_by_text(word, exact=True)
+                        if c.count() > 0 and c.first.is_visible():
+                            has_cancel = True
+                            break
+                    except Exception:
+                        pass
+                if has_cancel:
+                    break
             
             if not has_cancel:
                 for drawer_sel in [
-                    "text='Lista de tarefas'",
-                    "text='Tarefas'",
-                    "[title*='tarefa']",
-                    "[title*='Tarefa']",
-                    "[title*='Task']",
-                    "[aria-label*='tarefa']",
-                    "[aria-label*='Tarefa']",
-                    ".task-list-btn",
-                    ".task-btn"
+                    "Lista de tarefas",
+                    "Tarefas",
+                    "Task",
                 ]:
                     try:
-                        drawer_btn = page.locator(drawer_sel)
+                        drawer_btn = page.get_by_text(drawer_sel)
                         if drawer_btn.count() > 0 and drawer_btn.first.is_visible():
                             logger.info(f"📂 Abrindo painel 'Lista de tarefas' ({drawer_sel})...")
                             drawer_btn.first.click(timeout=1500)
@@ -231,19 +235,20 @@ def cancel_runninghub_task(page: Page, max_wait_sec: int = 45) -> bool:
             # Prioridade B: Qualquer elemento com texto exato 'Cancelar' visível
             if not clicked:
                 for frame in page.frames:
-                    try:
-                        general_cancels = frame.locator("button:has-text('Cancelar'), a:has-text('Cancelar'), span:has-text('Cancelar'), div:has-text('Cancelar'), text='Cancelar'")
-                        for idx in range(general_cancels.count()):
-                            item = general_cancels.nth(idx)
-                            if item.is_visible():
-                                txt = item.inner_text().strip()
-                                if txt in ["Cancelar", "Cancel", "取消"]:
-                                    logger.info(f"🎯 Botão '{txt}' encontrado no painel! Clicando...")
+                    for word in ["Cancelar", "Cancel", "取消"]:
+                        try:
+                            general_cancels = frame.get_by_text(word, exact=True)
+                            for idx in range(general_cancels.count()):
+                                item = general_cancels.nth(idx)
+                                if item.is_visible():
+                                    logger.info(f"🎯 Botão '{word}' encontrado no painel! Clicando...")
                                     item.click(timeout=3000)
                                     clicked = True
                                     break
-                    except Exception:
-                        pass
+                        except Exception:
+                            pass
+                        if clicked:
+                            break
                     if clicked:
                         break
 
@@ -350,19 +355,42 @@ def run_factory_bot(output_node_id: int = DEFAULT_OUTPUT_NODE) -> None:
             browser = p.chromium.launch_persistent_context(**launch_kwargs)
 
         try:
-            page = browser.pages[0] if browser.pages else browser.new_page()
-            
-            logger.info(f"Opening Runninghub Workflow ({WORKFLOW_ID})... Waiting for login if necessary.")
-            try:
-                page.goto(WORKFLOW_URL, wait_until="domcontentloaded", timeout=60000)
-            except Exception as e:
-                logger.warning(f"Aviso de rede ao abrir Runninghub ({e}). Prosseguindo com o navegador aberto...")
+            target_page = None
+            all_pages = []
+            if hasattr(browser, "contexts") and browser.contexts:
+                for ctx in browser.contexts:
+                    all_pages.extend(ctx.pages)
+            elif hasattr(browser, "pages"):
+                all_pages.extend(browser.pages)
+
+            for p_cand in all_pages:
+                try:
+                    if "runninghub" in p_cand.url:
+                        target_page = p_cand
+                        logger.info(f"🎯 Aba existente do RunningHub encontrada ({p_cand.url})!")
+                        break
+                except Exception:
+                    pass
+
+            if target_page:
+                page = target_page
+                try:
+                    page.bring_to_front()
+                except Exception:
+                    pass
+            else:
+                page = all_pages[0] if all_pages else browser.new_page()
+                logger.info(f"Opening Runninghub Workflow ({WORKFLOW_ID})... Waiting for login if necessary.")
+                try:
+                    page.goto(WORKFLOW_URL, wait_until="domcontentloaded", timeout=60000)
+                except Exception as e:
+                    logger.warning(f"Aviso de rede ao abrir Runninghub ({e}). Prosseguindo com o navegador aberto...")
             
             # 1. Automate waiting for login and complete workflow load (all 83 nodes)
             logger.info("Verificando status de login e aguardando carregamento completo do workflow (83 nós)...")
             comfy_frame = None
             loaded = False
-            for _ in range(60): # Até 2 minutos
+            for step in range(120): # Até 4 minutos para permitir login
                 for f in page.frames:
                     try:
                         cnt = f.evaluate("() => window.app && window.app.graph && window.app.graph._nodes ? window.app.graph._nodes.length : 0")
@@ -376,10 +404,19 @@ def run_factory_bot(output_node_id: int = DEFAULT_OUTPUT_NODE) -> None:
                 if loaded:
                     break
                 time.sleep(2)
-                logger.info("⏳ Aguardando workflow e nós carregarem na tela...")
+                if step % 5 == 0:
+                    try:
+                        logger.info(f"⏳ Aguardando nós do workflow ({step+1}/120)... Página atual: '{page.title()}' ({page.url})")
+                    except Exception:
+                        logger.info(f"⏳ Aguardando workflow e nós carregarem na tela ({step+1}/120)...")
                 
             if not loaded:
-                logger.error("Tempo limite atingido aguardando o workflow carregar. Encerrando o bot.")
+                debug_img = BASE_DIR / "data" / "workflow_debug.png"
+                try:
+                    page.screenshot(path=str(debug_img))
+                    logger.error(f"Tempo limite atingido aguardando o workflow carregar (URL: {page.url}). Screenshot salvo em {debug_img}. Encerrando o bot.")
+                except Exception:
+                    logger.error(f"Tempo limite atingido aguardando o workflow carregar (URL: {page.url}). Encerrando o bot.")
                 return
 
             # Fechar qualquer popup residual ("Close", "Prompt has no outputs", etc.)
@@ -500,13 +537,30 @@ def run_factory_bot(output_node_id: int = DEFAULT_OUTPUT_NODE) -> None:
             # 3. Click Executar (Lite/Plus - o botão amarelo do meio)
             logger.info("Procurando o botão de Executar (Lite/Plus)...")
             try:
-                btn = page.locator("button.beveled-btn-left.run-btn")
-                if btn.count() == 0:
-                    btn = page.locator(".execute-btn-wrap button").nth(1)
-                if btn.count() == 0:
-                    btn = page.locator("button:has-text('Executar'), [role='button']:has-text('Executar')").nth(1)
-                    
-                if btn.count() > 0:
+                btn = None
+                for sel in [
+                    "xpath=//*[contains(text(), 'Lite/Plus')]/ancestor::button",
+                    "xpath=//*[contains(text(), 'Lite/Plus')]/ancestor::*[contains(@class, 'btn')]",
+                    "xpath=//*[contains(text(), 'Lite/Plus')]/..",
+                    "xpath=//*[contains(text(), 'Lite/Plus')]",
+                    "button.beveled-btn-left.run-btn",
+                    ".execute-btn-wrap button",
+                    "button:has-text('Executar'), [role='button']:has-text('Executar')"
+                ]:
+                    try:
+                        candidates = page.locator(sel)
+                        for c_idx in range(candidates.count()):
+                            item = candidates.nth(c_idx)
+                            if item.is_visible():
+                                btn = item
+                                logger.info(f"🎯 Botão Executar Lite/Plus localizado via '{sel}'")
+                                break
+                    except Exception:
+                        pass
+                    if btn:
+                        break
+
+                if btn:
                     btn.click(timeout=5000)
                     logger.info("✅ Geração de Lote iniciada com sucesso! (Botão Lite/Plus)")
                 else:

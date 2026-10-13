@@ -47,6 +47,28 @@ Sistema automatizado para análise de tendências de microstock, engenharia reve
 - [x] Conversão automática de PNG para JPG de alta qualidade (qualidade 98) caso o gerador produza arquivos PNG.
 - [x] Exportação e atualização incremental do CSV `data/processed/adobe_stock_upload.csv`.
 
+### Fase 5: O Distribuidor (Multi-Platform SFTP/FTP Mass Upload)
+*Status: 🟢 Concluído & Testado de Ponta a Ponta*
+- [x] Módulo nativo autônomo desenvolvido em `src/uploader/ftp_distributor.py`.
+- [x] Suporte multi-protocolo completo:
+  - **SFTP** de alta segurança com `paramiko` para **Adobe Stock Contributor** (`sftp.contributor.adobestock.com:22`).
+  - **FTP/FTPS** com `ftplib` para **Freepik**, **Dreamstime**, **Pond5**, **Alamy**, **Vecteezy** e **123RF**.
+- [x] Livro-razão e histórico inteligente (`data/processed/upload_history.json`): evita reenvios desnecessários do mesmo arquivo para a mesma plataforma.
+- [x] Sistema de retentativas com backoff exponencial contra instabilidades temporárias de rede.
+- [x] Modo de simulação e validação prévia de conexões (`--dry-run`): testa credenciais e lista arquivos pendentes sem transferir bytes.
+- [x] Filtro granular por plataforma (`--platform [adobe|freepik|dreamstime|pond5|alamy|vecteezy|123rf|all]`) e envio forçado (`--force`).
+- [x] Integração total ao CLI Maestro (`python main.py --phase 5` e encadeamento em `python main.py --all`).
+
+### ☁️ Módulo de Backup em Nuvem: Google Drive
+*Status: 🟢 Concluído & Integrado ao Pipeline*
+- [x] Módulo nativo autônomo em `src/backup/gdrive_backup.py`.
+- [x] **Modo Nuvem (Google Drive API v3)**: Upload direto via Service Account (`service_account.json` ou string JSON no `.env`) ou OAuth 2.0. Descoberta e criação automática da pasta remota `StockCont_Backup`.
+- [x] **Modo Sincronização Local**: Compatível com pasta local do Google Drive para Desktop (`GOOGLE_DRIVE_LOCAL_PATH="G:\Meu Drive\StockCont"`).
+- [x] **Uploads Resumíveis em Chunks (`MediaFileUpload`)**: Otimizado para suportar imagens pesadas em 4K sem perda de conexão.
+- [x] **Histórico Atômico (`data/processed/gdrive_backup_history.json`)**: Previne reenvios duplicados de assets já sincronizados.
+- [x] **Disparo Automático**: Integrado para salvar automaticamente as imagens catalogadas logo após a **Fase 4** e no comando mestre `python main.py --backup` ou `python main.py --all`.
+- [x] **Guia de Segurança GCP**: Documentado procedimento para desativação da trava organizacional `iam.disableServiceAccountKeyCreation` para emissão de chaves Service Account JSON.
+
 ---
 
 ## 🌐 Estratégia de Monetização Multi-Plataforma & Distribuição Open-Source
@@ -74,13 +96,8 @@ Sistema automatizado para análise de tendências de microstock, engenharia reve
 
 O **Wirestock** cobra de 15% a 30% de comissão sobre os royalties do criador de forma vitalícia e centraliza as contas em nome deles. No nosso pipeline, como a Fase 4 (`src/cataloger/adobe_csv_maker.py`) já grava todos os metadados binários (**Title, Keywords, Description**) diretamente no arquivo JPG (`IPTC` + `EXIF`), não é necessário nenhum intermediário comissionado.
 
-- **Solução Open-Source Pronta**: **Xpiks** ([github.com/ribtoks/xpiks](https://github.com/ribtoks/xpiks))
-  - Aplicativo desktop open-source (C++/Qt) para Windows, macOS e Linux.
-  - Suporta catalogação e injeção de IPTC em lote.
-  - Possui gerenciador de conexões FTP/FTPS simultâneo para despachar arquivos para múltiplas agências em paralelo.
-- **Solução Nativa do Projeto (Roadmap Fase 5)**:
-  - Criação de `src/uploader/ftp_distributor.py` utilizando bibliotecas nativas de Python (`ftplib` e `paramiko` para SFTP).
-  - Distribuição automatizada com 1 comando: lê as imagens processadas da pasta `data/final/images/` e envia para todas as agências configuradas no `.env`.
+- **Solução Nativa do StockCont (Fase 5 Implementada)**:
+  - `src/uploader/ftp_distributor.py` despacha diretamente para as agências via SFTP e FTP sem intermediários e com 100% dos royalties retidos pelo criador.
 
 ---
 
@@ -114,25 +131,31 @@ Em todas as agências que suportam envio em massa, o acesso FTP é gratuito para
 ## 🎮 Orquestrador Maestro Central (`main.py`)
 *Status: 🟢 Operacional*
 - [x] CLI unificado com dashboard visual de status: `python main.py --status`.
-- [x] Execução modular por fase: `python main.py --phase [1|2|3|4]`.
+- [x] Execução modular por fase: `python main.py --phase [1|2|3|4|5]`.
 - [x] Suporte a argumentos de nicho diretamente no comando central (ex: `python main.py --phase 1 -q "minimalist office" -o nb_downloads`).
-- [x] Modo de execução contínua encadeada: `python main.py --all`.
+- [x] Backup direto via CLI: `python main.py --backup` (com flag opcional `--dry-run`).
+- [x] Modo de execução contínua encadeada: `python main.py --all` (executa da mineração, geração, catalogação, backup no Drive ao upload distribuído).
 
 ---
 
 ## 🛠 Infraestrutura e DevOps
 - [x] Repositório GitHub conectado e sincronizado.
-- [x] Dependências atualizadas em `requirements.txt` (`piexif`, `iptcinfo3`, `httpx`, `pillow`, `google-genai`).
+- [x] Dependências atualizadas em `requirements.txt` (`piexif`, `iptcinfo3`, `httpx`, `pillow`, `google-genai`, `google-api-python-client`, `google-auth`, `paramiko`).
 - [x] Resiliência de encoding no terminal Windows (UTF-8 sem falhas de cp1252).
+- [x] 17 testes automatizados passando em `tests/` (`pytest`).
 - [x] Protocolo de orquestração autônoma e skills ECC configurados.
 
 ---
 
-## 🎯 Próximo Passo Operacional
-1. **Catalogar o Lote Gerado (Top Sellers Gorodenkoff/onephoto)**:
-   `python main.py --phase 4`
-   - O catalogador converterá as 20 fotos para JPG (qualidade 98), injetará os metadados IPTC/EXIF embutidos e atualizará o CSV `adobe_stock_upload.csv`.
-2. **Submissão no Portal**:
-   - Fazer upload das fotos processadas no portal Adobe Stock Contributor (ou via SFTP). Os metadados serão lidos instantaneamente.
-3. **(Opcional / Futuro)**:
-   - Configurar credenciais FTP para Freepik / Alamy / Vecteezy e plugar a Fase 5 (`src/uploader/ftp_distributor.py`).
+## 🎯 Próximos Passos Operacionais
+1. **Configurar Backup do Google Drive no `.env`**:
+   - Inserir a chave `service_account.json` ou o caminho local em `GOOGLE_DRIVE_LOCAL_PATH`.
+   - Testar com `python main.py --backup --dry-run`.
+2. **Configurar Credenciais das Agências Desejadas no `.env`**:
+   - Adicionar usuário e senha gerados no Adobe Stock (SFTP) e/ou Freepik (FTP).
+   - Testar credenciais com `python main.py --phase 5 --dry-run`.
+3. **Execução Automatizada Contínua**:
+   ```powershell
+   python main.py --all
+   ```
+

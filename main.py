@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """StockCont - Master Pipeline CLI Orchestrator
 
-Unified command-line interface for the 4-phase microstock AI pipeline:
+Unified command-line interface for the 5-phase microstock AI pipeline:
   Phase 1: Trend Scout (Adobe Stock Scraper with Niche support)
   Phase 2: Art Director (Prompt Engineering via Gemini Vision)
   Phase 3: The Factory (Mass Generation Bot on Runninghub)
   Phase 4: The Cataloger (Metadata, IPTC/EXIF Injection & CSV Export)
+  Phase 5: The Distributor (Multi-Platform SFTP/FTP Mass Upload)
 """
 
 import argparse
@@ -110,6 +111,29 @@ def check_status() -> None:
             cataloged_count = -1
     print(f"  [4] Phase 4 (Cataloger): {cataloged_count} assets cataloged in adobe_stock_upload.csv")
 
+    # Phase 5: Distributed Uploads
+    upload_history_file = PROCESSED_DIR / "upload_history.json"
+    uploaded_files_count = 0
+    if upload_history_file.exists():
+        try:
+            with open(upload_history_file, "r", encoding="utf-8") as f:
+                history_data = json.load(f)
+                uploaded_files_count = len(history_data)
+        except Exception:
+            uploaded_files_count = -1
+            
+    from src.uploader.ftp_distributor import get_available_agencies
+    agencies = get_available_agencies()
+    cfg_count = sum(1 for a in agencies.values() if a.is_configured)
+    print(f"  [5] Phase 5 (Distributor): {cfg_count}/{len(agencies)} agencies configured | {uploaded_files_count} assets logged in upload_history.json")
+
+    # Cloud Backup: Google Drive
+    from src.backup.gdrive_backup import GoogleDriveBackup
+    gdrive = GoogleDriveBackup()
+    gdrive_status = f"Configured ({gdrive.mode})" if gdrive.is_configured else "Not Configured (Optional in .env)"
+    gdrive_history_count = len(gdrive._history)
+    print(f"  [☁️] Google Drive Backup:  {gdrive_status} | {gdrive_history_count} assets backed up in history")
+
     print("\n" + "-" * 65)
     uncataloged = max(0, len(final_images) - cataloged_count)
     # Quick action recommendation
@@ -117,8 +141,12 @@ def check_status() -> None:
         print(f"  💡 Next Recommended Action: Run Phase 4 (`python main.py --phase 4`)")
         print(f"     to embed IPTC metadata and update CSV for {uncataloged} uncataloged images.")
     elif len(final_images) > 0 and uncataloged == 0:
-        print(f"  🎉 All {len(final_images)} images are fully cataloged and embedded with IPTC/EXIF!")
-        print(f"     Assets in data/final/images/ and data/processed/adobe_stock_upload.csv are ready for upload.")
+        if cfg_count > 0:
+            print(f"  💡 Next Recommended Action: Run Phase 5 (`python main.py --phase 5 --dry-run`)")
+            print(f"     to distribute {len(final_images)} cataloged assets to {cfg_count} configured agencies.")
+        else:
+            print(f"  🎉 All {len(final_images)} images are fully cataloged and embedded with IPTC/EXIF!")
+            print(f"     Configure agency credentials in .env to enable Phase 5 automated SFTP/FTP distribution.")
     elif generated_prompts_total > 0:
         print(f"  💡 Next Recommended Action: Run Phase 3 (`python main.py --phase 3`)")
         print(f"     to generate images using the {generated_prompts_total} available prompts.")
@@ -179,6 +207,29 @@ def run_phase_4() -> None:
     results = run_cataloger()
     logger.info(f"Phase 4 finished. Processed {len(results)} assets.")
 
+    # Automated Google Drive Backup
+    from src.backup.gdrive_backup import GoogleDriveBackup
+    gdrive = GoogleDriveBackup()
+    if gdrive.is_configured:
+        logger.info("☁️ Google Drive configurado! Sincronizando backup automático dos assets...")
+        gdrive.backup_assets()
+    else:
+        logger.info("💡 Dica: Configure o Google Drive no .env para backup automático dos assets em nuvem.")
+
+def run_backup(dry_run: bool = False, force: bool = False) -> None:
+    """Execute Google Drive asset backup."""
+    logger.info(f"--- Starting Google Drive Backup (DryRun: {dry_run}, Force: {force}) ---")
+    from src.backup.gdrive_backup import run_gdrive_backup
+    run_gdrive_backup(dry_run=dry_run, force=force)
+    logger.info("Google Drive Backup finished.")
+
+def run_phase_5(platform: str = "all", dry_run: bool = False, force: bool = False) -> None:
+    """Execute Phase 5: The Distributor (Multi-Platform SFTP/FTP Mass Upload)."""
+    logger.info(f"--- Starting Phase 5: The Distributor (Target: {platform}, DryRun: {dry_run}, Force: {force}) ---")
+    from src.uploader.ftp_distributor import run_distributor
+    run_distributor(target_platform=platform, dry_run=dry_run, force=force)
+    logger.info("Phase 5 finished.")
+
 def run_all_pipeline(query: str, max_items: int, node: int = 192) -> None:
     """Run all phases sequentially."""
     print_banner()
@@ -187,6 +238,8 @@ def run_all_pipeline(query: str, max_items: int, node: int = 192) -> None:
     run_phase_2()
     run_phase_3(node=node)
     run_phase_4()
+    run_backup()
+    run_phase_5()
     logger.info("Full pipeline execution completed!")
 
 def main() -> None:
@@ -195,8 +248,9 @@ def main() -> None:
         formatter_class=argparse.RawTextHelpFormatter
     )
     parser.add_argument("--status", "-s", action="store_true", help="Display the current pipeline dashboard status")
-    parser.add_argument("--phase", "-p", type=int, choices=[1, 2, 3, 4], help="Execute a specific phase (1, 2, 3, or 4)")
-    parser.add_argument("--all", "-a", action="store_true", help="Run all 4 phases sequentially")
+    parser.add_argument("--phase", "-p", type=int, choices=[1, 2, 3, 4, 5], help="Execute a specific phase (1, 2, 3, 4, or 5)")
+    parser.add_argument("--backup", "-b", action="store_true", help="Execute Google Drive backup for all cataloged assets")
+    parser.add_argument("--all", "-a", action="store_true", help="Run all pipeline phases sequentially")
 
     parser.add_argument("--node", type=int, default=192, help="Output Node ID in Runninghub ComfyUI to capture upscaled 4K images (default: 192)")
 
@@ -211,6 +265,12 @@ def main() -> None:
     p1_group.add_argument("--deep-profile", action="store_true", help="Mine deeper into top contributors' full portfolios")
     p1_group.add_argument("--headless", action="store_true", help="Run scraper browser in headless mode")
 
+    # Options for Phase 5 & Backup
+    p5_group = parser.add_argument_group("Phase 5 & Backup Options")
+    p5_group.add_argument("--platform", default="all", help="Target agency: all, adobe, freepik, dreamstime, pond5, alamy, vecteezy, 123rf")
+    p5_group.add_argument("--dry-run", action="store_true", help="Test credentials and simulate upload/backup without transferring files")
+    p5_group.add_argument("--force", action="store_true", help="Re-upload or re-backup files even if already recorded in history")
+
     args = parser.parse_args()
 
     # If no arguments provided, display status and help
@@ -218,6 +278,10 @@ def main() -> None:
         check_status()
         if len(sys.argv) == 1:
             parser.print_help()
+        return
+
+    if args.backup:
+        run_backup(dry_run=args.dry_run, force=args.force)
         return
 
     if args.all:
@@ -241,6 +305,8 @@ def main() -> None:
         run_phase_3(node=args.node)
     elif args.phase == 4:
         run_phase_4()
+    elif args.phase == 5:
+        run_phase_5(platform=args.platform, dry_run=args.dry_run, force=args.force)
 
 if __name__ == "__main__":
     main()
