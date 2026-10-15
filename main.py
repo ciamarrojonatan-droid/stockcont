@@ -96,9 +96,12 @@ def check_status() -> None:
             prompts_count = -1
     print(f"  [2] Phase 2 (Director):  {prompts_count} analyzed items | {generated_prompts_total} ready prompts")
 
-    # Phase 3: Final Images Generated
+    # Phase 3: Final Images & Queue Progress
+    from src.factory.prompt_queue import PromptQueueManager
+    queue_mgr = PromptQueueManager()
+    q_stats = queue_mgr.get_stats()
     final_images = list(FINAL_IMAGES_DIR.glob("*.jpg")) + list(FINAL_IMAGES_DIR.glob("*.jpeg")) + list(FINAL_IMAGES_DIR.glob("*.png")) if FINAL_IMAGES_DIR.exists() else []
-    print(f"  [3] Phase 3 (Factory):   {len(final_images)} assets waiting in data/final/images/")
+    print(f"  [3] Phase 3 (Factory):   {q_stats['generated']}/{q_stats['total']} prompts gerados ({q_stats['pending']} pendentes - {q_stats['progress_percent']}%) | {len(final_images)} assets em data/final/images/")
 
     # Phase 4: Cataloged CSV
     cataloged_count = 0
@@ -140,6 +143,11 @@ def check_status() -> None:
     if uncataloged > 0:
         print(f"  💡 Next Recommended Action: Run Phase 4 (`python main.py --phase 4`)")
         print(f"     to embed IPTC metadata and update CSV for {uncataloged} uncataloged images.")
+        if q_stats['pending'] > 0:
+            print(f"     Or continue Phase 3: `python main.py --phase 3 --all-batches` ({q_stats['pending']} prompts pendentes).")
+    elif q_stats['pending'] > 0:
+        print(f"  💡 Next Recommended Action: Run Phase 3 (`python main.py --phase 3 --all-batches`)")
+        print(f"     to process the remaining {q_stats['pending']} pending prompts without repeating generated ones.")
     elif len(final_images) > 0 and uncataloged == 0:
         if cfg_count > 0:
             print(f"  💡 Next Recommended Action: Run Phase 5 (`python main.py --phase 5 --dry-run`)")
@@ -193,11 +201,11 @@ def run_phase_2() -> None:
     director_main()
     logger.info("Phase 2 finished.")
 
-def run_phase_3(node: int = 192) -> None:
-    """Execute Phase 3: The Factory RPA Bot."""
-    logger.info(f"--- Starting Phase 3: The Factory (Runninghub Automation Bot - Output Node #{node}) ---")
+def run_phase_3(node: int = 192, batches: int = 1, all_batches: bool = False) -> None:
+    """Execute Phase 3: The Factory RPA Bot with batch queue support."""
+    logger.info(f"--- Starting Phase 3: The Factory (Runninghub Automation Bot - Output Node #{node}, Batches: {batches}, All: {all_batches}) ---")
     from src.factory.runninghub_bot import run_factory_bot
-    run_factory_bot(output_node_id=node)
+    run_factory_bot(output_node_id=node, max_batches=batches, all_batches=all_batches)
     logger.info("Phase 3 finished.")
 
 def run_phase_4() -> None:
@@ -230,13 +238,13 @@ def run_phase_5(platform: str = "all", dry_run: bool = False, force: bool = Fals
     run_distributor(target_platform=platform, dry_run=dry_run, force=force)
     logger.info("Phase 5 finished.")
 
-def run_all_pipeline(query: str, max_items: int, node: int = 192) -> None:
+def run_all_pipeline(query: str, max_items: int, node: int = 192, batches: int = 1, all_batches: bool = False) -> None:
     """Run all phases sequentially."""
     print_banner()
     logger.info("Starting Full End-to-End StockCont Pipeline...")
     run_phase_1(max_items=max_items)
     run_phase_2()
-    run_phase_3(node=node)
+    run_phase_3(node=node, batches=batches, all_batches=all_batches)
     run_phase_4()
     run_backup()
     run_phase_5()
@@ -252,8 +260,6 @@ def main() -> None:
     parser.add_argument("--backup", "-b", action="store_true", help="Execute Google Drive backup for all cataloged assets")
     parser.add_argument("--all", "-a", action="store_true", help="Run all pipeline phases sequentially")
 
-    parser.add_argument("--node", type=int, default=192, help="Output Node ID in Runninghub ComfyUI to capture upscaled 4K images (default: 192)")
-
     # Options for Phase 1
     p1_group = parser.add_argument_group("Phase 1 Options")
     p1_group.add_argument("--mode", default="insights", choices=["insights", "search"], help="Phase 1 mode: 'insights' (Contributor Top Sellers) or 'search' (Public keyword)")
@@ -264,6 +270,12 @@ def main() -> None:
     p1_group.add_argument("--min-downloads", type=int, default=0, help="Minimum contributor lifetime downloads threshold")
     p1_group.add_argument("--deep-profile", action="store_true", help="Mine deeper into top contributors' full portfolios")
     p1_group.add_argument("--headless", action="store_true", help="Run scraper browser in headless mode")
+
+    # Options for Phase 3
+    p3_group = parser.add_argument_group("Phase 3 Options")
+    p3_group.add_argument("--node", type=int, default=192, help="Output Node ID in Runninghub ComfyUI to capture upscaled 4K images (default: 192)")
+    p3_group.add_argument("--batches", type=int, default=1, help="Number of consecutive 10-prompt batches to process in Phase 3 (default: 1)")
+    p3_group.add_argument("--all-batches", action="store_true", help="Process all remaining pending batches until the prompt queue is exhausted")
 
     # Options for Phase 5 & Backup
     p5_group = parser.add_argument_group("Phase 5 & Backup Options")
@@ -285,7 +297,7 @@ def main() -> None:
         return
 
     if args.all:
-        run_all_pipeline(query=args.query, max_items=args.max_items, node=args.node)
+        run_all_pipeline(query=args.query, max_items=args.max_items, node=args.node, batches=args.batches, all_batches=args.all_batches)
         return
 
     if args.phase == 1:
@@ -302,7 +314,7 @@ def main() -> None:
     elif args.phase == 2:
         run_phase_2()
     elif args.phase == 3:
-        run_phase_3(node=args.node)
+        run_phase_3(node=args.node, batches=args.batches, all_batches=args.all_batches)
     elif args.phase == 4:
         run_phase_4()
     elif args.phase == 5:

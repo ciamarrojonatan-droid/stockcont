@@ -7,7 +7,7 @@ import base64
 import uuid
 import urllib.request
 from pathlib import Path
-from typing import Any, List, Set, Union
+from typing import Any, List, Optional, Set, Union
 from playwright.sync_api import sync_playwright, Page, Frame, Error as PlaywrightError, TimeoutError as PlaywrightTimeoutError
 
 # Reconfigure stdout/stderr to UTF-8 on Windows consoles
@@ -37,54 +37,13 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 logger: logging.Logger = logging.getLogger(__name__)
 
 def load_prompts(batch_size: int = DEFAULT_BATCH_SIZE) -> List[str]:
-    """Load prompts prioritizing Contributor Insights top sellers (Gorodenkoff, etc.)."""
-    try:
-        with open(PROMPTS_FILE, "r", encoding="utf-8") as f:
-            data: List[dict[str, Any]] = json.load(f)
-    except FileNotFoundError:
-        logger.error("Prompts file not found!")
-        return []
-    except json.JSONDecodeError:
-        logger.error("Failed to parse the prompts JSON file!")
-        return []
-
-    # Identificar IDs de itens minerados diretamente em Contributor Insights (Top Sellers)
-    insights_ids = set()
-    trends_file = BASE_DIR / "data" / "raw" / "trends.json"
-    if trends_file.exists():
-        try:
-            with open(trends_file, "r", encoding="utf-8") as tf:
-                trends = json.load(tf)
-                insights_ids = {str(t.get("id")) for t in trends if t.get("source") == "contributor_insights"}
-        except Exception as e:
-            logger.debug(f"Aviso ao ler trends.json: {e}")
-
-    # Priorizar itens do portal Contributor Insights no início do lote
-    insights_items = []
-    other_items = []
-    for item in data:
-        sid = str(item.get("source_id", ""))
-        if sid in insights_ids or item.get("source") == "contributor_insights":
-            insights_items.append(item)
-        else:
-            other_items.append(item)
-
-    ordered_items = insights_items + other_items
-    logger.info(f"Filtro de prompts: {len(insights_items)} itens de Top Sellers encontrados ({len(other_items)} outros).")
-
-    all_prompts: List[str] = []
-    for item in ordered_items:
-        for p in item.get("generated_prompts", []):
-            if "prompt_data" in p and isinstance(p["prompt_data"], dict) and "final_prompt" in p["prompt_data"]:
-                all_prompts.append(p["prompt_data"]["final_prompt"].replace("\n", " ").strip())
-            elif "prompt" in p and isinstance(p["prompt"], str):
-                all_prompts.append(p["prompt"].replace("\n", " ").strip())
-            elif "prompt_data" in p:
-                all_prompts.append(json.dumps(p["prompt_data"], ensure_ascii=False))
-            
-    batch = all_prompts[:batch_size]
-    logger.info(f"Carregados {len(batch)} prompts para este lote (Top Sellers de Contributor Insights priorizados).")
-    return batch
+    """Load pending prompts prioritizing Contributor Insights top sellers."""
+    from src.factory.prompt_queue import PromptQueueManager
+    mgr = PromptQueueManager()
+    pending = mgr.get_pending_prompts(batch_size=batch_size)
+    prompts = [p.prompt_text for p in pending]
+    logger.info(f"Carregados {len(prompts)} prompts pendentes para este lote (Top Sellers priorizados).")
+    return prompts
 
 def get_all_image_srcs(page: Page) -> Set[str]:
     """Return a set of all image source URLs currently in the DOM."""
@@ -126,17 +85,20 @@ def get_node_images(page: Page, node_id: int) -> List[str]:
             pass
     return node_images
 
-def save_image_from_src(page: Page, src: str) -> bool:
+def save_image_from_src(page: Page, src: str) -> Optional[str]:
     FINAL_IMAGES_DIR.mkdir(parents=True, exist_ok=True)
     filename = FINAL_IMAGES_DIR / f"generated_{uuid.uuid4().hex[:8]}.png"
+    while filename.exists():
+        filename = FINAL_IMAGES_DIR / f"generated_{uuid.uuid4().hex[:8]}.png"
+    tmp_filename = filename.with_suffix(".tmp")
     
     try:
+        data: Optional[bytes] = None
         if src.startswith("data:image"):
             header, encoded = src.split(",", 1)
-            data = base64.b64decode(encoded)
-            with open(filename, "wb") as f:
-                f.write(data)
-            return True
+            raw_data = base64.b64decode(encoded)
+            if len(raw_data) > 30000:
+                data = raw_data
         elif src.startswith("blob:") or src.startswith("http"):
             # 1. Tentar extrair diretamente no contexto autenticado do navegador (preserva cookies e resolução 4K)
             for frame in page.frames:
@@ -154,26 +116,37 @@ def save_image_from_src(page: Page, src: str) -> bool:
                     }""", src)
                     if b64_data and "," in b64_data:
                         header, encoded = b64_data.split(",", 1)
-                        data = base64.b64decode(encoded)
-                        if len(data) > 30000: # Ignorar ícones ou thumbnails < 30KB
-                            with open(filename, "wb") as f:
-                                f.write(data)
-                            return True
+                        decoded = base64.b64decode(encoded)
+                        if len(decoded) > 30000: # Ignorar ícones ou thumbnails < 30KB
+                            data = decoded
+                            break
                 except Exception:
                     continue
 
-        # 2. Fallback para urllib caso não tenha sido baixado e seja HTTP
-        if src.startswith("http"):
-            req = urllib.request.Request(src, headers={'User-Agent': 'Mozilla/5.0'})
-            with urllib.request.urlopen(req) as response:
-                data = response.read()
-                if len(data) > 30000:
-                    with open(filename, "wb") as f:
-                        f.write(data)
-                    return True
+            # 2. Fallback para urllib caso não tenha sido baixado e seja HTTP
+            if data is None and src.startswith("http"):
+                try:
+                    req = urllib.request.Request(src, headers={'User-Agent': 'Mozilla/5.0'})
+                    with urllib.request.urlopen(req, timeout=15) as response:
+                        http_data = response.read()
+                        if len(http_data) > 30000:
+                            data = http_data
+                except Exception:
+                    pass
+
+        if data:
+            with open(tmp_filename, "wb") as f:
+                f.write(data)
+            tmp_filename.replace(filename)
+            return filename.name
     except Exception as e:
         logger.debug(f"Falha ao processar src de imagem: {e}")
-    return False
+        if tmp_filename.exists():
+            try:
+                tmp_filename.unlink()
+            except Exception:
+                pass
+    return None
 
 def cancel_runninghub_task(page: Page, max_wait_sec: int = 45) -> bool:
     """
@@ -320,15 +293,28 @@ def cancel_runninghub_task(page: Page, max_wait_sec: int = 45) -> bool:
     logger.warning("⚠️ Tempo limite atingido tentando cancelar a tarefa na 'Lista de tarefas'.")
     return False
 
-def run_factory_bot(output_node_id: int = DEFAULT_OUTPUT_NODE) -> None:
+def run_factory_bot(
+    output_node_id: int = DEFAULT_OUTPUT_NODE,
+    max_batches: int = 1,
+    all_batches: bool = False,
+    batch_size: int = DEFAULT_BATCH_SIZE
+) -> None:
     FINAL_IMAGES_DIR.mkdir(parents=True, exist_ok=True)
-    
-    prompts_list = load_prompts(batch_size=DEFAULT_BATCH_SIZE)
-    if not prompts_list:
+    from src.factory.prompt_queue import PromptQueueManager
+    queue_mgr = PromptQueueManager()
+
+    initial_pending = queue_mgr.get_pending_prompts(batch_size=batch_size)
+    if not initial_pending:
+        logger.info("🎉 Nenhum prompt pendente na fila! Todos os prompts já foram gerados.")
         return
-        
-    prompts_text = "\n".join(prompts_list)
-        
+
+    stats = queue_mgr.get_stats()
+    logger.info(f"🚀 Iniciando Factory Bot | Fila: {stats['generated']}/{stats['total']} gerados ({stats['pending']} pendentes - {stats['progress_percent']}%).")
+    if all_batches:
+        logger.info("🔄 Modo: PROCESSAR TODOS OS LOTES (--all-batches) até zerar a fila.")
+    else:
+        logger.info(f"📦 Modo: {max_batches} lote(s) solicitado(s) (máximo {max_batches * batch_size} imagens).")
+
     with sync_playwright() as p:
         user_data_dir = BASE_DIR / "playwright_session"
         launch_kwargs = {
@@ -419,204 +405,246 @@ def run_factory_bot(output_node_id: int = DEFAULT_OUTPUT_NODE) -> None:
                     logger.error(f"Tempo limite atingido aguardando o workflow carregar (URL: {page.url}). Encerrando o bot.")
                 return
 
-            # Fechar qualquer popup residual ("Close", "Prompt has no outputs", etc.)
-            try:
-                close_btn = page.locator("button:has-text('Close'), button:has-text('Fechar'), [role='button']:has-text('Close')")
-                if close_btn.count() > 0:
-                    close_btn.first.click(timeout=1000)
-            except Exception:
-                pass
-            page.keyboard.press("Escape")
-            time.sleep(1.0)
+            # Batch Execution Loop in same browser session
+            batch_count = 0
+            while True:
+                if not all_batches and batch_count >= max_batches:
+                    logger.info(f"🏁 Meta de {max_batches} lote(s) concluída com sucesso.")
+                    break
 
-            # 2. Injeção 100% Segura e Autônoma nos Nodes #128 e #129 (5 caixas por nó = 10 prompts por lote)
-            target_nodes = [128, 129]
-            clear_nodes = [130, 131]
-            batch_prompts = prompts_list[:DEFAULT_BATCH_SIZE]
+                current_pending = queue_mgr.get_pending_prompts(batch_size=batch_size)
+                if not current_pending:
+                    logger.info("🎉 Todos os prompts pendentes foram processados com sucesso! Fila 100% concluída.")
+                    break
 
-            logger.info(f"🤖 Iniciando injeção de {len(batch_prompts)} prompts nos nós #128 e #129 (5 caixas por nó)...")
-            
-            for idx, prompt_text in enumerate(batch_prompts):
-                node_id = target_nodes[idx // 5]
-                box_num = (idx % 5) + 1
-                curr_total = idx + 1
-                logger.info(f"  📝 Preenchendo prompt {curr_total}/{len(batch_prompts)} [Nó #{node_id} - Caixa prompt_{box_num}]...")
+                batch_count += 1
+                batch_prompts = [p.prompt_text for p in current_pending]
+                logger.info("=" * 60)
+                logger.info(f"📦 [Lote #{batch_count}] Processando {len(batch_prompts)} prompts...")
+                logger.info("=" * 60)
 
-            inject_res = comfy_frame.evaluate("""({targetNodeIds, clearNodeIds, prompts}) => {
-                if (typeof window.app === 'undefined' || !window.app.graph) return { error: "Graph not found" };
-                
-                const canvas = window.app.canvas;
-                const n128 = window.app.graph.getNodeById(128);
-                
-                // Centralizar a visualização no nó #128
-                if (canvas && n128) {
-                    canvas.centerOnNode(n128);
-                    canvas.selectNode(n128);
-                }
-                
-                let pIdx = 0;
-                let filledCount = 0;
-                
-                // 1. Preencher os 10 prompts nos nós #128 e #129
-                for (let id of targetNodeIds) {
-                    let node = window.app.graph.getNodeById(id);
-                    if (!node || !node.widgets) continue;
+                # Fechar qualquer popup residual ("Close", "Prompt has no outputs", etc.)
+                try:
+                    close_btn = page.locator("button:has-text('Close'), button:has-text('Fechar'), [role='button']:has-text('Close')")
+                    if close_btn.count() > 0:
+                        close_btn.first.click(timeout=1000)
+                except Exception:
+                    pass
+                page.keyboard.press("Escape")
+                time.sleep(1.0)
+
+                # 2. Injeção 100% Segura e Autônoma nos Nodes #128 e #129 (5 caixas por nó = 10 prompts por lote)
+                target_nodes = [128, 129]
+                clear_nodes = [130, 131]
+
+                logger.info(f"🤖 Iniciando injeção de {len(batch_prompts)} prompts nos nós #128 e #129 (5 caixas por nó)...")
+                for idx, prompt_text in enumerate(batch_prompts):
+                    node_idx = min(idx // 5, len(target_nodes) - 1)
+                    node_id = target_nodes[node_idx]
+                    box_num = (idx % 5) + 1
+                    curr_total = idx + 1
+                    logger.info(f"  📝 Preenchendo prompt {curr_total}/{len(batch_prompts)} [Nó #{node_id} - Caixa prompt_{box_num}]...")
+
+                inject_res = comfy_frame.evaluate("""({targetNodeIds, clearNodeIds, prompts}) => {
+                    if (typeof window.app === 'undefined' || !window.app.graph) return { error: "Graph not found" };
                     
-                    let promptWidgets = node.widgets.filter(w => w.name && w.name.startsWith('prompt_'));
-                    if (promptWidgets.length === 0) promptWidgets = node.widgets.slice(0, 5);
+                    const canvas = window.app.canvas;
+                    const n128 = window.app.graph.getNodeById(128);
                     
-                    for (let w of promptWidgets) {
-                        if (pIdx < prompts.length) {
-                            let text = prompts[pIdx];
-                            w.value = text;
-                            if (w.inputEl) {
-                                if (w.inputEl.parentElement) {
-                                    w.inputEl.parentElement.style.display = 'block';
-                                    w.inputEl.parentElement.style.visibility = 'visible';
-                                    w.inputEl.parentElement.style.zIndex = '1000';
-                                    w.inputEl.parentElement.style.pointerEvents = 'auto';
+                    // Centralizar a visualização no nó #128
+                    if (canvas && n128) {
+                        canvas.centerOnNode(n128);
+                        canvas.selectNode(n128);
+                    }
+                    
+                    let pIdx = 0;
+                    let filledCount = 0;
+                    
+                    // 1. Preencher os prompts nos nós #128 e #129 (e limpar caixas excedentes no lote)
+                    for (let id of targetNodeIds) {
+                        let node = window.app.graph.getNodeById(id);
+                        if (!node || !node.widgets) continue;
+                        
+                        let promptWidgets = node.widgets.filter(w => w.name && w.name.startsWith('prompt_'));
+                        if (promptWidgets.length === 0) promptWidgets = node.widgets.slice(0, 5);
+                        
+                        for (let w of promptWidgets) {
+                            if (pIdx < prompts.length) {
+                                let text = prompts[pIdx];
+                                w.value = text;
+                                if (w.inputEl) {
+                                    if (w.inputEl.parentElement) {
+                                        w.inputEl.parentElement.style.display = 'block';
+                                        w.inputEl.parentElement.style.visibility = 'visible';
+                                        w.inputEl.parentElement.style.zIndex = '1000';
+                                        w.inputEl.parentElement.style.pointerEvents = 'auto';
+                                    }
+                                    w.inputEl.value = text;
+                                    w.inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+                                    w.inputEl.dispatchEvent(new Event('change', { bubbles: true }));
                                 }
-                                w.inputEl.value = text;
+                                if (typeof w.callback === 'function') {
+                                    try { w.callback(text); } catch(e) {}
+                                }
+                                pIdx++;
+                                filledCount++;
+                            } else {
+                                // Limpar caixas excedentes para não re-gerar prompts de lotes anteriores
+                                w.value = "";
+                                if (w.inputEl) {
+                                    w.inputEl.value = "";
+                                    w.inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+                                    w.inputEl.dispatchEvent(new Event('change', { bubbles: true }));
+                                }
+                                if (typeof w.callback === 'function') {
+                                    try { w.callback(""); } catch(e) {}
+                                }
+                            }
+                        }
+                    }
+                    
+                    // 2. Limpar nós #130 e #131 para garantir que apenas os prompts do lote atual sejam gerados
+                    for (let id of clearNodeIds) {
+                        let node = window.app.graph.getNodeById(id);
+                        if (!node || !node.widgets) continue;
+                        
+                        let promptWidgets = node.widgets.filter(w => w.name && w.name.startsWith('prompt_'));
+                        if (promptWidgets.length === 0) promptWidgets = node.widgets.slice(0, 5);
+                        
+                        for (let w of promptWidgets) {
+                            w.value = "";
+                            if (w.inputEl) {
+                                w.inputEl.value = "";
                                 w.inputEl.dispatchEvent(new Event('input', { bubbles: true }));
                                 w.inputEl.dispatchEvent(new Event('change', { bubbles: true }));
                             }
                             if (typeof w.callback === 'function') {
-                                try { w.callback(text); } catch(e) {}
+                                try { w.callback(""); } catch(e) {}
                             }
-                            pIdx++;
-                            filledCount++;
                         }
                     }
-                }
-                
-                // 2. Limpar nós #130 e #131 para garantir que apenas os 10 prompts sejam gerados
-                for (let id of clearNodeIds) {
-                    let node = window.app.graph.getNodeById(id);
-                    if (!node || !node.widgets) continue;
                     
-                    let promptWidgets = node.widgets.filter(w => w.name && w.name.startsWith('prompt_'));
-                    if (promptWidgets.length === 0) promptWidgets = node.widgets.slice(0, 5);
-                    
-                    for (let w of promptWidgets) {
-                        w.value = "";
-                        if (w.inputEl) {
-                            w.inputEl.value = "";
-                            w.inputEl.dispatchEvent(new Event('input', { bubbles: true }));
-                            w.inputEl.dispatchEvent(new Event('change', { bubbles: true }));
-                        }
-                        if (typeof w.callback === 'function') {
-                            try { w.callback(""); } catch(e) {}
-                        }
+                    // Focar e ativar a primeira caixa de texto (prompt_1) do nó #128
+                    if (n128 && n128.widgets && n128.widgets[0] && n128.widgets[0].inputEl) {
+                        n128.widgets[0].inputEl.focus();
+                        n128.widgets[0].inputEl.click();
                     }
-                }
+                    
+                    // Redesenhar o Canvas do LiteGraph com os novos valores
+                    if (window.app.graph.setDirtyCanvas) window.app.graph.setDirtyCanvas(true, true);
+                    if (canvas && canvas.draw) canvas.draw(true, true);
+                    
+                    return {
+                        success: true,
+                        totalNodes: window.app.graph._nodes.length,
+                        filledCount: filledCount
+                    };
+                }""", {"targetNodeIds": target_nodes, "clearNodeIds": clear_nodes, "prompts": batch_prompts})
                 
-                // Focar e ativar a primeira caixa de texto (prompt_1) do nó #128
-                if (n128 && n128.widgets && n128.widgets[0] && n128.widgets[0].inputEl) {
-                    n128.widgets[0].inputEl.focus();
-                    n128.widgets[0].inputEl.click();
-                }
-                
-                // Redesenhar o Canvas do LiteGraph com os novos valores
-                if (window.app.graph.setDirtyCanvas) window.app.graph.setDirtyCanvas(true, true);
-                if (canvas && canvas.draw) canvas.draw(true, true);
-                
-                return {
-                    success: true,
-                    totalNodes: window.app.graph._nodes.length,
-                    filledCount: filledCount
-                };
-            }""", {"targetNodeIds": target_nodes, "clearNodeIds": clear_nodes, "prompts": batch_prompts})
-            
-            logger.info(f"Resultado da injeção: {inject_res}")
-            logger.info("✅ Todos os 10 prompts foram injetados com sucesso nos nós #128 e #129 (nós #130 e #131 limpos) sem intervenção manual!")
+                logger.info(f"Resultado da injeção: {inject_res}")
+                logger.info(f"✅ {len(batch_prompts)} prompts foram injetados com sucesso nos nós #128 e #129 (nós #130 e #131 limpos)!")
 
-            # Capture existing images to ignore them (via Node output_node_id)
-            initial_node_images = get_node_images(page, output_node_id)
-            logger.info(f"Ignorando {len(initial_node_images)} imagens pré-existentes no Node #{output_node_id}.")
+                # Capture existing images to ignore them (via Node output_node_id)
+                initial_node_images = get_node_images(page, output_node_id)
+                logger.info(f"Ignorando {len(initial_node_images)} imagens pré-existentes no Node #{output_node_id}.")
 
-            # 3. Click Executar (Lite/Plus - o botão amarelo do meio)
-            logger.info("Procurando o botão de Executar (Lite/Plus)...")
-            try:
-                btn = None
-                for sel in [
-                    "xpath=//*[contains(text(), 'Lite/Plus')]/ancestor::button",
-                    "xpath=//*[contains(text(), 'Lite/Plus')]/ancestor::*[contains(@class, 'btn')]",
-                    "xpath=//*[contains(text(), 'Lite/Plus')]/..",
-                    "xpath=//*[contains(text(), 'Lite/Plus')]",
-                    "button.beveled-btn-left.run-btn",
-                    ".execute-btn-wrap button",
-                    "button:has-text('Executar'), [role='button']:has-text('Executar')"
-                ]:
-                    try:
-                        candidates = page.locator(sel)
-                        for c_idx in range(candidates.count()):
-                            item = candidates.nth(c_idx)
-                            if item.is_visible():
-                                btn = item
-                                logger.info(f"🎯 Botão Executar Lite/Plus localizado via '{sel}'")
-                                break
-                    except Exception:
-                        pass
+                # 3. Click Executar (Lite/Plus - o botão amarelo do meio)
+                logger.info("Procurando o botão de Executar (Lite/Plus)...")
+                try:
+                    btn = None
+                    for sel in [
+                        "xpath=//*[contains(text(), 'Lite/Plus')]/ancestor::button",
+                        "xpath=//*[contains(text(), 'Lite/Plus')]/ancestor::*[contains(@class, 'btn')]",
+                        "xpath=//*[contains(text(), 'Lite/Plus')]/..",
+                        "xpath=//*[contains(text(), 'Lite/Plus')]",
+                        "button.beveled-btn-left.run-btn",
+                        ".execute-btn-wrap button",
+                        "button:has-text('Executar'), [role='button']:has-text('Executar')"
+                    ]:
+                        try:
+                            candidates = page.locator(sel)
+                            for c_idx in range(candidates.count()):
+                                item = candidates.nth(c_idx)
+                                if item.is_visible():
+                                    btn = item
+                                    logger.info(f"🎯 Botão Executar Lite/Plus localizado via '{sel}'")
+                                    break
+                        except Exception:
+                            pass
+                        if btn:
+                            break
+
                     if btn:
-                        break
-
-                if btn:
-                    btn.click(timeout=5000)
-                    logger.info("✅ Geração de Lote iniciada com sucesso! (Botão Lite/Plus)")
-                else:
-                    logger.warning("Botão 'Executar' não encontrado visivelmente. Tentando atalho de teclado Control+Enter...")
-                    page.keyboard.press("Control+Enter")
-            except Exception as e:
-                logger.error(f"Erro ao clicar em Executar: {e}. O lote pode não ter iniciado.")
-            
-            # 4. Monitor and save 4K upscaled images from Node output_node_id in real-time
-            expected_images = min(len(batch_prompts), DEFAULT_BATCH_SIZE)
-            logger.info(f"⏳ Monitorando novas imagens com Upscale 4K em tempo real no Node #{output_node_id}...")
-            logger.info(f"🎯 Captura instantânea ativada: cada imagem será salva uma a uma assim que renderizada (limite: {expected_images} imagens).")
-            
-            saved_srcs = set(initial_node_images)
-            images_saved = 0
-            start_wait_time = time.time()
-            
-            while images_saved < expected_images:
-                # Dismiss any error popup if it appears (press Escape)
-                page.keyboard.press("Escape")
+                        btn.click(timeout=5000)
+                        logger.info("✅ Geração de Lote iniciada com sucesso! (Botão Lite/Plus)")
+                    else:
+                        logger.warning("Botão 'Executar' não encontrado visivelmente. Tentando atalho de teclado Control+Enter...")
+                        page.keyboard.press("Control+Enter")
+                except Exception as e:
+                    logger.error(f"Erro ao clicar em Executar: {e}. O lote pode não ter iniciado.")
                 
-                current_node_images = get_node_images(page, output_node_id)
-                new_srcs = [src for src in current_node_images if src not in saved_srcs]
+                # 4. Monitor and save 4K upscaled images from Node output_node_id in real-time
+                expected_images = min(len(batch_prompts), batch_size)
+                logger.info(f"⏳ Monitorando novas imagens com Upscale 4K em tempo real no Node #{output_node_id}...")
+                logger.info(f"🎯 Captura instantânea ativada: cada imagem será salva uma a uma assim que renderizada (limite: {expected_images} imagens).")
                 
-                for src in new_srcs:
-                    if save_image_from_src(page, src):
-                        images_saved += 1
-                        logger.info(f"✅ [Upscale 4K] Imagem {images_saved}/{expected_images} capturada e salva com sucesso do Node #{output_node_id}!")
-                        start_wait_time = time.time() # Reset timeout
-                    saved_srcs.add(src) # Mark as processed whether success or fail
+                saved_srcs = set(initial_node_images)
+                batch_saved_files: List[str] = []
+                images_saved = 0
+                start_wait_time = time.time()
+                
+                while images_saved < expected_images:
+                    # Dismiss any error popup if it appears (press Escape)
+                    page.keyboard.press("Escape")
+                    
+                    current_node_images = get_node_images(page, output_node_id)
+                    new_srcs = [src for src in current_node_images if src not in saved_srcs]
+                    
+                    for src in new_srcs:
+                        saved_name = save_image_from_src(page, src)
+                        if saved_name:
+                            images_saved += 1
+                            batch_saved_files.append(saved_name)
+                            saved_srcs.add(src)
+                            logger.info(f"✅ [Upscale 4K] Imagem {images_saved}/{expected_images} capturada ({saved_name}) do Node #{output_node_id}!")
+                            start_wait_time = time.time() # Reset timeout
+                        
+                        if images_saved >= expected_images:
+                            logger.info(f"🎯 Meta de {expected_images} imagens atingida! Interrompendo captura imediatamente.")
+                            break
                     
                     if images_saved >= expected_images:
-                        logger.info(f"🎯 Meta de {expected_images} imagens atingida! Interrompendo captura imediatamente.")
                         break
-                
-                if images_saved >= expected_images:
-                    break
-                
-                # Check for timeout (e.g. 15 minutes without new images to allow very slow generations)
-                if time.time() - start_wait_time > 900:
-                    logger.warning("⚠️ Tempo limite (15 minutos) atingido sem novas imagens. Encerrando lote...")
-                    break
                     
-                time.sleep(2) # Polling ágil a cada 2s para não perder transição entre iterações do loop
+                    # Check for timeout (e.g. 15 minutes without new images to allow very slow generations)
+                    if time.time() - start_wait_time > 900:
+                        logger.warning("⚠️ Tempo limite (15 minutos) atingido sem novas imagens. Encerrando lote...")
+                        break
+                        
+                    time.sleep(2) # Polling ágil a cada 2s para não perder transição entre iterações do loop
+                    
+                logger.info(f"🎉 Captura do lote finalizada! Total de {images_saved} imagens salvas do Node #{output_node_id}.")
                 
-            logger.info(f"🎉 Captura do lote finalizada! Total de {images_saved} imagens salvas do Node #{output_node_id}.")
-            
-            # 5. Cancelar a tarefa imediatamente após salvar a 10ª imagem para ignorar upscale excedente
-            if images_saved >= expected_images:
-                logger.info(f"⚡ 10ª imagem salva com sucesso! Acionando cancelamento imediato em 'Lista de tarefas' para descartar upscale excedente...")
-                cancel_runninghub_task(page)
-            else:
-                logger.warning(f"Lote finalizado com {images_saved}/{expected_images} imagens geradas.")
-            
-            if images_saved > 0:
-                time.sleep(3)
+                # 5. Cancelar a tarefa imediatamente após salvar as imagens esperadas para ignorar upscale excedente
+                if images_saved >= expected_images:
+                    logger.info(f"⚡ {expected_images} imagens salvas com sucesso! Acionando cancelamento imediato em 'Lista de tarefas' para descartar upscale excedente...")
+                    cancel_runninghub_task(page)
+                else:
+                    logger.warning(f"Lote finalizado com {images_saved}/{expected_images} imagens geradas.")
+                
+                # 6. Atualizar a fila e histórico proporcionalmente
+                marked = queue_mgr.mark_prompts_generated(current_pending, saved_images=batch_saved_files)
+                stats = queue_mgr.get_stats()
+                logger.info(f"📊 Fila de Prompts: {stats['generated']}/{stats['total']} gerados ({stats['pending']} pendentes - {stats['progress_percent']}%)")
+
+                # Se nenhuma imagem foi salva no lote, interromper para evitar consumo acidental ou loop infinito
+                if images_saved == 0:
+                    logger.error("❌ Nenhuma imagem foi gerada/salva neste lote (falha ou timeout). Interrompendo execução para evitar loop infinito.")
+                    break
+
+                if (all_batches or batch_count < max_batches) and stats['pending'] > 0:
+                    logger.info("⏳ Aguardando 3 segundos de segurança antes do próximo lote...")
+                    time.sleep(3)
         finally:
             try:
                 browser.close()
@@ -624,4 +652,10 @@ def run_factory_bot(output_node_id: int = DEFAULT_OUTPUT_NODE) -> None:
                 pass
 
 if __name__ == "__main__":
-    run_factory_bot()
+    import argparse
+    parser = argparse.ArgumentParser(description="RunningHub ComfyUI Automation Bot")
+    parser.add_argument("--node", type=int, default=DEFAULT_OUTPUT_NODE, help="Output Node ID in Runninghub ComfyUI (default: 192)")
+    parser.add_argument("--batches", type=int, default=1, help="Number of consecutive batches to run (default: 1)")
+    parser.add_argument("--all-batches", action="store_true", help="Run until prompt queue is exhausted")
+    args = parser.parse_args()
+    run_factory_bot(output_node_id=args.node, max_batches=args.batches, all_batches=args.all_batches)
