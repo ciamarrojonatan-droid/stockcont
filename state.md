@@ -13,8 +13,8 @@ Sistema autônomo para inteligência de microstock, mineração de tendências, 
 | **Fase 2: Diretor de Arte** | 🟢 Concluído | 10 itens analisados \| **100 prompts comerciais gerados** com Gemini Vision |
 | **Fase 3: A Fábrica (RunningHub)** | 🟢 Operacional | **86/100 prompts gerados (86% concluído)** \| **43 imagens 4K renderizadas** em `data/final/images/` |
 | **Fase 4: O Catalogador** | 🟢 Concluído | **43 imagens JPG 4K com IPTC/EXIF embutidos** \| CSV `adobe_stock_upload.csv` atualizado |
-| **Backup Google Drive** | 🟢 Operacional | **44 assets sincronizados** em `G:\Meu Drive\StockCont_backup` via modo local_sync |
-| **Fase 5: O Distribuidor** | 🟢 Pronto | Módulo testado (`--dry-run` OK) \| Aguarda credenciais SFTP no `.env` |
+| **Backup Google Drive** | 🟢 Operacional | **44 assets sincronizados** em `G:\Meu Drive\StockCont_backup` via modo `local_sync` |
+| **Fase 5: O Distribuidor** | 🟢 Pronto | Módulo testado (`--dry-run` OK) \| Onboarding multi-agência em andamento |
 | **Qualidade & Testes** | 🟢 100% Verde | **29 testes automatizados passando** (`pytest`) |
 
 ---
@@ -35,6 +35,8 @@ Sistema autônomo para inteligência de microstock, mineração de tendências, 
 ### Fase 2: Diretor de Arte (Engenharia de Prompts)
 *Status: 🟢 Concluído & Otimizado*
 - [x] Integração de alta velocidade com Gemini Multimodal via REST (`src/analyzer/director.py`).
+- [x] `GEMINI_API_KEY` configurada no `.env` e validada via chamada direta REST (HTTP 200).
+- [x] Modelos suportados e verificados: `gemini-3.5-flash-lite` e `gemini-3.8-flash`.
 - [x] System Prompt v2.0 com análise em 8 dimensões (Subject, Style, Lighting, Composition, Color Science, Materials/Textures, Camera/Rendering, Commercial Positioning).
 - [x] Geração estrita de 10 prompts comerciais derivados por imagem de referência.
 - [x] Contrato JSON estruturado v2.0 com retrocompatibilidade automática.
@@ -69,8 +71,8 @@ Sistema autônomo para inteligência de microstock, mineração de tendências, 
 - [x] Conversão automática de PNG para JPG de alta qualidade (qualidade 98).
 - [x] Exportação e atualização incremental do CSV `data/processed/adobe_stock_upload.csv` (43+ assets catalogados).
 
-### Fase 5: O Distribuidor (Multi-Platform SFTP/FTP Mass Upload)
-*Status: 🟢 Concluído & Pronto para Disparo*
+### Fase 5: O Distribuidor & Expansão Multi-Agência
+*Status: 🟢 Operacional & Em Onboarding*
 - [x] Módulo autônomo desenvolvido em `src/uploader/ftp_distributor.py`.
 - [x] Suporte multi-protocolo completo:
   - **SFTP** seguro com `paramiko` para **Adobe Stock Contributor** (`sftp.contributor.adobestock.com:22`).
@@ -78,7 +80,11 @@ Sistema autônomo para inteligência de microstock, mineração de tendências, 
 - [x] Livro-razão e histórico inteligente (`data/processed/upload_history.json`) prevenindo reenvios duplicados.
 - [x] Modo de simulação e validação prévia de conexões (`--dry-run`).
 - [x] Filtro granular por plataforma (`--platform [adobe|freepik|dreamstime|pond5|alamy|vecteezy|123rf|all]`) e envio forçado (`--force`).
-- [x] Integrado ao CLI Maestro (`python main.py --phase 5`).
+- [x] **Status do Onboarding nas Agências Parceiras**:
+  - **Adobe Stock**: Pronto para disparo via SFTP.
+  - **Freepik / Magnific Contributors**: Aplicação enviada com portfólio Behance focado em ativos 4K fotorrealistas e ComfyUI.
+  - **Vecteezy**: Ativos comerciais organizados para submissão com licença **Pró** e categoria **Photo**; ticket aberto no suporte Zendesk para verificação manual de identidade via CNH Digital oficial (PDF com QR Code Vio).
+  - **Alamy**: Cadastro de colaborador iniciado para monetização de alto valor ($20 a $150+ por ativo).
 
 ### ☁️ Módulo de Backup em Nuvem: Google Drive
 *Status: 🟢 Concluído & Integrado ao Pipeline*
@@ -109,7 +115,10 @@ Sistema autônomo para inteligência de microstock, mineração de tendências, 
 
 ## 🛠 Infraestrutura e DevOps
 - [x] Repositório GitHub conectado e sincronizado.
-- [x] Dependências em `requirements.txt` (`piexif`, `iptcinfo3`, `httpx`, `pillow`, `paramiko`, `playwright`, `python-dotenv`).
+- [x] Ambiente virtual Python (`venv`) com Python 3.11.9 e dependências atualizadas.
+- [x] Dependências em `requirements.txt` (`playwright`, `pytest`, `pytest-playwright`, `httpx`, `google-generativeai`, `google-genai`, `Pillow`, `python-dotenv`, `piexif`, `iptcinfo3`, `paramiko`).
+- [x] Binários do Playwright Chromium instalados e operacionais.
+- [x] Chave `GEMINI_API_KEY` e caminho `GOOGLE_DRIVE_LOCAL_PATH` configurados no `.env`.
 - [x] Resiliência de encoding no terminal Windows (UTF-8 sem falhas de cp1252).
 - [x] **29 testes automatizados passando em `tests/` (`pytest`)**.
 - [x] Protocolo de orquestração autônoma e skills ECC configurados.
@@ -117,14 +126,14 @@ Sistema autônomo para inteligência de microstock, mineração de tendências, 
 ---
 
 ## 🎯 Próximos Passos Operacionais
-1. **Configurar Credenciais do Adobe Stock no `.env`**:
-   - `ADOBE_SFTP_USER="seu_id"` e `ADOBE_SFTP_PASS="sua_senha_sftp"`.
-2. **Executar o Envio dos 43 Assets Prontos**:
-   ```cmd
-   python main.py --phase 5 --platform adobe
-   ```
+1. **Acompanhar Aprovação de Identidade no Vecteezy** (via suporte Zendesk).
+2. **Configurar Credenciais SFTP/FTP no `.env`** para as plataformas aprovadas (Adobe Stock, Freepik, Vecteezy, Alamy).
 3. **(Opcional) Finalizar os 14 Prompts Restantes**:
    ```cmd
    python main.py --phase 3 --all-batches
    python main.py --phase 4
+   ```
+4. **Disparar a Fase 5 de Distribuição Automática**:
+   ```cmd
+   python main.py --phase 5 --platform all
    ```
