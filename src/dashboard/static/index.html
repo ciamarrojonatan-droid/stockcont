@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📈 StockCont Dashboard</title>
+  <link rel="stylesheet" href="/static/css/dashboard.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- ── Header ─────────────────────────────────── -->
+  <header class="header">
+    <div class="header-left">
+      <h1 class="logo">📈 StockCont</h1>
+      <span class="tagline">Autonomous Microstock Pipeline</span>
+    </div>
+    <div class="header-right">
+      <span id="status-pill" class="pill pill-ok">🟢 Online</span>
+      <span id="gemini-pill" class="pill pill-idle" title="Gemini API Key">🔑 Gemini</span>
+      <span id="last-refresh" class="meta-text">—</span>
+      <button id="btn-refresh" class="btn btn-sm" onclick="refreshAll()">⟳ Refresh</button>
+    </div>
+  </header>
+
+  <!-- ── KPI Cards ──────────────────────────────── -->
+  <section class="kpi-row">
+    <div class="kpi-card" id="kpi-trends">
+      <div class="kpi-icon">🔍</div>
+      <div class="kpi-body">
+        <div class="kpi-value" id="kpi-val-trends">—</div>
+        <div class="kpi-label">Tendências</div>
+      </div>
+    </div>
+    <div class="kpi-card" id="kpi-prompts">
+      <div class="kpi-icon">🎨</div>
+      <div class="kpi-body">
+        <div class="kpi-value" id="kpi-val-prompts">—</div>
+        <div class="kpi-label">Prompts Gerados</div>
+      </div>
+    </div>
+    <div class="kpi-card" id="kpi-queue">
+      <div class="kpi-icon">⏳</div>
+      <div class="kpi-body">
+        <div class="kpi-value" id="kpi-val-queue">—</div>
+        <div class="kpi-label">Fila (Queue)</div>
+        <div class="progress-bar"><div class="progress-fill" id="queue-progress"></div></div>
+      </div>
+    </div>
+    <div class="kpi-card" id="kpi-images">
+      <div class="kpi-icon">🖼️</div>
+      <div class="kpi-body">
+        <div class="kpi-value" id="kpi-val-images">—</div>
+        <div class="kpi-label">Imagens 4K</div>
+      </div>
+    </div>
+    <div class="kpi-card" id="kpi-cataloged">
+      <div class="kpi-icon">📋</div>
+      <div class="kpi-body">
+        <div class="kpi-value" id="kpi-val-cataloged">—</div>
+        <div class="kpi-label">Catalogados</div>
+      </div>
+    </div>
+    <div class="kpi-card" id="kpi-distributed">
+      <div class="kpi-icon">🚀</div>
+      <div class="kpi-body">
+        <div class="kpi-value" id="kpi-val-distributed">—</div>
+        <div class="kpi-label">Distribuídos</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Pipeline Tracker ───────────────────────── -->
+  <section class="pipeline-section">
+    <h2 class="section-title">Pipeline Tracker</h2>
+    <div class="pipeline-track" id="pipeline-track">
+      <!-- Rendered by JS -->
+    </div>
+  </section>
+
+  <!-- ── Tab Navigation ─────────────────────────── -->
+  <nav class="tabs">
+    <button class="tab active" data-tab="gallery" onclick="switchTab('gallery')">🖼️ Galeria</button>
+    <button class="tab" data-tab="queue" onclick="switchTab('queue')">⏳ Fila de Prompts</button>
+    <button class="tab" data-tab="agencies" onclick="switchTab('agencies')">🌐 Agências</button>
+    <button class="tab" data-tab="timeline" onclick="switchTab('timeline')">📜 Timeline</button>
+    <button class="tab" data-tab="seasonal" onclick="switchTab('seasonal')">🔮 Radar Sazonal</button>
+    <button class="tab" data-tab="backup" onclick="switchTab('backup')">☁️ Backup</button>
+  </nav>
+
+  <!-- ── Tab Content: Gallery ────────────────────── -->
+  <section class="tab-content active" id="tab-gallery">
+    <div class="tab-toolbar">
+      <div class="filter-group">
+        <button class="filter-btn active" onclick="filterImages('all')">Todos</button>
+        <button class="filter-btn" onclick="filterImages('cataloged')">Catalogados</button>
+        <button class="filter-btn" onclick="filterImages('uncataloged')">Não catalogados</button>
+      </div>
+      <span class="tab-stat" id="gallery-stat">—</span>
+    </div>
+    <div class="gallery-grid" id="gallery-grid">
+      <div class="loading">Carregando galeria…</div>
+    </div>
+  </section>
+
+  <!-- ── Tab Content: Queue ──────────────────────── -->
+  <section class="tab-content" id="tab-queue">
+    <div class="tab-toolbar">
+      <div class="filter-group">
+        <button class="filter-btn active" onclick="filterQueue('all')">Todos</button>
+        <button class="filter-btn" onclick="filterQueue('pending')">Pendentes</button>
+        <button class="filter-btn" onclick="filterQueue('generated')">Gerados</button>
+      </div>
+      <span class="tab-stat" id="queue-stat">—</span>
+    </div>
+    <div class="queue-table-wrapper">
+      <table class="data-table" id="queue-table">
+        <thead>
+          <tr>
+            <th>Hash</th>
+            <th>Conceito</th>
+            <th>Source</th>
+            <th>Status</th>
+            <th>Data</th>
+          </tr>
+        </thead>
+        <tbody id="queue-tbody">
+          <tr><td colspan="5" class="loading">Carregando fila…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ── Tab Content: Agencies ───────────────────── -->
+  <section class="tab-content" id="tab-agencies">
+    <table class="data-table" id="agencies-table">
+      <thead>
+        <tr>
+          <th>Agência</th>
+          <th>Protocolo</th>
+          <th>Status</th>
+          <th>Enviados</th>
+          <th>Último Envio</th>
+          <th>Ação</th>
+        </tr>
+      </thead>
+      <tbody id="agencies-tbody">
+        <tr><td colspan="6" class="loading">Carregando agências…</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ── Tab Content: Timeline ───────────────────── -->
+  <section class="tab-content" id="tab-timeline">
+    <div class="timeline-feed" id="timeline-feed">
+      <div class="loading">Carregando timeline…</div>
+    </div>
+  </section>
+
+  <!-- ── Tab Content: Backup ─────────────────────── -->
+  <section class="tab-content" id="tab-backup">
+    <div class="backup-card" id="backup-card">
+      <div class="loading">Carregando status do backup…</div>
+    </div>
+  </section>
+
+    <!-- ── Tab Content: Seasonal Radar ────────────── -->
+  <section class="tab-content" id="tab-seasonal">
+    <div class="tab-toolbar">
+      <div>
+        <h2 style="font-size: 1rem; color: var(--accent-cyan);">🔮 Previsão de Demanda & Blue Ocean Radar</h2>
+        <p style="font-size: 0.75rem; color: var(--text-muted);" id="seasonal-meta-sub">Calculando janela comercial D+75 dias…</p>
+      </div>
+    </div>
+    <div class="seasonal-grid" id="seasonal-grid">
+      <div class="loading">Carregando oportunidades sazonais…</div>
+    </div>
+  </section>
+<!-- ── Image Detail Modal ──────────────────────── -->
+  <div class="modal-overlay" id="modal-overlay" onclick="closeModal()">
+    <div class="modal" onclick="event.stopPropagation()">
+      <button class="modal-close" onclick="closeModal()">✕</button>
+      <div class="modal-body">
+        <img id="modal-img" src="" alt="Preview">
+        <div class="modal-info" id="modal-info">
+          <h3 id="modal-title">—</h3>
+          <div id="modal-meta"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Footer ──────────────────────────────────── -->
+  <footer class="footer">
+    <span>StockCont Dashboard v1.0 • Auto-refresh: <strong>15s</strong></span>
+  </footer>
+
+  <script src="/static/js/dashboard.js"></script>
+</body>
+</html>

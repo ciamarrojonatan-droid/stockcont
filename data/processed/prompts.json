@@ -3636,7 +3636,10 @@
         "reference_fidelity": 0.89,
         "conceptual_distinctiveness": 0.72,
         "commercial_suitability": 0.89,
-        "prompt": "Assorted rectangular strips of matte black and charcoal cardstock with rough torn fibrous edges, seamless dark charcoal gray studio background. Precise flat-lay arrangement matching the original layout structure with balanced negative space. Subtle top-down studio illumination casting soft, luminous highlights along the torn paper edges. Moody minimalist commercial product photography. Charcoal black, deep grays, subtle white rim highlights. Heavy matte black paper with fibrous, feathered edges, dark key lighting."
+        "prompt": "Assorted rectangular strips of matte black and charcoal cardstock with rough torn fibrous edges, seamless dark charcoal gray studio background. Precise flat-lay arrangement matching the original layout structure with balanced negative space. Subtle top-down studio illumination casting soft, luminous highlights along the torn paper edges. Moody minimalist commercial product photography. Charcoal black, deep grays, subtle white rim highlights. Heavy matte black paper with fibrous, feathered edges, dark key lighting.",
+        "status": "generated",
+        "generated_at": "2026-10-20T23:44:34.701020+00:00",
+        "image_file": "dark-grey-ripped-paper-pieces-mockup-on-textured-background.jpg"
       },
       {
         "id": 8,
@@ -3667,7 +3670,10 @@
         "reference_fidelity": 0.87,
         "conceptual_distinctiveness": 0.8,
         "commercial_suitability": 0.95,
-        "prompt": "Translucent handmade white paper strips with torn deckle edges encasing delicate pressed green leaves and ferns, clean, bright pure white photographic background. Flat-lay arrangement of horizontal translucent strips showing botanical details. Backlit and top-lit studio illumination highlighting paper translucency and delicate plant silhouettes. Organic editorial product photography. Crisp white, translucent off-white, muted botanical greens and browns. Handmade mulberry paper with natural plant inclusions and feathered edges, translucency effect."
+        "prompt": "Translucent handmade white paper strips with torn deckle edges encasing delicate pressed green leaves and ferns, clean, bright pure white photographic background. Flat-lay arrangement of horizontal translucent strips showing botanical details. Backlit and top-lit studio illumination highlighting paper translucency and delicate plant silhouettes. Organic editorial product photography. Crisp white, translucent off-white, muted botanical greens and browns. Handmade mulberry paper with natural plant inclusions and feathered edges, translucency effect.",
+        "status": "generated",
+        "generated_at": "2026-10-20T23:44:34.701020+00:00",
+        "image_file": "minimalist-white-textured-round-paper-sticker-with-curled.jpg"
       },
       {
         "id": 9,
@@ -3698,7 +3704,10 @@
         "reference_fidelity": 0.88,
         "conceptual_distinctiveness": 0.78,
         "commercial_suitability": 0.86,
-        "prompt": "White cardstock strips with jagged torn edges glowing with subtle neon cyan and magenta light along the fibers, minimalist clean white studio background. Dynamic flat-lay composition with balanced negative space. Studio lighting with subtle colored edge-lighting glow highlighting the torn paper texture. Contemporary commercial graphic photography. Pure white, neon cyan, electric magenta, soft drop shadows. Matte white paper with glowing torn fiber edges, color grading accent."
+        "prompt": "White cardstock strips with jagged torn edges glowing with subtle neon cyan and magenta light along the fibers, minimalist clean white studio background. Dynamic flat-lay composition with balanced negative space. Studio lighting with subtle colored edge-lighting glow highlighting the torn paper texture. Contemporary commercial graphic photography. Pure white, neon cyan, electric magenta, soft drop shadows. Matte white paper with glowing torn fiber edges, color grading accent.",
+        "status": "generated",
+        "generated_at": "2026-10-20T23:44:34.701020+00:00",
+        "image_file": "torn-white-paper-strips-with-neon-glowing-light-on-a-gray.jpg"
       },
       {
         "id": 10,
@@ -3729,7 +3738,10 @@
         "reference_fidelity": 0.93,
         "conceptual_distinctiveness": 0.72,
         "commercial_suitability": 0.92,
-        "prompt": "White watercolor paper strips with torn deckle edges accented with delicate watercolor paint splatters, pristine white tabletop flat-lay background. Overhead arrangement of neatly scattered and slightly overlapping paper strips. Soft, even studio illumination casting subtle, realistic depth shadows. Artisanal commercial flat-lay photography. Crisp white, subtle gray shadows, muted watercolor splashes of indigo and ochre. Heavy textured watercolor paper with rough torn edges and paint absorption texture, overhead flat-lay."
+        "prompt": "White watercolor paper strips with torn deckle edges accented with delicate watercolor paint splatters, pristine white tabletop flat-lay background. Overhead arrangement of neatly scattered and slightly overlapping paper strips. Soft, even studio illumination casting subtle, realistic depth shadows. Artisanal commercial flat-lay photography. Crisp white, subtle gray shadows, muted watercolor splashes of indigo and ochre. Heavy textured watercolor paper with rough torn edges and paint absorption texture, overhead flat-lay.",
+        "status": "generated",
+        "generated_at": "2026-10-20T23:44:34.701020+00:00",
+        "image_file": "abstract-watercolor-splashes-on-textured-torn-paper-strips.jpg"
       }
     ]
   },
@@ -3837,7 +3849,10 @@
         "reference_fidelity": 0.92,
         "conceptual_distinctiveness": 0.65,
         "commercial_suitability": 0.95,
-        "prompt": "Macro studio photography of a square matte white paper sticker with rounded corners, featuring a prominent diagonal crease and subtle edge peeling. Pure white seamless studio background, centered composition tilted at a slight angle. Soft directional studio lighting from the upper left, casting gentle shadows across paper wrinkles. Monochromatic white and soft cool gray shadow tones, fine paper grain texture, matte finish, embossed folds. High detail, sharp focus on texture, clean isolation."
+        "prompt": "Macro studio photography of a square matte white paper sticker with rounded corners, featuring a prominent diagonal crease and subtle edge peeling. Pure white seamless studio background, centered composition tilted at a slight angle. Soft directional studio lighting from the upper left, casting gentle shadows across paper wrinkles. Monochromatic white and soft cool gray shadow tones, fine paper grain texture, matte finish, embossed folds. High detail, sharp focus on texture, clean isolation.",
+        "status": "generated",
+        "generated_at": "2026-10-20T23:44:34.701020+00:00",
+        "image_file": "white-square-sticker-mockup-with-crease-fold-on-clean.jpg"
       },
       {
         "id": 2,
@@ -3867,7 +3882,10 @@
         "reference_fidelity": 0.88,
         "conceptual_distinctiveness": 0.72,
         "commercial_suitability": 0.9,
-        "prompt": "Clean minimal product photography of a circular matte white paper sticker with concentric pressure wrinkles and a slightly folded bottom edge. Clean white studio surface, centered circular composition with generous negative space. Soft diffuse top-down studio lighting emphasizing surface imperfections and radial paper grain. Shades of white, off-white, and subtle gray contour gradients. Textured paper, matte coating, compressed paper fibers, macro photography, shallow depth of field, high fidelity surface rendering."
+        "prompt": "Clean minimal product photography of a circular matte white paper sticker with concentric pressure wrinkles and a slightly folded bottom edge. Clean white studio surface, centered circular composition with generous negative space. Soft diffuse top-down studio lighting emphasizing surface imperfections and radial paper grain. Shades of white, off-white, and subtle gray contour gradients. Textured paper, matte coating, compressed paper fibers, macro photography, shallow depth of field, high fidelity surface rendering.",
+        "status": "generated",
+        "generated_at": "2026-10-20T23:44:34.701020+00:00",
+        "image_file": "minimalist-white-and-cream-textured-paper-sheets-with.jpg"
       },
       {
         "id": 3,
@@ -3897,7 +3915,10 @@
         "reference_fidelity": 0.85,
         "conceptual_distinctiveness": 0.8,
         "commercial_suitability": 0.88,
-        "prompt": "Editorial product still life photography of two overlapping rectangular matte white paper stickers with folded corners and natural wrinkle patterns. Neutral off-white backdrop, asymmetric diagonal stacking arrangement with visible depth. Soft key light from the left casting dimensional shadows between layered paper surfaces. Tonal white, cream, and soft gray shadow contrast. Crinkled matte paper, adhesive edges, fibrous paper texture, high sharpness, natural depth of field, commercial studio lighting."
+        "prompt": "Editorial product still life photography of two overlapping rectangular matte white paper stickers with folded corners and natural wrinkle patterns. Neutral off-white backdrop, asymmetric diagonal stacking arrangement with visible depth. Soft key light from the left casting dimensional shadows between layered paper surfaces. Tonal white, cream, and soft gray shadow contrast. Crinkled matte paper, adhesive edges, fibrous paper texture, high sharpness, natural depth of field, commercial studio lighting.",
+        "status": "generated",
+        "generated_at": "2026-10-20T23:44:34.701020+00:00",
+        "image_file": "blank-white-paper-sheet-with-curled-corner-on-white.jpg"
       },
       {
         "id": 4,

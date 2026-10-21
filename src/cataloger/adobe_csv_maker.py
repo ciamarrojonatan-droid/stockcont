@@ -175,9 +175,10 @@ def analyze_image(image_path: Path) -> dict:
     logger.error(f"Failed to analyze {image_path.name} across all available models.")
     return {}
 
-def run_cataloger(images_dir: Path | None = None) -> list[dict[str, Any]]:
+def run_cataloger(images_dir: Path | None = None, output_dir: Path | None = None) -> list[dict[str, Any]]:
     """Reads final images, extracts metadata with Gemini, embeds IPTC/EXIF, and exports to CSV."""
     target_dir = images_dir or FINAL_IMAGES_DIR
+    out_dir = output_dir or target_dir
 
     if not target_dir.exists():
         logger.warning(f"Images directory not found: {target_dir}")
@@ -248,10 +249,11 @@ def run_cataloger(images_dir: Path | None = None) -> list[dict[str, Any]]:
         if not base_new_name:
             base_new_name = "stock-image"
             
-        target_path = img_path.with_name(f"{base_new_name}.jpg")
+        out_dir.mkdir(parents=True, exist_ok=True)
+        target_path = out_dir / f"{base_new_name}.jpg"
         counter = 1
         while target_path.exists() and target_path != img_path and target_path != img_path.with_suffix(".jpg"):
-            target_path = img_path.with_name(f"{base_new_name}-{counter}.jpg")
+            target_path = out_dir / f"{base_new_name}-{counter}.jpg"
             counter += 1
 
         # Injetar metadados diretamente no arquivo da imagem (IPTC + EXIF) e Renomear
@@ -283,4 +285,9 @@ def run_cataloger(images_dir: Path | None = None) -> list[dict[str, Any]]:
     return results
 
 if __name__ == "__main__":
-    run_cataloger()
+    import argparse
+    parser = argparse.ArgumentParser(description="StockCont Cataloger")
+    parser.add_argument("--images-dir", type=Path, default=None, help="Input directory of images to catalog")
+    parser.add_argument("--output-dir", type=Path, default=None, help="Output directory for cataloged images")
+    cli_args = parser.parse_args()
+    run_cataloger(images_dir=cli_args.images_dir, output_dir=cli_args.output_dir)

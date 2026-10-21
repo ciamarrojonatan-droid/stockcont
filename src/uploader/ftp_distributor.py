@@ -174,16 +174,17 @@ def save_upload_history(history: Dict[str, Dict[str, str]]) -> None:
         logger.error(f"Erro ao salvar histórico de upload: {e}")
 
 
-def get_ready_images() -> List[Path]:
-    """Find all cataloged JPG images in data/final/images/ ready for upload."""
-    if not FINAL_IMAGES_DIR.exists():
+def get_ready_images(images_dir: Optional[Path] = None) -> List[Path]:
+    """Find all cataloged JPG images ready for upload."""
+    target_dir = images_dir or FINAL_IMAGES_DIR
+    if not target_dir.exists():
         return []
     
     # Priority: .jpg and .jpeg images containing embedded IPTC metadata
-    jpg_images = sorted(list(FINAL_IMAGES_DIR.glob("*.jpg")) + list(FINAL_IMAGES_DIR.glob("*.jpeg")))
+    jpg_images = sorted(list(target_dir.glob("*.jpg")) + list(target_dir.glob("*.jpeg")))
     
     # Check if there are PNGs that need conversion via Phase 4
-    png_images = list(FINAL_IMAGES_DIR.glob("*.png"))
+    png_images = list(target_dir.glob("*.png"))
     if png_images and not jpg_images:
         logger.warning(f"⚠️ Encontradas {len(png_images)} imagens PNG, mas nenhum JPG catalogado.")
         logger.warning("   Recomendação: Execute 'python main.py --phase 4' primeiro para injetar metadados IPTC/EXIF nos JPGs.")
@@ -380,7 +381,8 @@ def test_agency_connection(agency: AgencyConfig) -> Tuple[bool, str]:
 def run_distributor(
     target_platform: str = "all",
     dry_run: bool = False,
-    force: bool = False
+    force: bool = False,
+    images_dir: Optional[Path] = None
 ) -> Dict[str, int]:
     """Execute Phase 5: Mass Multi-Platform Asset Distributor.
 
@@ -424,8 +426,9 @@ def run_distributor(
         return {}
 
     # Discover ready files
-    images = get_ready_images()
-    logger.info(f"\n📁 Imagens catalogadas prontas em data/final/images/: {len(images)} arquivos.")
+    images = get_ready_images(images_dir=images_dir)
+    dir_str = str(images_dir) if images_dir else "data/final/images/"
+    logger.info(f"\n📁 Imagens catalogadas prontas em {dir_str}: {len(images)} arquivos.")
 
     if not images:
         logger.warning("⚠️ Nenhuma imagem JPG encontrada em data/final/images/ para distribuição.")
@@ -503,4 +506,7 @@ if __name__ == "__main__":
     parser.add_argument("--force", action="store_true", help="Re-upload files even if already marked as sent in history")
     args = parser.parse_args()
 
-    run_distributor(target_platform=args.platform, dry_run=args.dry_run, force=args.force)
+    parser.add_argument("--images-dir", type=Path, default=None, help="Custom images directory")
+    args = parser.parse_args()
+
+    run_distributor(target_platform=args.platform, dry_run=args.dry_run, force=args.force, images_dir=args.images_dir)

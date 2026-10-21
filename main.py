@@ -208,11 +208,12 @@ def run_phase_3(node: int = 192, batches: int = 1, all_batches: bool = False) ->
     run_factory_bot(output_node_id=node, max_batches=batches, all_batches=all_batches)
     logger.info("Phase 3 finished.")
 
-def run_phase_4() -> None:
+def run_phase_4(images_dir: Path | None = None, output_dir: Path | None = None) -> None:
     """Execute Phase 4: The Cataloger with IPTC/EXIF Embedding."""
-    logger.info("--- Starting Phase 4: The Cataloger (SEO + IPTC/EXIF Injection + CSV) ---")
+    target_str = f" from '{images_dir}'" if images_dir else ""
+    logger.info(f"--- Starting Phase 4: The Cataloger (SEO + IPTC/EXIF Injection + CSV){target_str} ---")
     from src.cataloger.adobe_csv_maker import run_cataloger
-    results = run_cataloger()
+    results = run_cataloger(images_dir=images_dir, output_dir=output_dir)
     logger.info(f"Phase 4 finished. Processed {len(results)} assets.")
 
     # Automated Google Drive Backup
@@ -231,11 +232,12 @@ def run_backup(dry_run: bool = False, force: bool = False) -> None:
     run_gdrive_backup(dry_run=dry_run, force=force)
     logger.info("Google Drive Backup finished.")
 
-def run_phase_5(platform: str = "all", dry_run: bool = False, force: bool = False) -> None:
+def run_phase_5(platform: str = "all", dry_run: bool = False, force: bool = False, images_dir: Path | None = None) -> None:
     """Execute Phase 5: The Distributor (Multi-Platform SFTP/FTP Mass Upload)."""
-    logger.info(f"--- Starting Phase 5: The Distributor (Target: {platform}, DryRun: {dry_run}, Force: {force}) ---")
+    dir_str = f" from '{images_dir}'" if images_dir else ""
+    logger.info(f"--- Starting Phase 5: The Distributor (Target: {platform}, DryRun: {dry_run}, Force: {force}){dir_str} ---")
     from src.uploader.ftp_distributor import run_distributor
-    run_distributor(target_platform=platform, dry_run=dry_run, force=force)
+    run_distributor(target_platform=platform, dry_run=dry_run, force=force, images_dir=images_dir)
     logger.info("Phase 5 finished.")
 
 def run_all_pipeline(query: str, max_items: int, node: int = 192, batches: int = 1, all_batches: bool = False) -> None:
@@ -250,6 +252,25 @@ def run_all_pipeline(query: str, max_items: int, node: int = 192, batches: int =
     run_phase_5()
     logger.info("Full pipeline execution completed!")
 
+
+def show_seasonal_radar() -> None:
+    """Display the predictive seasonal calendar report and high-converting micro-niches."""
+    from src.analyzer.seasonal_radar import get_target_procurement_window
+    print_banner()
+    forecast = get_target_procurement_window()
+    print("\n🔮 SEASONAL DEMAND FORECAST & BLUE OCEAN RADAR:\n")
+    print(f"  📅 Current Date:           {forecast['current_date']}")
+    print(f"  🎯 Target Procurement Win: {forecast['target_procurement_date']} (Lead time: D+{forecast['lead_time_days']} days)")
+    print(f"  🏢 Target Quarter:         {forecast['target_quarter']} (Month {forecast['target_month']})")
+    print(f"  💡 Macro Buying Theme:     {forecast['macro_theme']}\n")
+    print("  ⭐ RECOMMENDED HIGH-CONVERTING MICRO-NICHES FOR PRODUCTION:")
+    for idx, n in enumerate(forecast['recommended_niches'], 1):
+        print(f"\n  [{idx}] {n['name']}")
+        print(f"      • Command:           python main.py --phase 1 --mode search -q \"{n['query']}\"")
+        print(f"      • Target Buyers:     {', '.join(n['target_buyers'])}")
+        print(f"      • Suggested Layout:  {n['suggested_layout']}")
+        print(f"      • Commercial Reason: {n['rationale']}")
+    print("\n" + "=" * 65 + "\n")
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="StockCont - Unified Microstock Automation Pipeline",
@@ -259,6 +280,10 @@ def main() -> None:
     parser.add_argument("--phase", "-p", type=int, choices=[1, 2, 3, 4, 5], help="Execute a specific phase (1, 2, 3, 4, or 5)")
     parser.add_argument("--backup", "-b", action="store_true", help="Execute Google Drive backup for all cataloged assets")
     parser.add_argument("--all", "-a", action="store_true", help="Run all pipeline phases sequentially")
+    parser.add_argument("--seasonal", action="store_true", help="Display predictive seasonal demand forecast and Blue Ocean niches")
+    parser.add_argument("--dashboard", action="store_true", help="Launch the StockCont web dashboard (http://localhost:8501)")
+    parser.add_argument("--port", type=int, default=8501, help="Port for the dashboard server (default: 8501)")
+    parser.add_argument("--no-browser", action="store_true", help="Start dashboard without auto-opening browser")
 
     # Options for Phase 1
     p1_group = parser.add_argument_group("Phase 1 Options")
@@ -277,6 +302,11 @@ def main() -> None:
     p3_group.add_argument("--batches", type=int, default=1, help="Number of consecutive 10-prompt batches to process in Phase 3 (default: 1)")
     p3_group.add_argument("--all-batches", action="store_true", help="Process all remaining pending batches until the prompt queue is exhausted")
 
+    # Options for Phase 4
+    p4_group = parser.add_argument_group("Phase 4 Options")
+    p4_group.add_argument("--images-dir", type=Path, default=None, help="Custom directory containing images to catalog")
+    p4_group.add_argument("--output-dir", type=Path, default=None, help="Custom directory to store final cataloged JPGs")
+
     # Options for Phase 5 & Backup
     p5_group = parser.add_argument_group("Phase 5 & Backup Options")
     p5_group.add_argument("--platform", default="all", help="Target agency: all, adobe, freepik, dreamstime, pond5, alamy, vecteezy, 123rf")
@@ -285,11 +315,21 @@ def main() -> None:
 
     args = parser.parse_args()
 
+    # Dashboard mode - launch web UI server
+    if args.dashboard:
+        from src.dashboard.app import start_dashboard
+        start_dashboard(port=args.port, open_browser=not args.no_browser)
+        return
+
     # If no arguments provided, display status and help
     if len(sys.argv) == 1 or args.status:
         check_status()
         if len(sys.argv) == 1:
             parser.print_help()
+        return
+
+    if args.seasonal:
+        show_seasonal_radar()
         return
 
     if args.backup:
@@ -316,9 +356,9 @@ def main() -> None:
     elif args.phase == 3:
         run_phase_3(node=args.node, batches=args.batches, all_batches=args.all_batches)
     elif args.phase == 4:
-        run_phase_4()
+        run_phase_4(images_dir=args.images_dir, output_dir=args.output_dir)
     elif args.phase == 5:
-        run_phase_5(platform=args.platform, dry_run=args.dry_run, force=args.force)
+        run_phase_5(platform=args.platform, dry_run=args.dry_run, force=args.force, images_dir=args.images_dir)
 
 if __name__ == "__main__":
     main()

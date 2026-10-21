@@ -11,11 +11,12 @@ Sistema autônomo para inteligência de microstock, mineração de tendências, 
 | :--- | :--- | :--- |
 | **Fase 1: Olheiro (Scout)** | 🟢 Concluído | 10 tendências mineradas (Top Sellers Adobe Stock) \| 10 referências em `data/raw/images/` |
 | **Fase 2: Diretor de Arte** | 🟢 Concluído | 10 itens analisados \| **100 prompts comerciais gerados** com Gemini Vision |
-| **Fase 3: A Fábrica (RunningHub)** | 🟢 Operacional | **86/100 prompts gerados (86% concluído)** \| **43 imagens 4K renderizadas** em `data/final/images/` |
-| **Fase 4: O Catalogador** | 🟢 Concluído | **43 imagens JPG 4K com IPTC/EXIF embutidos** \| CSV `adobe_stock_upload.csv` atualizado |
-| **Backup Google Drive** | 🟢 Operacional | **44 assets sincronizados** em `G:\Meu Drive\StockCont_backup` via modo `local_sync` |
-| **Fase 5: O Distribuidor** | 🟢 Pronto | Módulo testado (`--dry-run` OK) \| Onboarding multi-agência em andamento |
-| **Qualidade & Testes** | 🟢 100% Verde | **29 testes automatizados passando** (`pytest`) |
+| **Fase 3: A Fábrica (RunningHub)** | 🟢 Operacional | **93/100 prompts gerados (93% concluído)** \| **7 novos assets prontos** em `data/final/images/` |
+| **Fase 4: O Catalogador** | 🟢 Concluído | **98 imagens JPG 4K com IPTC/EXIF embutidos** \| CSV `adobe_stock_upload.csv` atualizado |
+| **Backup Google Drive** | 🟢 Operacional | **52+ assets sincronizados** em `G:\Meu Drive\StockCont_backup` via modo `local_sync` |
+| **Fase 5: O Distribuidor** | 🟢 Operacional | **58 assets 4K enviados via FTP** (123RF e Pond5) \| 116 transferências com 100% de sucesso |
+| **Dashboard Web SPA** | 🟢 Operacional | FastAPI + SPA Dark Theme (`http://localhost:8501`) \| 8 seções interativas |
+| **Qualidade & Testes** | 🟢 100% Verde | **44 testes automatizados passando** (`pytest`) |
 
 ---
 
@@ -37,6 +38,8 @@ Sistema autônomo para inteligência de microstock, mineração de tendências, 
 - [x] Integração de alta velocidade com Gemini Multimodal via REST (`src/analyzer/director.py`).
 - [x] `GEMINI_API_KEY` configurada no `.env` e validada via chamada direta REST (HTTP 200).
 - [x] Modelos suportados e verificados: `gemini-3.5-flash-lite` e `gemini-3.8-flash`.
+- [x] System Prompt v3.0 Ultra-Detailed Master Commercial DNA: prompts de 700 a 1000 palavras com enquadramento de Copy-Space adaptativo (Left/Right/Top/Minimalist) e personas de compradores B2B.
+- [x] Motor de Inteligência Preditiva Sazonal (D+75 dias) e Niche Saturation Index (`src/analyzer/seasonal_radar.py` e `saturation_index.py`).
 - [x] System Prompt v2.0 com análise em 8 dimensões (Subject, Style, Lighting, Composition, Color Science, Materials/Textures, Camera/Rendering, Commercial Positioning).
 - [x] Geração estrita de 10 prompts comerciais derivados por imagem de referência.
 - [x] Contrato JSON estruturado v2.0 com retrocompatibilidade automática.
@@ -85,6 +88,8 @@ Sistema autônomo para inteligência de microstock, mineração de tendências, 
   - **Freepik / Magnific Contributors**: Aplicação enviada com portfólio Behance focado em ativos 4K fotorrealistas e ComfyUI.
   - **Vecteezy**: Ativos comerciais organizados para submissão com licença **Pró** e categoria **Photo**; ticket aberto no suporte Zendesk para verificação manual de identidade via CNH Digital oficial (PDF com QR Code Vio).
   - **Alamy**: Cadastro de colaborador iniciado para monetização de alto valor ($20 a $150+ por ativo).
+- [x] **123RF**: Credenciais FTP configuradas e 58 assets 4K enviados com sucesso (`ftp.123rf.com:21`).
+- [x] **Pond5**: Credenciais FTP configuradas e 58 assets 4K enviados com sucesso (`ftp.pond5.com:21`).
 
 ### ☁️ Módulo de Backup em Nuvem: Google Drive
 *Status: 🟢 Concluído & Integrado ao Pipeline*
@@ -99,7 +104,9 @@ Sistema autônomo para inteligência de microstock, mineração de tendências, 
 
 | Comando | Função |
 | :--- | :--- |
-| `python main.py --status` | Dashboard completo de status da esteira e fila de prompts |
+| `python main.py --seasonal` | Exibe o Radar de Demanda Preditiva Sazonal D+75 dias e nichos Blue Ocean recomendados |
+| `python main.py --dashboard` | Inicia o servidor Web SPA e abre o navegador automaticamente (`http://localhost:8501`) |
+| `python main.py --status` | Dashboard CLI completo de status da esteira e fila de prompts |
 | `python main.py --phase 1 -q "nicho"` | Executa a mineração de tendências e referências |
 | `python main.py --phase 2` | Gera 10 prompts comerciais derivados por imagem de referência |
 | `python main.py --phase 3` | Executa 1 lote de 10 prompts pendentes no RunningHub |

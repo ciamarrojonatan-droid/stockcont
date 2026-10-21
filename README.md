@@ -1,10 +1,12 @@
 # StockCont 📈🤖
 
-> **Pipeline Autônomo de Engenharia Reversa, Produção Generativa em Massa e Catalogação de Ativos para Microstock.**
+> **Plataforma Autônoma de Inteligência de Mercado Preditiva, Engenharia Reversa Multimodal, Produção Generativa em Massa 4K, Catalogação Binária IPTC/EXIF, Distribuição Multi-Agência e Dashboard Web SPA.**
 
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Tests](https://img.shields.io/badge/Pytest-44_Passed_100%25-22c55e?style=for-the-badge&logo=pytest&logoColor=white)](https://docs.pytest.org/)
 [![Playwright](https://img.shields.io/badge/Playwright-Automation-2EAD33?style=for-the-badge&logo=playwright&logoColor=white)](https://playwright.dev/)
-[![Gemini Multimodal](https://img.shields.io/badge/Google_Gemini-Multimodal_Vision_REST-4285F4?style=for-the-badge&logo=google&logoColor=white)](https://ai.google.dev/)
+[![Gemini Multimodal](https://img.shields.io/badge/Google_Gemini-Multimodal_Vision_v3.0-4285F4?style=for-the-badge&logo=google&logoColor=white)](https://ai.google.dev/)
 [![ComfyUI RPA](https://img.shields.io/badge/ComfyUI-Runninghub_RPA-FF6F00?style=for-the-badge&logo=blender&logoColor=white)](https://www.runninghub.ai/)
 [![IPTC & EXIF](https://img.shields.io/badge/Metadata-Binary_IPTC_%26_EXIF-8A2BE2?style=for-the-badge)](https://iptc.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
@@ -15,15 +17,17 @@
 
 1. [Visão Geral do Sistema](#-visão-geral-do-sistema)
 2. [Arquitetura de Alto Nível & Topologia](#-arquitetura-de-alto-nível--topologia)
-3. [Mapa Mental do Ecossistema](#-mapa-mental-do-ecossistema)
-4. [Detalhamento Técnico das 4 Fases](#-detalhamento-técnico-das-4-fases)
-   - [Fase 1: O Olheiro (Trend Scout & Contributor Insights)](#fase-1-o-olheiro-trend-scout--contributor-insights)
-   - [Fase 2: O Diretor de Arte (Visual DNA & Commercial Prompt Architect v2.0)](#fase-2-o-diretor-de-arte-visual-dna--commercial-prompt-architect-v20)
-   - [Fase 3: A Fábrica (Runninghub ComfyUI RPA & Upscale 4K)](#fase-3-a-fábrica-runninghub-comfyui-rpa--upscale-4k)
+3. [Dashboard Web SPA Local (`http://localhost:8501`)](#-dashboard-web-spa-local)
+4. [Detalhamento Técnico das 5 Fases do Pipeline](#-detalhamento-técnico-das-5-fases-do-pipeline)
+   - [Fase 1: O Olheiro Preditivo (Radar Sazonal D+75 & Saturation Index)](#fase-1-o-olheiro-preditivo-radar-sazonal--saturation-index)
+   - [Fase 2: O Diretor de Arte v3.0 (Prompts de 700–1.000 Palavras & Copy-Space)](#fase-2-o-diretor-de-arte-v30-prompts-de-7001000-palavras--copy-space)
+   - [Fase 3: A Fábrica (Runninghub ComfyUI RPA, Fila SHA-256 & 4K)](#fase-3-a-fábrica-runninghub-comfyui-rpa-fila-sha-256--4k)
    - [Fase 4: O Catalogador (Multimodal QA, Injeção Binária IPTC/EXIF & CSV)](#fase-4-o-catalogador-multimodal-qa-injeção-binária-iptcexif--csv)
+   - [Fase 5: O Distribuidor (SFTP/FTP Mass Upload Multi-Agência)](#fase-5-o-distribuidor-sftpftp-mass-upload-multi-agência)
+   - [Módulo de Nuvem: Google Drive Asset Backup](#-módulo-de-nuvem-google-drive-asset-backup)
 5. [Orquestrador Mestre CLI (`main.py`)](#-orquestrador-mestre-cli-mainpy)
 6. [Estrutura do Repositório & Gestão de Dados](#-estrutura-do-repositório--gestão-de-dados)
-7. [Contratos de Dados (Data Schemas)](#-contratos-de-dados-data-schemas)
+7. [Contratos de Dados (Data Schemas v3.0)](#-contratos-de-dados-data-schemas-v30)
 8. [Matriz Estratégica de Monetização Multi-Agência](#-matriz-estratégica-de-monetização-multi-agência)
 9. [Instalação, Configuração & Execução](#-instalação-configuração--execução)
 10. [Resiliência Operacional & Decisões de Engenharia](#-resiliência-operacional--decisões-de-engenharia)
@@ -32,13 +36,15 @@
 
 ## 🔭 Visão Geral do Sistema
 
-O **StockCont** é uma plataforma de engenharia de dados e produção automatizada projetada para operar o ciclo comercial completo de ativos digitais gerados por inteligência artificial para o mercado global de **microstock** (Adobe Stock, Freepik, Alamy, Vecteezy, entre outros).
+O **StockCont** é um ecossistema autônomo de inteligência preditiva de dados e produção generativa industrial projetado para operar o ciclo comercial completo de ativos digitais criados por inteligência artificial para o mercado global de **microstock** (Adobe Stock, Freepik, Alamy, Vecteezy, Pond5, 123RF, Dreamstime).
 
-Em vez de depender de inspirações aleatórias ou geração manual descentralizada, o StockCont fecha o loop produtivo de ponta a ponta:
-1. **Mina** dados reais de demanda de mercado analisando os portfólios dos maiores contribuidores mundiais e tendências de download da Adobe Stock.
-2. **Executa Engenharia Reversa Multimodal** da estética dessas referências (iluminação, composição, paleta, física de materiais) via Gemini Vision REST API.
-3. **Opera Robôs de Automação (RPA)** no ComfyUI hospedado em nuvem (Runninghub) para injetar lotes de prompts estruturados, disparar a geração em massa e capturar renders em resolução nativa 4K.
-4. **Audita Qualidade (QA)**, gera metadados comerciais de alta conversão SEO e **grava binariamente tags IPTC e EXIF** diretamente dentro do arquivo JPG final — garantindo preenchimento automático instantâneo ao subir os arquivos nas plataformas de estoque.
+Em vez de apostar em inspirações aleatórias ou geração descentralizada de baixo volume, o StockCont opera como um **fundo quantitativo de ativos visuais**:
+1. **Antecipa a Demanda B2B Global (D+75 dias)**: Calcula as janelas de compra de grandes agências de publicidade e corporações através do **Seasonal Forecasting Radar** e audita a concorrência via **Niche Saturation Index** para atacar apenas mercados *Blue Ocean*.
+2. **Engenharia Reversa Estética v3.0**: Decompõe as referências mais vendidas do mundo via Gemini Vision e sintetiza **prompts ultra-detalhados de 700 a 1.000 palavras**, incorporando física óptica, iluminação multi-ponto e **Copy-Space adaptativo** (35% a 50% de área livre para tipografia de marketing).
+3. **Automação Robótica (RPA) no ComfyUI**: Opera o canvas LiteGraph no Runninghub para injetar lotes estruturados, capturar renders nativos em 4K e gerenciar a fila com livro-razão criptográfico SHA-256 anti-duplicação.
+4. **Auditoria Visual & Metadados Físicos**: Converte ativos para JPG de alta fidelidade, audita defeitos anatômicos e **grava binariamente tags IPTC e EXIF** diretamente dentro do arquivo, garantindo auto-preenchimento instantâneo em qualquer agência.
+5. **Distribuição Automatizada Multi-Protocolo**: Dispara uploads concorrentes via SFTP e FTP para as principais agências internacionais e mantém backup em nuvem sincronizado no Google Drive.
+6. **Centro de Comando Web SPA**: Interface gráfica dark-theme (FastAPI) em tempo real para controle da esteira, galeria visual, inspeção de IPTC/EXIF e mineração preditiva com 1 clique.
 
 ---
 
@@ -46,197 +52,118 @@ Em vez de depender de inspirações aleatórias ou geração manual descentraliz
 
 ```mermaid
 flowchart LR
-    subgraph S1["Fase 1: Mineração de Demanda"]
-        A1["Adobe Stock Contributor Insights"] --> B1["Playwright Web Scraper<br/>(Sessão Persistente)"]
-        B1 --> C1[("data/raw/trends.json<br/>+ data/raw/images/")]
+    subgraph S1["Fase 1: Radar Preditivo & Scout"]
+        A1["Seasonal Calendar Engine<br/>(Janela D+75 dias)"] --> B1["Niche Saturation Analyzer<br/>(Blue Ocean Scoring)"]
+        B1 --> C1["Adobe Stock Contributor Insights<br/>(Playwright Headless)"]
+        C1 --> D1[("data/raw/trends.json<br/>+ images/")]
     end
 
-    subgraph S2["Fase 2: Engenharia Reversa Multimodal"]
-        C1 --> A2["Gemini Vision REST API<br/>(Visual DNA v2.0)"]
-        A2 --> B2["10 Prompts Derivados Comerciais<br/>(Style, Lighting, Final Prompt)"]
+    subgraph S2["Fase 2: Diretor de Arte v3.0"]
+        D1 --> A2["Gemini Vision Architect v3.0<br/>(Copy-Space & B2B Personas)"]
+        A2 --> B2["10 Prompts Cinematográficos<br/>(700 a 1.000 Palavras cada)"]
         B2 --> C2[("data/processed/prompts.json<br/>(Escrita Atômica .tmp)")]
     end
 
-    subgraph S3["Fase 3: A Fábrica RPA (Runninghub)"]
-        C2 --> A3["Playwright ComfyUI Controller"]
-        A3 --> B3["Injeção nos Nós #128 e #129<br/>(Limpeza Nós #130 e #131)"]
-        B3 --> C3["Monitoramento Nó #192<br/>(Captura 4K Streaming)"]
-        C3 --> D3["Cancelamento Preventivo<br/>da Task Excedente"]
-        D3 --> E3[("data/final/images/<br/>(Imagens Brutas 4K)")]
+    subgraph S3["Fase 3: A Fábrica RPA"]
+        C2 --> A3["PromptQueueManager (SHA-256)"]
+        A3 --> B3["Runninghub ComfyUI RPA<br/>(Nós #128, #129, #192)"]
+        B3 --> C3[("data/final/images/<br/>(Renders 4K Brutos)")]
     end
 
-    subgraph S4["Fase 4: Catalogação & SEO Binário"]
-        E3 --> A4["Gemini Vision QA Reviewer<br/>(Critérios Comerciais & Anatomia)"]
-        A4 --> B4["Conversão PNG ➔ JPG 98%<br/>+ Renomeação Amigável SEO"]
-        B4 --> C4["Injeção Binária IPTC & EXIF<br/>(iptcinfo3 + piexif)"]
-        C4 --> D4[("data/processed/<br/>adobe_stock_upload.csv")]
+    subgraph S4["Fase 4: Catalogador & Metadados"]
+        C3 --> A4["Gemini Vision QA Reviewer"]
+        A4 --> B4["Conversão JPG 98% + IPTC/EXIF<br/>(iptcinfo3 + piexif)"]
+        B4 --> C4[("data/processed/<br/>adobe_stock_upload.csv")]
     end
 
-    S1 --> S2 --> S3 --> S4
+    subgraph S5["Fase 5: Distribuidor & Nuvem"]
+        B4 --> A5["FTP/SFTP Multi-Agency Uploader<br/>(Adobe, Freepik, 123RF, Pond5...)"]
+        B4 --> B5["Google Drive Cloud Sync"]
+    end
+
+    S1 --> S2 --> S3 --> S4 --> S5
 ```
 
 ---
 
-## 🧠 Mapa Mental do Ecossistema
+## 🖥️ Dashboard Web SPA Local
 
-```mermaid
-graph TD
-    Root["StockCont: Motor Autônomo de Microstock"]
+O StockCont conta com um **Dashboard Web em Single-Page Application (SPA)** moderno, de altíssima performance e com estética **Dark Theme** inspirada em terminais de dados financeiros e trading stations.
 
-    Root --> M1["1. Inteligência de Mercado"]
-    M1 --> M1_1["Contributor Insights Portal"]
-    M1 --> M1_2["Métricas Reais de Vendas (Lifetime Downloads)"]
-    M1 --> M1_3["Modo Busca por Nicho & Ordem de Downloads"]
-    M1 --> M1_4["Deep Profile Portfolio Mining"]
-
-    Root --> M2["2. Engenharia Reversa Visual"]
-    M2 --> M2_1["System Prompt v2.0 Visual DNA Architect"]
-    M2 --> M2_2["Decomposição em 8 Dimensões Estéticas"]
-    M2 --> M2_3["Geração Modular de 10 Prompts por Imagem"]
-    M2 --> M2_4["Fallback Dinâmico Gemini Flash-Lite ➔ Flash"]
-
-    Root --> M3["3. Fábrica Generativa (RPA)"]
-    M3 --> M3_1["Automação Baseada em DOM + LiteGraph API"]
-    M3 --> M3_2["Injeção em Nós de Prompts (#128, #129)"]
-    M3 --> M3_3["Extração Streaming 4K no Nó #192"]
-    M3 --> M3_4["Cancelamento Autônomo de Task Excedente"]
-
-    Root --> M4["4. Catalogação & Indexação"]
-    M4 --> M4_1["Auditoria Automática de QA Visual (Rejeição de Defeitos)"]
-    M4 --> M4_2["Geração de 50 Palavras-Chave Ranqueadas + Categoria"]
-    M4 --> M4_3["Gravação Física IPTC (2:05, 2:25, 2:120)"]
-    M4 --> M4_4["Gravação Física EXIF (XPTitle, XPKeywords)"]
-    M4 --> M4_5["Planilha CSV Incremental de Backup"]
+Para abrir o painel local:
+```bash
+python main.py --dashboard
 ```
+*Acesse em seu navegador:* `http://localhost:8501`
+
+### Seções da Interface:
+* **Barra Superior de KPIs**: 6 cartões em tempo real exibindo Tendências mineradas, Prompts prontos, Fila ComfyUI (% de progresso), Imagens 4K em disco, Ativos catalogados com IPTC e Uploads distribuídos.
+* **Pipeline Tracker**: Diagrama horizontal dinâmico com contadores e botões `▶ Run` para disparo granular de cada fase em background.
+* **🖼️ Galeria de Ativos com Modal IPTC/EXIF**: Grid responsivo com thumbnails inteligentes de carregamento rápido. Ao clicar em qualquer imagem, inspeciona o título comercial, descrição e tags IPTC gravadas fisicamente no arquivo.
+* **🔮 Radar Sazonal Interativo**: Apresenta os macro-temas e micro-nichos calculados pelo algoritmo de previsão para a próxima janela comercial (D+75 dias), com botão `🚀 Minerar este Nicho (Fase 1)` de 1 clique.
+* **⏳ Gerenciador de Fila (Prompt Queue)**: Tabela paginada com hashes SHA-256 canônicos, status (`generated` / `pending`), timestamps e filtros.
+* **🌐 Painel Multi-Agência**: Status de configuração e histórico de envios para as 7 plataformas suportadas.
+* **📜 Timeline de Atividade**: Feed cronológico reverso com log de gerações e envios.
+* **☁️ Sincronização Google Drive**: Monitoramento do status de backup em nuvem com botão `Sync Now`.
 
 ---
 
-## 🔬 Detalhamento Técnico das 4 Fases
+## 🔬 Detalhamento Técnico das 5 Fases do Pipeline
 
-### Fase 1: O Olheiro (*Trend Scout & Contributor Insights*)
-* **Módulo Central**: [`src/scraper/adobe_stock.py`](file:///c:/Users/WDAGUtilityAccount/Downloads/Nova%20pasta/src/scraper/adobe_stock.py)
-* **Objetivo**: Extrair os ativos e contribuidores mais vendidos do mundo com base em dados reais de conversão do Adobe Stock.
+### Fase 1: O Olheiro Preditivo (*Radar Sazonal & Saturation Index*)
+* **Módulos Centrais**: [`src/scraper/adobe_stock.py`](file:///c:/Users/WDAGUtilityAccount/Downloads/Nova%20pasta/stockcont/src/scraper/adobe_stock.py), [`src/analyzer/seasonal_radar.py`](file:///c:/Users/WDAGUtilityAccount/Downloads/Nova%20pasta/stockcont/src/analyzer/seasonal_radar.py), [`src/analyzer/saturation_index.py`](file:///c:/Users/WDAGUtilityAccount/Downloads/Nova%20pasta/stockcont/src/analyzer/saturation_index.py)
+* **Objetivo**: Antecipar a demanda comercial das agências corporativas e filtrar nichos saturados antes de gastar recursos de GPU.
 
-```mermaid
-sequenceDiagram
-    autonumber
-    participant Bot as AdobeStockScout (Playwright)
-    participant Portal as Adobe Contributor Portal
-    participant Disk as data/raw/
-    
-    Bot->>Portal: Inicializa navegador com perfil persistente (chrome_session)
-    alt Sessão expirada
-        Portal-->>Bot: Redirecionamento de Login Adobe
-        Bot->>Bot: Aguarda autenticação interativa (timeout: 180s)
-    end
-    Bot->>Portal: Acessa /insights/best/contributors
-    Bot->>Portal: Fecha modais informativos ("How It works")
-    Bot->>Portal: Clica na aba alvo (Photos / Illustrations / Vectors)
-    Bot->>Portal: Extrai contribuidores Top Sellers (Gorodenkoff, onephoto, etc.)
-    opt Modo --deep-profile ativado
-        Bot->>Portal: Navega no portfólio completo ordenado por vendas
-    end
-    Bot->>Disk: Salva previews locais em data/raw/images/<id>.jpg
-    Bot->>Disk: Grava metadados estruturados em data/raw/trends.json
-```
+#### 1. Seasonal Demand Forecasting Radar (D+75 dias)
+Empresas e agências de publicidade adquirem ativos para grandes campanhas com **60 a 90 dias de antecedência**:
+* O motor calcula dinamicamente a data atual e projeta o trimestre-alvo de compras.
+* Exemplo: Em outubro, o radar projeta a janela de **Janeiro/Fevereiro (Q1)**, priorizando nichos como *FinTech Analytics Dashboards*, *Biotech Longevity Labs* e *Relatórios Corporativos ESG*.
+* Consulta via CLI:
+  ```bash
+  python main.py --seasonal
+  ```
+
+#### 2. Niche Saturation Index ($D / N$)
+Calcula a relação matemática entre a velocidade de consumo e a concorrência existente:
+$$\text{Saturation Score} = \frac{\text{Downloads Médios dos Top Sellers}}{\max(\text{Total de Resultados Indexados}, 1)}$$
+
+* 🟢 **Blue Ocean** (Score $\ge 0.025$): Alta demanda e baixa concorrência. Produção prioritária com copy-space.
+* 🟡 **Competição Moderada** ($0.005 \le \text{Score} < 0.025$): Mercado saudável que exige forte diferenciação estética.
+* 🔴 **Red Ocean** (Score $< 0.005$): Nicho saturado. O sistema recomenda refinar para um micro-nicho.
+
+---
+
+### Fase 2: O Diretor de Arte v3.0 (*Prompts de 700–1.000 Palavras & Copy-Space*)
+* **Módulo Central**: [`src/analyzer/director.py`](file:///c:/Users/WDAGUtilityAccount/Downloads/Nova%20pasta/stockcont/src/analyzer/director.py)
+* **Objetivo**: Realizar a engenharia reversa das referências e produzir **exatamente 10 prompts cinematográficos ultra-densos (700 a 1.000 palavras por prompt)**, projetados com Copy-Space para compradores de alto valor.
+
+#### As 6 Camadas de Densidade Cinematográfica:
+1. **Spatial Architecture & Narrative Staging (120–150 palavras)**: Coordenadas espaciais 3D exatas, elementos de enquadramento em primeiro plano, sujeito no plano médio e profundidade atmosférica.
+2. **Physical Materiality & Micro-Textures (120–150 palavras)**: Interações ópticas precisas: dispersão subsuperficial (*SSS*) em pele humana, micro-arranhões em alumínio escovado, reflexos de Fresnel em vidros arquitetônicos duplos e partículas de poeira capturando feixes de luz volumétricos.
+3. **Multi-Point Lighting Architecture (120–150 palavras)**: Configuração de estúdio e luz natural: ângulos da luz principal (*Key*), softbox difuso, temperatura em Kelvin (ex: 3200K tungstênio vs 5600K luz do dia), proporção da luz de preenchimento (*Fill*), luz de contorno (*Rim/Kicker*) e cáusticas reflexivas.
+4. **Optical Camera & Lens Fingerprint (100–130 palavras)**: Comportamento de lentes de cinema (35mm, 50mm, 85mm), aberturas físicas (f/1.4, f/2.8), curva de queda de foco suave, bokeh esférico natural sem artefatos sintéticos e granulação analógica tátil.
+5. **Adaptive Copy-Space & Graphic Usability (120–150 palavras)**: Reserva intencional de 35% a 50% do enquadramento como área negativa limpa (com gradiente suave ou textura desfocada) para aplicação de títulos publicitários por designers gráficos.
+6. **Commercial Buyer Intent & Compliance (100–120 palavras)**: Modelagem orientada a personas B2B (`ad_agency_hero`, `saas_landing_page`, `b2b_corporate_editorial`, `product_mockup`) e isenção total de marcas protegidas.
+
+---
+
+### Fase 3: A Fábrica (*Runninghub ComfyUI RPA, Fila SHA-256 & 4K*)
+* **Módulos Centrais**: [`src/factory/runninghub_bot.py`](file:///c:/Users/WDAGUtilityAccount/Downloads/Nova%20pasta/stockcont/src/factory/runninghub_bot.py), [`src/factory/prompt_queue.py`](file:///c:/Users/WDAGUtilityAccount/Downloads/Nova%20pasta/stockcont/src/factory/prompt_queue.py)
+* **Objetivo**: Automação em navegador real para preencher workflows complexos do ComfyUI, disparar geração em massa e capturar imagens 4K com upscale.
 
 #### Destaques de Engenharia:
-* **Sessão Persistente**: Armazena cookies e sessão em `chrome_session/`, evitando a necessidade de login repetido a cada lote.
-* **Dois Modos de Operação**:
-  1. `insights` (*Default*): Minera dados confidenciais do painel de contribuidores com contadores de vendas vitais (`100,000+ downloads`, `10K+ downloads`).
-  2. `search`: Busca pública por palavra-chave e nicho específico, permitindo ordenação por `nb_downloads` (número de downloads) ou `relevance`.
-* **Download Assíncrono com Resiliência**: Utiliza `httpx` com sanitização regex de ID e cabeçalhos de navegador para gravação local segura.
-
----
-
-### Fase 2: O Diretor de Arte (*Visual DNA & Commercial Prompt Architect v2.0*)
-* **Módulo Central**: [`src/analyzer/director.py`](file:///c:/Users/WDAGUtilityAccount/Downloads/Nova%20pasta/src/analyzer/director.py)
-* **Objetivo**: Efetuar a desconstrução semântica e visual das referências e sintetizar **exatamente 10 prompts derivados comerciais** prontos para produção.
-
-```mermaid
-flowchart TD
-    In["Referência da Fase 1<br/>data/raw/trends.json + images/"] --> B64["Conversão para Base64<br/>+ Identificação MIME"]
-    B64 --> Prompt["Injeção do System Prompt v2.0<br/>Visual DNA Architect"]
-    Prompt --> REST["Chamada REST Gemini Vision API<br/>temperature=0.7 | json_mode"]
-    REST --> Models{"Tenta Modelo Primário<br/>gemini-3.5-flash-lite"}
-    Models -- Sucesso --> Parse["JSON Parser Estruturado"]
-    Models -- 429 / 503 / Erro --> Fallback["Fallback Automático<br/>gemini-3.8-flash"]
-    Fallback --> Parse
-    Parse --> Output["Mapeia visual_dna + 10 prompts derivados<br/>(com injeção automática de final_prompt)"]
-    Output --> Atomic["Escrita Atômica (.tmp ➔ replace)<br/>data/processed/prompts.json"]
-```
-
-#### Dimensões Analisadas pelo System Prompt v2.0:
-1. **Subject & Semantic Structure**: Sujeito principal, narrativa, hierarquia de foco e mensagem comercial.
-2. **Artistic Style**: Fotografia comercial, cinema still, iluminação de estúdio ou render 3D hiper-realista.
-3. **Lighting Architecture**: Fonte primária, proporção chave/preenchimento, temperatura kelvin e queda de sombras.
-4. **Composition & Spatial Design**: Distância focal aproximada, profundidade de campo (*DoF*), enquadramento e copy-space.
-5. **Color Science & Palette**: Cores dominantes, saturação, separação cromática e grading.
-6. **Materials & Surface Properties**: Rugosidade, translucidez, dispersão subsuperficial (*SSS*) e microtexturas.
-7. **Camera & Rendering Characteristics**: Comportamento de lente, aberração cromática, granulação analógica e nitidez.
-8. **Commercial Positioning**: Casos de uso publicitários, público-alvo e conformidade legal (isenção de marcas/logos).
-
-#### Destaques de Engenharia:
-* **Escrita Atômica**: Grava em `prompts.json.tmp` e executa `replace()`, impedindo corrupção em caso de encerramento abrupto.
-* **Processamento Incremental**: Mantém conjunto em memória (`processed_ids`) e processa estritamente itens inéditos.
-* **Compatibilidade Retroativa com a Fase 3**: Enriquecimento automático do dicionário para que consumidores acessem tanto `prompt_data.final_prompt` quanto `prompt` em formato plano.
-
----
-
-### Fase 3: A Fábrica (*Runninghub ComfyUI RPA & Upscale 4K*)
-* **Módulo Central**: [`src/factory/runninghub_bot.py`](file:///c:/Users/WDAGUtilityAccount/Downloads/Nova%20pasta/src/factory/runninghub_bot.py)
-* **Objetivo**: Automação robótica (RPA) em navegador real para preencher workflows complexos do ComfyUI, disparar a geração de lotes e capturar imagens em resolução 4K.
-
-```mermaid
-sequenceDiagram
-    autonumber
-    participant RPA as Runninghub Bot (Playwright)
-    participant DOM as ComfyUI Web Canvas (LiteGraph)
-    participant Hub as Servidor de Render (Runninghub)
-    participant Disk as data/final/images/
-
-    RPA->>DOM: Abre Workflow (83 nós no grafo)
-    RPA->>DOM: Aguarda estabilização completa do grafo (timeout: 120s)
-    RPA->>DOM: Centraliza e foca no Nó #128 (canvas.centerOnNode)
-    RPA->>DOM: Injeta 5 prompts no Nó #128 (prompt_1 a prompt_5)
-    RPA->>DOM: Injeta 5 prompts no Nó #129 (prompt_1 a prompt_5)
-    RPA->>DOM: Limpa nós redundantes #130 e #131 para travar em 10 imagens
-    RPA->>DOM: Força eventos 'input', 'change' e redesenho (setDirtyCanvas)
-    RPA->>DOM: Clica no botão Executar (button.beveled-btn-left.run-btn)
-    loop Monitoramento em Tempo Real (Nó #192)
-        Hub-->>DOM: Renderiza imagem 4K processada com Upscale
-        DOM-->>RPA: Detecta nova URL de imagem (blob / http) no Nó #192
-        RPA->>Disk: Salva imagem instantaneamente via fetch autenticado
-    end
-    Note over RPA,DOM: 10ª imagem capturada com sucesso!
-    RPA->>DOM: Abre modal "Lista de tarefas" e clica em "Cancelar"
-    Note over RPA,Hub: Execução da 11ª task excedente é abortada, poupando créditos.
-```
-
-#### Destaques de Engenharia:
-* **Zero Riscos ao Grafo LiteGraph**: Não utiliza digitação simulada por atalhos globais (que poderiam acionar `Delete` acidental no canvas). Opera diretamente na árvore DOM e na API interna do LiteGraph (`window.app.graph`).
-* **Captura Streaming Instantânea**: Monitora o Nó de saída **#192** e salva cada imagem imediatamente antes que a próxima iteração do ComfyUI sobrescreva o preview do canvas.
-* **Economia de Recursos & Cancelamento Atômico**: Imediatamente após a 10ª imagem ser persistida em disco, o robô abre a fila de tarefas do Runninghub e cancela o processamento residual, evitando desperdício de GPU e saldo.
+* **Gerenciador de Fila com Hashing SHA-256**: Cada prompt possui um hash canônico persistido em `data/processed/generation_history.json`, impedindo regerações duplicadas e garantindo reconciliação automática.
+* **Processamento Multi-Lote Contínuo**:
+  - `python main.py --phase 3 --batches 5` (executa 5 lotes de 10 prompts consecutivos na mesma sessão do browser).
+  - `python main.py --phase 3 --all-batches` (processa todos os prompts pendentes até zerar a fila).
+* **Captura Streaming no Nó #192 & Cancelamento Atômico**: Salva cada imagem 4K imediatamente antes que a próxima iteração sobrescreva o canvas e cancela a 11ª tarefa excedente na fila do Runninghub, economizando créditos de GPU.
 
 ---
 
 ### Fase 4: O Catalogador (*Multimodal QA, Injeção Binária IPTC/EXIF & CSV*)
-* **Módulo Central**: [`src/cataloger/adobe_csv_maker.py`](file:///c:/Users/WDAGUtilityAccount/Downloads/Nova%20pasta/src/cataloger/adobe_csv_maker.py)
-* **Objetivo**: Avaliar a qualidade comercial do lote, converter formatos, gerar SEO de alto ranqueamento e **gravar metadados diretamente nos bytes do arquivo**.
+* **Módulo Central**: [`src/cataloger/adobe_csv_maker.py`](file:///c:/Users/WDAGUtilityAccount/Downloads/Nova%20pasta/stockcont/src/cataloger/adobe_csv_maker.py)
+* **Objetivo**: Auditoria de qualidade comercial, conversão de formatos e gravação física de metadados binários dentro do JPG.
 
-```mermaid
-flowchart TD
-    Img["Nova imagem gerada em<br/>data/final/images/"] --> Gemini["Gemini Vision QA & SEO Analyst<br/>(sub-3s via REST)"]
-    Gemini --> QA{"Aprovado no QA?<br/>• Sem deformações anatômicas<br/>• Sem textos inteligíveis/marcas<br/>• Alto valor comercial"}
-    QA -- Rejeitado --> Trash["Move para data/final/rejected/<br/>(Evita reprovação na agência)"]
-    QA -- Aprovado --> Conv["Conversão PNG ➔ JPEG (Quality 98)<br/>+ Exclusão do PNG original"]
-    Conv --> Rename["Renomeação Amigável SEO<br/>(ex: modern-minimalist-office.jpg)"]
-    Rename --> IPTC["Injeção Binária IPTC (iptcinfo3)<br/>• 2:05 Title<br/>• 2:25 Exactly 50 Keywords<br/>• 2:120 Caption"]
-    IPTC --> EXIF["Injeção Binária EXIF (piexif)<br/>• ImageDescription<br/>• XPTitle (UTF-16LE)<br/>• XPKeywords (UTF-16LE)"]
-    EXIF --> CSV["Append Incremental no Backup CSV<br/>data/processed/adobe_stock_upload.csv"]
-```
-
-#### Estrutura de Metadados Injetados:
 | Protocolo / Padrão | Campo / Tag ID | Conteúdo Injetado | Plataformas que Reconhecem |
 | :--- | :--- | :--- | :--- |
 | **IPTC Core** | `2:05 (Object Name)` | Título comercial em inglês (< 200 caracteres) | Adobe Stock, Freepik, Shutterstock, Lightroom |
@@ -250,73 +177,101 @@ flowchart TD
 
 ---
 
+### Fase 5: O Distribuidor (*SFTP/FTP Mass Upload Multi-Agência*)
+* **Módulo Central**: [`src/uploader/ftp_distributor.py`](file:///c:/Users/WDAGUtilityAccount/Downloads/Nova%20pasta/stockcont/src/uploader/ftp_distributor.py)
+* **Objetivo**: Distribuição em escala para agências internacionais via protocolos de transferência de arquivos, com livro-razão de uploads em `upload_history.json`.
+
+* **SFTP Seguro (`paramiko`)**: **Adobe Stock Contributor** (`sftp.contributor.adobestock.com:22`).
+* **FTP/FTPS Seguro (`ftplib`)**: **123RF**, **Pond5**, **Freepik**, **Dreamstime**, **Alamy**, **Vecteezy**.
+* **Modo de Simulação**: `python main.py --phase 5 --dry-run` para testar conexões e credenciais sem transferir arquivos.
+
+---
+
+### ☁️ Módulo de Nuvem: Google Drive Asset Backup
+* **Módulo Central**: [`src/backup/gdrive_backup.py`](file:///c:/Users/WDAGUtilityAccount/Downloads/Nova%20pasta/stockcont/src/backup/gdrive_backup.py)
+* **Modo Sincronização Local**: Compatível diretamente com o Google Drive para Desktop (`G:\Meu Drive\StockCont_backup`).
+* **Histórico Atômico**: Registrado em `gdrive_backup_history.json`.
+* **Disparo Automático**: Integrado ao final da Fase 4 e via CLI: `python main.py --backup`.
+
+---
+
 ## 🎮 Orquestrador Mestre CLI (`main.py`)
 
-O StockCont conta com uma interface de linha de comando centralizada que unifica o controle, dashboard de status e encadeamento operacional de todas as fases.
-
-### Dashboard de Status da Produção
-Para verificar a saúde do pipeline, saldo de prompts e ativos em estoque:
 ```bash
+# ==========================================
+# DASHBOARD WEB SPA
+# ==========================================
+# Iniciar servidor local e abrir navegador automaticamente (http://localhost:8501):
+python main.py --dashboard
+
+# Iniciar servidor em background sem abrir o navegador:
+python main.py --dashboard --no-browser --port 8501
+
+# ==========================================
+# RADAR SAZONAL PREDITIVO (D+75 DIAS)
+# ==========================================
+# Exibir previsão de demanda e nichos Blue Ocean da estação:
+python main.py --seasonal
+
+# ==========================================
+# STATUS DO PIPELINE
+# ==========================================
 python main.py --status
-```
-*Saída de exemplo:*
-```text
-=================================================================
-      📈 StockCont - AI Stock Asset Automation Pipeline
-      Autonomous Microstock Scout, Producer & Cataloger
-=================================================================
 
-🔍 PIPELINE STATUS REPORT:
-
-  [✓] Gemini API Key: Configured (AIzaSy...4x1A)
-  [1] Phase 1 (Scout):     20 trends recorded | 20 raw reference images
-  [2] Phase 2 (Director):  20 analyzed items | 200 ready prompts
-  [3] Phase 3 (Factory):   10 assets waiting in data/final/images/
-  [4] Phase 4 (Cataloger): 10 assets cataloged in adobe_stock_upload.csv
-
------------------------------------------------------------------
-  🎉 All 10 images are fully cataloged and embedded with IPTC/EXIF!
-     Assets in data/final/images/ and data/processed/adobe_stock_upload.csv are ready for upload.
-=================================================================
-```
-
-### Comandos por Fase
-
-```bash
 # ==========================================
-# FASE 1: OLHEIRO (SCRAPER DE DEMANDA)
+# FASE 1: OLHEIRO (SCRAPER & DEMANDA)
 # ==========================================
-# Minerar Contributor Insights dos Top Sellers mundiais (fotos):
+# Minerar Contributor Insights dos Top Sellers mundiais:
 python main.py --phase 1 --mode insights --type photo --max-items 20
 
 # Minerar portfólios completos dos maiores contribuidores (--deep-profile):
 python main.py --phase 1 --mode insights --deep-profile --max-items 30
 
-# Buscar por nicho público específico ordenado por número de downloads:
+# Buscar por nicho público específico ordenado por downloads:
 python main.py --phase 1 --mode search --query "cybersecurity operations center" --order nb_downloads --max-items 15
 
 # ==========================================
-# FASE 2: DIRETOR DE ARTE (ENGENHARIA REVERSA)
+# FASE 2: DIRETOR DE ARTE v3.0 (700-1000 PALAVRAS)
 # ==========================================
-# Processa as referências inéditas e gera 10 prompts por imagem:
 python main.py --phase 2
 
 # ==========================================
-# FASE 3: A FÁBRICA (AUTOMAÇÃO ROBÓTICA RPA)
+# FASE 3: A FÁBRICA (RUNNINGHUB COMFYUI RPA)
 # ==========================================
-# Injeta o lote no Runninghub e monitora saída 4K no Nó #192:
+# Executar 1 lote de 10 prompts:
 python main.py --phase 3 --node 192
 
+# Executar 5 lotes consecutivos (50 imagens) na mesma sessão:
+python main.py --phase 3 --batches 5
+
+# Processar todos os prompts pendentes até zerar a fila:
+python main.py --phase 3 --all-batches
+
 # ==========================================
-# FASE 4: O CATALOGADOR (METADADOS & SEO)
+# FASE 4: O CATALOGADOR (METADADOS IPTC/EXIF)
 # ==========================================
-# Audita qualidade, injeta IPTC/EXIF nos arquivos e gera CSV:
 python main.py --phase 4
+
+# ==========================================
+# BACKUP EM NUVEM (GOOGLE DRIVE)
+# ==========================================
+python main.py --backup
+
+# ==========================================
+# FASE 5: DISTRIBUIÇÃO MULTI-AGÊNCIA
+# ==========================================
+# Simular envio (teste de credenciais):
+python main.py --phase 5 --dry-run
+
+# Upload para todas as agências configuradas:
+python main.py --phase 5 --platform all
+
+# Upload específico (ex: adobe, pond5, 123rf):
+python main.py --phase 5 --platform adobe
 
 # ==========================================
 # PIPELINE COMPLETO END-TO-END
 # ==========================================
-# Executa as 4 fases sequencialmente para um nicho:
 python main.py --all --query "sustainable green energy architecture" --max-items 10
 ```
 
@@ -326,10 +281,10 @@ python main.py --all --query "sustainable green energy architecture" --max-items
 
 ```text
 stockcont/
-├── .env                              # Variáveis de ambiente (GEMINI_API_KEY, WORKFLOW_URL)
+├── .env                              # Variáveis de ambiente (GEMINI_API_KEY, CREDENCIAIS FTP)
 ├── .env.example                      # Template de variáveis de ambiente
 ├── .gitignore                         # Regras de exclusão de binários e credenciais
-├── main.py                           # Orquestrador CLI Mestre e Dashboard do Sistema
+├── main.py                           # Orquestrador CLI Mestre e Ponto de Entrada
 ├── README.md                         # Documentação técnica e arquitetura do projeto
 ├── requirements.txt                  # Dependências Python travadas
 ├── state.md                          # Quadro de estado e progresso das sprints
@@ -342,44 +297,68 @@ stockcont/
 │   │   ├── trends.json               # Dados minerados da Fase 1 (títulos, links, IDs)
 │   │   └── images/                   # Previews baixados dos ativos em tendência
 │   ├── processed/
-│   │   ├── prompts.json              # Prompts comerciais gerados na Fase 2 (v2.0)
+│   │   ├── prompts.json              # Prompts comerciais v3.0 (700-1000 palavras)
+│   │   ├── generation_history.json   # Livro-razão SHA-256 de geração da Fábrica
+│   │   ├── upload_history.json       # Histórico de uploads FTP/SFTP multi-agência
+│   │   ├── gdrive_backup_history.json# Histórico de sincronização do Google Drive
 │   │   └── adobe_stock_upload.csv    # Planilha consolidada de backup para submissão
 │   └── final/
 │       ├── images/                   # Imagens 4K finais prontas com metadados IPTC/EXIF
 │       └── rejected/                 # Imagens reprovadas no QA automático do Catalogador
 │
-└── src/
-    ├── scraper/
-    │   └── adobe_stock.py            # Fase 1: Olheiro Playwright (Insights & Busca)
-    ├── analyzer/
-    │   └── director.py               # Fase 2: Diretor de Arte (System Prompt v2.0)
-    ├── factory/
-    │   └── runninghub_bot.py         # Fase 3: A Fábrica (Controller RPA ComfyUI)
-    └── cataloger/
-        └── adobe_csv_maker.py        # Fase 4: Catalogador (IPTC, EXIF, QA & CSV)
+├── src/
+│   ├── analyzer/
+│   │   ├── director.py               # Fase 2: Diretor de Arte v3.0 (700-1000 palavras)
+│   │   ├── seasonal_radar.py         # Motor de Previsão de Demanda Sazonal (D+75 dias)
+│   │   └── saturation_index.py       # Analisador de Saturação de Mercado (Blue Ocean)
+│   ├── backup/
+│   │   └── gdrive_backup.py          # Módulo de Backup em Nuvem Google Drive
+│   ├── cataloger/
+│   │   └── adobe_csv_maker.py        # Fase 4: Catalogador (IPTC, EXIF, QA & CSV)
+│   ├── dashboard/
+│   │   ├── app.py                    # Servidor FastAPI e rotas REST do Dashboard
+│   │   ├── readers.py                # Leitores seguros de dados do pipeline
+│   │   ├── runner.py                 # Executor assíncrono de fases via subprocess
+│   │   └── static/                   # SPA Frontend (HTML, CSS Dark Theme, JavaScript)
+│   ├── factory/
+│   │   ├── prompt_queue.py           # Gestor de Fila e Livro-Razão SHA-256
+│   │   └── runninghub_bot.py         # Fase 3: A Fábrica (Controller RPA ComfyUI)
+│   ├── scraper/
+│   │   └── adobe_stock.py            # Fase 1: Olheiro Playwright (Insights & Busca)
+│   └── uploader/
+│       └── ftp_distributor.py        # Fase 5: Distribuidor SFTP/FTP Multi-Agência
+│
+└── tests/
+    ├── test_dashboard.py             # 10 testes de endpoints e integridade da SPA
+    ├── test_distributor.py           # 6 testes de protocolos e credenciais de agências
+    ├── test_gdrive_backup.py         # 6 testes de sincronização em nuvem
+    ├── test_pipeline_e2e.py          # 5 testes de integração de ponta a ponta
+    ├── test_predictive_intelligence.py # 5 testes do Radar Sazonal e Saturation Index
+    └── test_prompt_queue.py          # 12 testes do gestor de fila e hashing SHA-256
 ```
 
 ---
 
-## 📄 Contratos de Dados (Data Schemas)
+## 📄 Contratos de Dados (Data Schemas v3.0)
 
-### Schema de Prompts Gerados (`data/processed/prompts.json` - v2.0)
+### Schema de Prompts Gerados (`data/processed/prompts.json` - v3.0)
 ```json
 [
   {
     "source_id": "2090056954",
     "source_title": "Faceless business team reviewing financial dashboards...",
-    "system_version": "2.0",
+    "system_version": "3.0",
     "analysis_metadata": {
       "reference_available": true,
-      "target_model": "model-agnostic",
+      "target_model": "model-agnostic-flux-comfyui",
       "commercial_category": "Stock photography",
+      "asset_vocation": "tech_corporate",
       "analysis_confidence": 0.95
     },
     "analysis": {
       "style": "Cinematic commercial realism, corporate aesthetics",
       "lighting": "Low-key interior with cyan monitor illumination and warm bokeh",
-      "composition": "Shallow depth of field, foreground laptop focal plane",
+      "composition": "Rule of thirds, wide copy-space reserve",
       "color_palette": {
         "description": "Deep navy and dark slate with high-contrast cyan highlights",
         "dominant_colors": [
@@ -388,52 +367,45 @@ stockcont/
       },
       "materials_and_textures": "Anti-reflective glass, brushed aluminum, matte paper",
       "mood": "Focused, analytical, professional",
-      "invariant_characteristics": ["Lighting philosophy", "Contrast structure"],
-      "variable_characteristics": ["Subject matter", "Setting details"]
+      "copy_space_profile": "Left 40% reserved for headline typography"
     },
     "generated_prompts": [
       {
         "id": 1,
-        "concept": "FinTech High-Frequency Trading Desk",
-        "creative_direction": "Close-up macro on financial telemetry displays",
-        "commercial_use_cases": ["Fintech websites", "Banking reports"],
-        "prompt": "Macro shot of trading interface displaying live candlestick charts...",
+        "concept": "FinTech High-Frequency Trading Desk & Analytics",
+        "creative_direction": "Wide cinematic shot with left-third copy-space",
+        "layout_type": "left_third_copy_space",
+        "copy_space_zone": "left_35_percent",
+        "target_buyer": "saas_landing_page",
+        "copy_space_description": "Clean dark architectural concrete wall softly illuminated by diffused cyan LED glow, creating pristine negative space for typography.",
+        "commercial_use_cases": ["Fintech websites", "Banking reports", "SaaS hero headers"],
+        "prompt": "Cinematic wide commercial shot of a high-tech financial operations workstation... [700 a 1.000 palavras descrevendo física de materiais, iluminação Kelvin, lente 50mm f/1.4 e copy-space]",
         "prompt_data": {
-          "subject": "Laptop screen displaying real-time stock telemetry",
-          "environment": "Late night corporate trading room with ambient glass reflections",
-          "composition": "Centered close-up with extreme shallow depth of field",
-          "lighting": "Emissive blue monitor glow with warm background bokeh",
+          "subject": "Trading interface workstation with glowing candlestick telemetry",
+          "environment": "Late night corporate trading room with ambient reflections",
+          "composition": "Rule of thirds, subject on right third, left third clean copy space",
+          "lighting": "Emissive blue monitor glow with warm background bokeh at 3200K",
           "style": "Hyperrealistic commercial photography",
           "color_palette": "Deep navy, cyan, fluorescent green, dark carbon",
-          "materials_and_textures": "Brushed matte finish, illuminated pixels",
+          "materials_and_textures": "Brushed aluminum, illuminated pixels, anti-reflective glass",
           "mood": "High-stakes, high-tech, precise",
-          "technical_qualifiers": ["8k resolution", "sharp focus on glass", "photorealistic"],
+          "technical_qualifiers": ["8k resolution", "sharp focus on glass", "photorealistic", "left copy-space"],
           "negative_prompt": "blurry, anatomical defect, text watermark, distortion",
-          "final_prompt": "Macro shot of trading interface displaying live candlestick charts, hands taking analytical notes in background bokeh, cool blue lighting, crisp commercial stock aesthetic."
+          "final_prompt": "Cinematic wide commercial shot of a high-tech financial operations workstation... [700 a 1.000 palavras]"
         },
+        "estimated_word_count": 820,
         "reference_fidelity": 0.92,
         "conceptual_distinctiveness": 0.88,
-        "commercial_suitability": 0.95
+        "commercial_suitability": 0.98
       }
     ]
   }
 ]
 ```
 
-### Schema do CSV de Upload (`data/processed/adobe_stock_upload.csv`)
-| Coluna | Descrição Técnica | Exemplo |
-| :--- | :--- | :--- |
-| `Filename` | Nome do arquivo físico sanitizado com SEO | `fintech-high-frequency-trading-desk.jpg` |
-| `Title` | Título comercial descritivo em inglês (< 200 caracteres) | `High Frequency Financial Trading Desk with Data Graphs` |
-| `Keywords` | Exatamente 50 tags separadas por vírgula em ordem de relevância | `trading, finance, fintech, investment, data, analysis, ...` |
-| `Category` | Identificador numérico nativo da categoria Adobe Stock | `3` *(Business)* |
-| `Releases` | Informação de autorizações de imagem/propriedade | *(Vazio / Dispensado para IA abstrata)* |
-
 ---
 
 ## 🌐 Matriz Estratégica de Monetização Multi-Agência
-
-Como o StockCont grava os metadados diretamente no binário dos arquivos (`IPTC` + `EXIF`), os ativos finais em `data/final/images/` podem ser enviados via SFTP/FTP para múltiplas agências em paralelo sem intermediários comissionados:
 
 | Nível de Mercado | Plataforma | Repasse / Royalty | Política de IA | Método de Ingestão |
 | :--- | :--- | :--- | :--- | :--- |
@@ -445,10 +417,6 @@ Como o StockCont grava os metadados diretamente no binário dos arquivos (`IPTC`
 | **Tier Prata (Volume Médio)**| **Depositphotos** | 30% a 44% de comissão | ✅ Aceito | FTP nativo / Lê IPTC automático |
 | **Macrostock (High-Ticket)**| **Alamy** | 40% a 50% (vendas de $20 a $150+) | ✅ Aceito *(Declarar IA nos metadados)* | SFTP nativo / Lê IPTC automático |
 | **Macrostock (High-Ticket)**| **Pond5** | 40% *(Criador define o preço)*| ✅ Aceito | FTP nativo / Lê IPTC automático |
-| **Packs / Venda Direta**    | **Creative Market** | 70% de margem líquida | ✅ Aceito em bundles temáticos | Upload ZIP via Web |
-| **Venda Direta**            | **Gumroad / Etsy**  | 90%+ de margem líquida | ✅ Aceito (Mockups e backgrounds) | Upload ZIP via Web |
-| **PROIBIDO**                | **Shutterstock** | N/A | ❌ Proibido *(Só aceita motor interno)* | N/A |
-| **PROIBIDO**                | **Getty Images / iStock**| N/A | ❌ Proibição total de IA generativa | N/A |
 
 ---
 
@@ -479,22 +447,26 @@ pip install -r requirements.txt
 playwright install chromium
 ```
 
-### 3. Configuração do Arquivo `.env`
-Crie um arquivo `.env` na raiz do projeto:
-```env
-GEMINI_API_KEY="AIzaSy...sua_chave_aqui"
-RUNNINGHUB_WORKFLOW_URL="https://www.runninghub.ai/pt-br/workflow/2109087489277710337?source=workspace"
-RUNNINGHUB_OUTPUT_NODE=192
+### 3. Executando os Testes Automatizados
+```bash
+pytest
+```
+*Resultado esperado:* **44 passed in ~1.1s (100% verde)**.
+
+### 4. Abrindo o Dashboard Web
+```bash
+python main.py --dashboard
 ```
 
 ---
 
 ## 🛡 Resiliência Operacional & Decisões de Engenharia
 
-1. **Blindagem de Encoding Windows**: Toda a saída de console em `main.py`, `runninghub_bot.py` e utilitários é forçada para `UTF-8` em tempo de inicialização, neutralizando falhas crônicas de `UnicodeEncodeError (cp1252)` em terminais Windows.
-2. **Backoff Exponencial & Model Fallback**: As integrações REST com a API Gemini monitoram ativamente códigos de status `429` (Rate Limit) e `503` (Serviço Ocupado), executando retentativas com pausas automáticas antes de alternar de `gemini-3.5-flash-lite` para `gemini-3.8-flash`.
-3. **Escrita Atômica Transacional**: Todos os arquivos de dados críticos (`prompts.json` e `trends.json`) são serializados primeiramente em arquivos temporários `.tmp` e substituídos atomicamente via sistema de arquivos do sistema operacional, evitando corrupções em caso de parada forçada.
-4. **Isolamento de Sessões do Navegador**: O projeto divide os estados do navegador entre `chrome_session` (autenticação de usuário no portal Adobe Stock) e `playwright_session` (autenticação de infraestrutura no Runninghub ComfyUI), impedindo colisão de cookies ou contexto.
+1. **Blindagem de Encoding UTF-8 em Windows**: Todo I/O de console, rede e persistência é forçado para UTF-8 no bootstrap de `main.py` e utilitários, neutralizando falhas crônicas de `cp1252`.
+2. **Escrita Atômica Transacional**: Todos os arquivos JSON críticos (`prompts.json`, `trends.json`, `generation_history.json`, `upload_history.json`) são serializados primeiramente em arquivos temporários `.tmp` e substituídos atomicamente via `replace()`.
+3. **Fila Criptográfica com Hashing SHA-256**: Cada prompt gera um hash canônico único, garantindo idempotência e prevenindo que lotes parciais reexecutem prompts já renderizados.
+4. **Isolamento de Sessões do Navegador**: O projeto divide os estados do navegador entre `chrome_session` (autenticação de usuário no portal Adobe Stock) e `playwright_session` (autenticação de infraestrutura no Runninghub ComfyUI), impedindo colisão de cookies.
+5. **Backoff e Timeout Resiliente**: Chamadas para o Gemini Vision contam com timeout de 120s para comportar prompts de 700 a 1.000 palavras e lógica de retentativa automática contra códigos HTTP 429 e 503.
 
 ---
 
