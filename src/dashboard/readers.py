@@ -159,6 +159,7 @@ def get_prompt_queue_items() -> List[Dict[str, Any]]:
             {
                 "prompt_text": p.prompt_text[:200] + ("…" if len(p.prompt_text) > 200 else ""),
                 "prompt_hash": p.prompt_hash[:12],
+                "full_hash": p.prompt_hash,
                 "source_id": p.source_id,
                 "prompt_id": p.prompt_id,
                 "concept": p.concept,

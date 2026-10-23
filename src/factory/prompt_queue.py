@@ -334,6 +334,24 @@ class PromptQueueManager:
         logger.info(f"✅ {len(marked_hashes)} prompts registrados como gerados no ledger e em prompts.json.")
         return len(marked_hashes)
 
+    def mark_by_hashes(self, hashes: list) -> int:
+        """Mark prompts matching specific hashes (full or prefix) as generated."""
+        if not hashes:
+            return 0
+        hash_set = {str(h).strip().lower() for h in hashes if h and str(h).strip()}
+        all_items = self.get_all_prompts()
+        matching = [
+            p for p in all_items
+            if (p.prompt_hash.lower() in hash_set or p.prompt_hash[:12].lower() in hash_set)
+        ]
+        return self.mark_prompts_generated(matching)
+
+    def mark_all_pending_generated(self) -> int:
+        """Mark all currently pending prompts in the queue as generated."""
+        pending = self.get_pending_prompts(batch_size=None)
+        return self.mark_prompts_generated(pending)
+
+
     def reconcile_existing_images(self) -> int:
         """Bootstrap / sync existing images in data/final/images/ with pending prompts.
         

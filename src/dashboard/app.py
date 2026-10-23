@@ -7,23 +7,36 @@ endpoints for pipeline status, asset gallery, and phase execution.
 
 import logging
 import webbrowser
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import readers, runner
+from . import readers, runner, schemas
 
 logger = logging.getLogger(__name__)
 
 STATIC_DIR = Path(__file__).parent / "static"
 IMAGES_DIR = readers.FINAL_IMAGES_DIR
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Clean up any orphan background processes
+    runner.cleanup_orphan_processes()
+    yield
+    # Shutdown: Clean up any child tasks running under this server instance
+    for task_key in list(runner._running_tasks.keys()):
+        runner.terminate_task(task_key)
+
+
 app = FastAPI(
     title="StockCont Dashboard",
     description="Dashboard for the StockCont Autonomous Microstock Pipeline",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 # Mount static files
@@ -73,6 +86,34 @@ async def get_prompts(filter: str = "all", page: int = 1, per_page: int = 50):
 async def get_prompts_stats():
     """Quick counters: total, pending, generated, percent."""
     return readers.get_prompt_queue_stats()
+
+
+@app.post("/api/prompts/mark-generated")
+async def mark_prompts_generated(req: schemas.MarkGeneratedRequest):
+    """Mark specific prompts (by hash) or all pending prompts as generated."""
+    from src.factory.prompt_queue import PromptQueueManager
+    mgr = PromptQueueManager(auto_reconcile=False)
+
+    if req.all_pending:
+        count = mgr.mark_all_pending_generated()
+        return {
+            "success": True,
+            "marked_count": count,
+            "message": f"{count} prompts pendentes marcados como gerados.",
+        }
+    elif req.hashes:
+        count = mgr.mark_by_hashes(req.hashes)
+        return {
+            "success": True,
+            "marked_count": count,
+            "message": f"{count} prompt(s) marcado(s) como gerado(s).",
+        }
+    else:
+        return {
+            "success": False,
+            "marked_count": 0,
+            "message": "Nenhum prompt foi selecionado.",
+        }
 
 
 # ── Image Gallery ────────────────────────────────────
@@ -273,11 +314,38 @@ async def get_tasks():
     return runner.get_running_tasks()
 
 
+@app.get("/api/tasks/{task_id}")
+async def get_task_detail(task_id: str):
+    task = runner.get_task(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return task
+
+
+@app.post("/api/tasks/{task_id}/stop")
+async def stop_task(task_id: str):
+    success = runner.terminate_task(task_id)
+    return {"success": success, "task_id": task_id}
+
+
+@app.post("/api/tasks/cleanup")
+async def cleanup_tasks():
+    killed = runner.cleanup_orphan_processes()
+    return {"success": True, "killed_count": killed}
+
+
 @app.post("/api/run-phase/{phase}")
-async def run_phase(phase: int):
+async def run_phase(phase: int, query: Optional[str] = None, mode: Optional[str] = None, platform: Optional[str] = None):
     if phase not in (1, 2, 3, 4, 5):
         raise HTTPException(status_code=400, detail="Phase must be 1–5")
-    return await runner.run_phase(phase)
+    extra_args = []
+    if query:
+        extra_args.extend(["--query", query])
+    if mode:
+        extra_args.extend(["--mode", mode])
+    if platform:
+        extra_args.extend(["--platform", platform])
+    return await runner.run_phase(phase, extra_args=extra_args if extra_args else None)
 
 
 # ── Server Launcher ──────────────────────────────────

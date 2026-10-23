@@ -112,21 +112,33 @@
         <button class="filter-btn" onclick="filterQueue('pending')">Pendentes</button>
         <button class="filter-btn" onclick="filterQueue('generated')">Gerados</button>
       </div>
+      <div class="queue-actions-group">
+        <button id="btn-mark-selected" class="btn btn-sm btn-success" onclick="markSelectedGenerated()" disabled title="Marcar os prompts selecionados como gerados">
+          ✓ Marcar Selecionados (<span id="selected-count">0</span>)
+        </button>
+        <button id="btn-mark-all-pending" class="btn btn-sm btn-outline" onclick="markAllPendingGenerated()" title="Marcar todos os prompts pendentes da fila inteira como gerados">
+          ⚡ Marcar Todos Pendentes
+        </button>
+      </div>
       <span class="tab-stat" id="queue-stat">—</span>
     </div>
     <div class="queue-table-wrapper">
       <table class="data-table" id="queue-table">
         <thead>
           <tr>
+            <th style="width:40px; text-align:center;">
+              <input type="checkbox" id="select-all-prompts" class="prompt-select-checkbox" onchange="toggleSelectAll(this.checked)" title="Selecionar todos os pendentes visíveis">
+            </th>
             <th>Hash</th>
             <th>Conceito</th>
             <th>Source</th>
             <th>Status</th>
             <th>Data</th>
+            <th style="text-align:center; width:90px;">Ação</th>
           </tr>
         </thead>
         <tbody id="queue-tbody">
-          <tr><td colspan="5" class="loading">Carregando fila…</td></tr>
+          <tr><td colspan="7" class="loading">Carregando fila…</td></tr>
         </tbody>
       </table>
     </div>

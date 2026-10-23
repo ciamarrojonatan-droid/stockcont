@@ -358,3 +358,40 @@ def test_mark_prompts_empty_or_zero_saved(queue_env):
     pending = mgr.get_pending_prompts(batch_size=5)
     assert mgr.mark_prompts_generated(pending, saved_images=[]) == 0
 
+
+
+def test_mark_by_hashes(queue_env):
+    """Marking specific prompt hashes updates both ledger and prompts.json."""
+    mgr = PromptQueueManager(
+        prompts_file=queue_env["prompts_file"],
+        history_file=queue_env["history_file"],
+        trends_file=queue_env["trends_file"],
+        images_dir=queue_env["images_dir"],
+        auto_reconcile=False,
+    )
+    all_prompts = mgr.get_all_prompts()
+    target_hashes = [all_prompts[0].prompt_hash, all_prompts[1].prompt_hash[:12]]
+    marked = mgr.mark_by_hashes(target_hashes)
+    assert marked == 2
+
+    # Verify status changed
+    updated = mgr.get_all_prompts()
+    assert updated[0].status == "generated"
+    assert updated[1].status == "generated"
+    assert updated[2].status == "pending"
+
+
+def test_mark_all_pending_generated(queue_env):
+    """Marking all pending prompts marks all 15 prompts as generated."""
+    mgr = PromptQueueManager(
+        prompts_file=queue_env["prompts_file"],
+        history_file=queue_env["history_file"],
+        trends_file=queue_env["trends_file"],
+        images_dir=queue_env["images_dir"],
+        auto_reconcile=False,
+    )
+    assert mgr.get_stats()["pending"] == 15
+    marked = mgr.mark_all_pending_generated()
+    assert marked == 15
+    assert mgr.get_stats()["pending"] == 0
+    assert mgr.get_stats()["generated"] == 15

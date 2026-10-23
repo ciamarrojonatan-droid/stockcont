@@ -57,6 +57,7 @@ class PipelineStatus(BaseModel):
 class PromptItemResponse(BaseModel):
     prompt_text: str
     prompt_hash: str
+    full_hash: Optional[str] = None
     source_id: str = ""
     prompt_id: Optional[Any] = None
     concept: str = ""
@@ -88,3 +89,8 @@ class RunPhaseResponse(BaseModel):
     success: bool
     message: str
     task_id: Optional[str] = None
+
+
+class MarkGeneratedRequest(BaseModel):
+    hashes: Optional[List[str]] = None
+    all_pending: Optional[bool] = False

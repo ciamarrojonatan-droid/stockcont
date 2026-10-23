@@ -11,12 +11,12 @@ Sistema autônomo para inteligência de microstock, mineração de tendências, 
 | :--- | :--- | :--- |
 | **Fase 1: Olheiro (Scout)** | 🟢 Concluído | 10 tendências mineradas (Top Sellers Adobe Stock) \| 10 referências em `data/raw/images/` |
 | **Fase 2: Diretor de Arte** | 🟢 Concluído | 10 itens analisados \| **100 prompts comerciais gerados** com Gemini Vision |
-| **Fase 3: A Fábrica (RunningHub)** | 🟢 Operacional | **93/100 prompts gerados (93% concluído)** \| **7 novos assets prontos** em `data/final/images/` |
+| **Fase 3: A Fábrica (RunningHub)** | 🟢 Operacional | **94/100 prompts gerados (94% concluído)** \| **6 prompts pendentes na fila** |
 | **Fase 4: O Catalogador** | 🟢 Concluído | **98 imagens JPG 4K com IPTC/EXIF embutidos** \| CSV `adobe_stock_upload.csv` atualizado |
 | **Backup Google Drive** | 🟢 Operacional | **52+ assets sincronizados** em `G:\Meu Drive\StockCont_backup` via modo `local_sync` |
 | **Fase 5: O Distribuidor** | 🟢 Operacional | **58 assets 4K enviados via FTP** (123RF e Pond5) \| 116 transferências com 100% de sucesso |
-| **Dashboard Web SPA** | 🟢 Operacional | FastAPI + SPA Dark Theme (`http://localhost:8501`) \| 8 seções interativas |
-| **Qualidade & Testes** | 🟢 100% Verde | **44 testes automatizados passando** (`pytest`) |
+| **Dashboard Web SPA** | 🟢 Operacional | FastAPI + SPA Dark Theme (`http://localhost:8501`) \| Streaming de logs, controle de tarefas e seleção na fila |
+| **Qualidade & Testes** | 🟢 100% Verde | **55 testes automatizados passando** (`pytest`) |
 
 ---
 
@@ -53,6 +53,7 @@ Sistema autônomo para inteligência de microstock, mineração de tendências, 
   - Livro-razão atômico em `data/processed/generation_history.json`.
   - Atualização in-place de status em `data/processed/prompts.json` (`status: generated`).
   - Reconciliação automática com imagens já existentes em disco.
+  - Métodos `mark_by_hashes()` e `mark_all_pending_generated()` para controle manual atômico.
 - [x] **Suporte a Múltiplos Lotes na mesma sessão do navegador**:
   - `python main.py --phase 3` (executa 1 lote de 10 prompts pendentes por padrão).
   - `python main.py --phase 3 --batches N` (executa N lotes consecutivos mantendo o navegador aberto).
@@ -98,12 +99,33 @@ Sistema autônomo para inteligência de microstock, mineração de tendências, 
 - [x] Histórico atômico (`data/processed/gdrive_backup_history.json`) com 44 assets salvos.
 - [x] Disparo automático após a catalogação da Fase 4 e via CLI `python main.py --backup`.
 
+### 🖥️ Dashboard Web SPA & Gestão Interativa
+*Status: 🟢 Totalmente Operacional & Otimizado*
+- [x] Servidor FastAPI com Dark Theme SPA em `http://localhost:8501`.
+- [x] **Execução e Monitoramento de Tarefas Não Bloqueante**:
+  - Streaming assíncrono contínuo de `stdout` e `stderr` linha a linha (`_stream_pipe`).
+  - Buffer circular de logs em memória para acompanhamento em tempo real.
+  - Endpoints REST `/api/tasks`, `/api/tasks/{task_id}`, `/api/tasks/{task_id}/stop` e `/api/tasks/cleanup`.
+  - Polling reativo no frontend a cada 1.5s enquanto houver tarefas em execução.
+  - Estado visual dinâmico nos botões: `⏳ Executando...` (desabilitado) e botão de cancelamento (`⏹`).
+- [x] **Gestão Avançada da Fila de Prompts**:
+  - Seleção granular via checkboxes por prompt.
+  - Checkbox mestre no cabeçalho para selecionar todos os pendentes visíveis.
+  - Botão de ação em massa `✓ Marcar Selecionados (N)` com contador em tempo real.
+  - Botão `⚡ Marcar Todos Pendentes` para marcar todos os pendentes da fila com confirmação.
+  - Botão individual de ação rápida `✓ Gerado` em cada linha pendente.
+  - Endpoint `POST /api/prompts/mark-generated` para persistência atômica e recálculo instantâneo de KPIs.
+- [x] **Script de Inicialização Windows (`start.bat`)**:
+  - Inicialização com duplo clique compatível com `cmd.exe` (terminação CRLF estrita e caracteres ASCII seguros).
+  - Validação de ambiente virtual e abertura automática do navegador.
+
 ---
 
-## 🎮 Comandos do Orquestrador Maestro (`main.py`)
+## 🎮 Comandos do Orquestrador Maestro (`main.py` e `start.bat`)
 
 | Comando | Função |
 | :--- | :--- |
+| `start.bat` | Inicializa o Dashboard com 1 clique duplo e abre o navegador automaticamente |
 | `python main.py --seasonal` | Exibe o Radar de Demanda Preditiva Sazonal D+75 dias e nichos Blue Ocean recomendados |
 | `python main.py --dashboard` | Inicia o servidor Web SPA e abre o navegador automaticamente (`http://localhost:8501`) |
 | `python main.py --status` | Dashboard CLI completo de status da esteira e fila de prompts |
@@ -123,11 +145,11 @@ Sistema autônomo para inteligência de microstock, mineração de tendências, 
 ## 🛠 Infraestrutura e DevOps
 - [x] Repositório GitHub conectado e sincronizado.
 - [x] Ambiente virtual Python (`venv`) com Python 3.11.9 e dependências atualizadas.
-- [x] Dependências em `requirements.txt` (`playwright`, `pytest`, `pytest-playwright`, `httpx`, `google-generativeai`, `google-genai`, `Pillow`, `python-dotenv`, `piexif`, `iptcinfo3`, `paramiko`).
+- [x] Dependências em `requirements.txt` (`playwright`, `pytest`, `pytest-playwright`, `httpx`, `google-generativeai`, `google-genai`, `Pillow`, `python-dotenv`, `piexif`, `iptcinfo3`, `paramiko`, `fastapi`, `uvicorn`).
 - [x] Binários do Playwright Chromium instalados e operacionais.
 - [x] Chave `GEMINI_API_KEY` e caminho `GOOGLE_DRIVE_LOCAL_PATH` configurados no `.env`.
-- [x] Resiliência de encoding no terminal Windows (UTF-8 sem falhas de cp1252).
-- [x] **29 testes automatizados passando em `tests/` (`pytest`)**.
+- [x] Resiliência de encoding no terminal Windows (UTF-8 forçado com `PYTHONUNBUFFERED`, `PYTHONIOENCODING` e `PYTHONUTF8`).
+- [x] **55 testes automatizados passando em `tests/` (`pytest`)**.
 - [x] Protocolo de orquestração autônoma e skills ECC configurados.
 
 ---
@@ -135,7 +157,7 @@ Sistema autônomo para inteligência de microstock, mineração de tendências, 
 ## 🎯 Próximos Passos Operacionais
 1. **Acompanhar Aprovação de Identidade no Vecteezy** (via suporte Zendesk).
 2. **Configurar Credenciais SFTP/FTP no `.env`** para as plataformas aprovadas (Adobe Stock, Freepik, Vecteezy, Alamy).
-3. **(Opcional) Finalizar os 14 Prompts Restantes**:
+3. **(Opcional) Finalizar os 6 Prompts Restantes**:
    ```cmd
    python main.py --phase 3 --all-batches
    python main.py --phase 4
