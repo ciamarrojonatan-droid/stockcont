@@ -29,7 +29,12 @@ logging.basicConfig(
 )
 logger = logging.getLogger("Director")
 
-PREFERRED_MODELS = ["gemini-3.5-flash-lite", "gemini-3.8-flash"]
+PREFERRED_MODELS = [
+    "gemini-3.5-flash-lite",
+    "gemini-3.8-flash",
+    "gemini-2.5-flash",
+    "gemini-flash-latest"
+]
 
 SYSTEM_PROMPT = """# SYSTEM PROMPT — ULTRA-DETAILED MASTER COMMERCIAL VISUAL DNA & ADAPTIVE COPY-SPACE ARCHITECT v3.0
 
@@ -44,7 +49,7 @@ Your specialization bridges:
 - Strict layout architecture: calculating negative copy-space (rule-of-thirds, panoramic headers, biophilic backdrops) designed for enterprise graphic designers to superimpose typography and brand identities.
 - Extreme narrative density: generating **exhaustive, meticulously detailed, production-ready prompts ranging strictly between 700 and 1,000 words each**.
 
-Your mission is to perform a deep visual reverse-engineering of the provided reference image, extract its core aesthetic DNA, and generate **exactly 10 distinct, commercially superior derivative image-generation prompts**.
+Your mission is to perform a deep visual reverse-engineering of the provided reference image, extract its core aesthetic DNA, and generate **exactly 10 distinct, commercially superior derivative image-generation prompts** (id 1 through 10).
 
 ---
 
@@ -87,6 +92,7 @@ Every derivative prompt must target a specific high-value commercial buyer arche
 ## 5. OUTPUT CONTRACT (STRICT JSON)
 
 Return ONLY a single valid JSON object. No Markdown fences, no conversational prose.
+You MUST output all 10 derivative prompt items (with id 1 to 10) in the `derivative_prompts` array.
 
 Use this exact top-level structure:
 {
@@ -175,17 +181,47 @@ def process_image(item: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         logger.error("GEMINI_API_KEY environment variable is missing.")
         return None
 
-    local_path_str = item.get("local_image_path")
-    if not local_path_str:
-        logger.warning(f"No local_image_path for item {item.get('id')}")
-        return None
+    item_id = str(item.get("id") or "").strip()
 
-    local_path = Path(local_path_str)
-    if not local_path.is_absolute():
-        local_path = BASE_DIR / local_path
+    # Look for local image path across possible keys (local_path is the standard schema)
+    local_path_str = item.get("local_path") or item.get("local_image_path") or item.get("image_path")
+    local_path: Optional[Path] = None
 
-    if not local_path.is_file():
-        logger.warning(f"Image not found for item {item.get('id')}: {local_path}")
+    if local_path_str:
+        candidate_path = Path(local_path_str)
+        if not candidate_path.is_absolute():
+            candidate_path = BASE_DIR / candidate_path
+        if candidate_path.is_file():
+            local_path = candidate_path
+
+    # Fallback to standard convention data/raw/images/{item_id}.ext if path not found
+    if local_path is None and item_id:
+        for ext in [".jpg", ".jpeg", ".png", ".webp"]:
+            candidate = BASE_DIR / "data" / "raw" / "images" / f"{item_id}{ext}"
+            if candidate.is_file():
+                local_path = candidate
+                break
+
+    # Fallback: attempt to download if URL is present in the record
+    if local_path is None and item_id:
+        img_url = item.get("original_url") or item.get("thumbnail_url")
+        if img_url:
+            try:
+                logger.info(f"Downloading reference image for item {item_id} from {img_url}...")
+                candidate_dir = BASE_DIR / "data" / "raw" / "images"
+                candidate_dir.mkdir(parents=True, exist_ok=True)
+                candidate = candidate_dir / f"{item_id}.jpg"
+                resp = httpx.get(img_url, timeout=15.0)
+                if resp.status_code == 200:
+                    with open(candidate, "wb") as f:
+                        f.write(resp.content)
+                    local_path = candidate
+                    logger.info(f"Successfully downloaded reference image for item {item_id}")
+            except Exception as dl_err:
+                logger.warning(f"Failed to auto-download image for item {item_id}: {dl_err}")
+
+    if not local_path or not local_path.is_file():
+        logger.warning(f"Image not found for item {item.get('id')}: {local_path_str or 'path unknown'}")
         return None
 
     try:
@@ -194,11 +230,17 @@ def process_image(item: Dict[str, Any]) -> Optional[Dict[str, Any]]:
 
         mime_type = "image/png" if local_path.suffix.lower() == ".png" else "image/jpeg"
 
+        prompt_instruction = (
+            SYSTEM_PROMPT
+            + "\n\nCRITICAL MANDATE: Analyze this reference image and synthesize exactly 10 distinct derivative prompts "
+            + "numbered 1 through 10 in the 'derivative_prompts' array. Each prompt MUST follow the 700-1000 word density mandate."
+        )
+
         payload = {
             "contents": [{
                 "parts": [
                     {"inline_data": {"mime_type": mime_type, "data": b64_img}},
-                    {"text": SYSTEM_PROMPT + "\nAnalyze this reference image and synthesize the 10 ultra-detailed 700-1000 word derivative prompts as structured JSON."}
+                    {"text": prompt_instruction}
                 ]
             }],
             "generationConfig": {
@@ -212,26 +254,52 @@ def process_image(item: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         request_timeout = 120.0
 
         for model_name in PREFERRED_MODELS:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
             for attempt in range(1, 3):
                 try:
                     logger.info(f"Submitting {item.get('id')} to {model_name} (Attempt {attempt})...")
+                    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
                     response = httpx.post(url, json=payload, timeout=request_timeout)
                     if response.status_code == 200:
                         data = response.json()
-                        raw_text = data["candidates"][0]["content"]["parts"][0]["text"]
-                        result = json.loads(raw_text)
+                        candidates = data.get("candidates", [])
+                        if not candidates:
+                            logger.warning(f"No candidates returned by {model_name} for {item.get('id')}")
+                            continue
+
+                        parts = candidates[0].get("content", {}).get("parts", [])
+                        raw_text = ""
+                        for part in parts:
+                            if "text" in part:
+                                if not part.get("thought", False):
+                                    raw_text = part["text"]
+                                    break
+                        if not raw_text and parts and "text" in parts[0]:
+                            raw_text = parts[0]["text"]
+
+                        clean_json = raw_text.strip()
+                        if clean_json.startswith("```json"):
+                            clean_json = clean_json[7:]
+                        elif clean_json.startswith("```"):
+                            clean_json = clean_json[3:]
+                        if clean_json.endswith("```"):
+                            clean_json = clean_json[:-3]
+                        clean_json = clean_json.strip()
+
+                        result = json.loads(clean_json)
                         logger.info(f"✅ Successfully generated v3.0 prompts for {item.get('id')} using {model_name}.")
 
-                        derivative_prompts = result.get("derivative_prompts", [])
+                        derivative_prompts = result.get("derivative_prompts") or result.get("generated_prompts", [])
                         for dp in derivative_prompts:
-                            if isinstance(dp, dict) and "prompt_data" in dp:
-                                pd = dp["prompt_data"]
-                                if isinstance(pd, dict) and "final_prompt" in pd and "prompt" not in dp:
-                                    dp["prompt"] = pd["final_prompt"]
+                            if isinstance(dp, dict):
+                                if "status" not in dp:
+                                    dp["status"] = "pending"
+                                if "prompt_data" in dp:
+                                    pd = dp["prompt_data"]
+                                    if isinstance(pd, dict) and "final_prompt" in pd and "prompt" not in dp:
+                                        dp["prompt"] = pd["final_prompt"]
 
                         return {
-                            "source_id": item.get("id"),
+                            "source_id": str(item.get("id")),
                             "source_title": item.get("title"),
                             "system_version": result.get("system_version", "3.0"),
                             "analysis_metadata": result.get("analysis_metadata", {}),
@@ -254,7 +322,7 @@ def process_image(item: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     return None
 
 
-def main() -> None:
+def main(max_items: Optional[int] = None) -> None:
     """Main execution flow for Art Director v3.0."""
     if not os.getenv("GEMINI_API_KEY"):
         logger.critical("GEMINI_API_KEY not set in .env")
@@ -272,7 +340,7 @@ def main() -> None:
             with open(PROCESSED_DATA_FILE, "r", encoding="utf-8") as f:
                 processed_data = json.load(f)
             if isinstance(processed_data, list):
-                processed_ids = {p.get("source_id") for p in processed_data if isinstance(p, dict)}
+                processed_ids = {str(p.get("source_id")) for p in processed_data if isinstance(p, dict) and p.get("source_id")}
             else:
                 processed_data = []
         except json.JSONDecodeError:
@@ -280,7 +348,10 @@ def main() -> None:
 
     PROCESSED_DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
 
-    items_to_process = [t for t in trends if t.get("id") not in processed_ids]
+    items_to_process = [t for t in trends if str(t.get("id")) not in processed_ids]
+    if max_items is not None and max_items > 0:
+        items_to_process = items_to_process[:max_items]
+
     logger.info(f"Found {len(items_to_process)} new items to process out of {len(trends)} total.")
 
     new_results = 0
@@ -290,7 +361,7 @@ def main() -> None:
             processed_data.append(result)
             new_results += 1
 
-            temp_file = PROCESSED_DATA_FILE.with_suffix(".tmp")
+            temp_file = PROCESSED_DATA_FILE.parent / f"{PROCESSED_DATA_FILE.name}.tmp.{os.getpid()}"
             with open(temp_file, "w", encoding="utf-8") as f:
                 json.dump(processed_data, f, indent=2, ensure_ascii=False)
             temp_file.replace(PROCESSED_DATA_FILE)

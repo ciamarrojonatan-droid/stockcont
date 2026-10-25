@@ -2,8 +2,8 @@
 > Sincronizado automaticamente por hooks e comandos do ecossistema.
 
 ## 🎯 Sprint Atual: Calibração de Autonomia Antigravity & Claude Code
-- **Status da Sprint**: ✅ **Concluída com Sucesso (Fases 1, 2 e 3)**
-- **Última Atualização**: 2026-10-25 05:15
+- **Status da Sprint**: ✅ **Concluída com Sucesso (Fases 1, 2, 3, 4 e 5)**
+- **Última Atualização**: 2026-10-25 05:33
 - **Modo Operacional**: Dual-Mode (Antigravity & Claude Code via SSOT `PROJECT_CONTEXT.md`)
 
 ---
@@ -12,14 +12,14 @@
 
 | Fase / Módulo | Status | Contagem / Métricas | Próxima Ação Recomendada |
 | :--- | :--- | :--- | :--- |
-| **Fase 1: Olheiro (Scout)** | 🟢 Concluído | **25 tendências mineradas** \| 15 referências em `data/raw/images/` | Minerar novo nicho via `/mine` ou `--phase 1` |
-| **Fase 2: Diretor de Arte** | 🟢 Concluído | **10 itens analisados** \| **100 prompts v3.0 prontos** (700-1000 palavras) | Fila pronta para geração |
+| **Fase 1: Olheiro (Scout)** | 🟢 Concluído | **59 tendências mineradas** \| 49 referências em `data/raw/images/` | Minerar novo nicho via `/mine` ou `--phase 1` |
+| **Fase 2: Diretor de Arte** | 🟢 Corrigido | **Suporte a `local_path` + auto-fallback** \| Pronto para processar 49 pendentes | Executar `python main.py --phase 2` |
 | **Fase 3: A Fábrica (RunningHub)** | 🟢 Concluído | **100/100 prompts processados (100%)** \| Fila zerada | Disparar novo lote após nova Fase 2 |
 | **Fase 4: O Catalogador** | 🟢 Concluído | **157 assets catalogados** em `adobe_stock_upload.csv` | Catalogar novos renders 4K |
 | **Fase 5: O Distribuidor** | 🟡 Operacional | **2/8 agências configuradas** \| **61 assets enviados** em `upload_history.json` | Configurar credenciais das demais agências |
 | **Nuvem: Google Drive Backup** | 🟢 Configurado | Modo `local_sync` ativo (`G:\Meu Drive\StockCont_backup`) | Sincronização contínua via `--backup` |
 | **Dashboard Web SPA** | 🟢 Operacional | Servidor FastAPI ativo em `http://localhost:8501` | `python main.py --dashboard` |
-| **Suíte de Testes (Pytest)** | 🟢 100% Verde | **69 testes passando (100% verde)** | Manter regressão zero |
+| **Suíte de Testes (Pytest)** | 🟢 100% Verde | **72 testes passando (100% verde)** | Manter regressão zero |
 
 ---
 
@@ -39,6 +39,7 @@
 - [x] **Skill**: `/mine` (`.agents/skills/stockcont-mine/`) — One-shot de nicho (Scout + Diretor de Arte 700-1000w).
 - [x] **Skill**: `/review` (`.agents/skills/stockcont-review/`) — Multi-layer quality gate (Pytest + Python + Security + Ledgers).
 - [x] **Skill**: `/deploy` (`.agents/skills/stockcont-deploy/`) — Test gate + inicialização do FastAPI Web SPA com health check.
+- [x] **Correção Diretor v3.0**: Resolução de imagem compatibilizada com schema canônico `local_path` + fallbacks e testes automatizados (`tests/test_director.py`).
 
 ### Fase 3: Automação Avançada, Scripts & MCP ✅
 - [x] **MCP Server**: `.agents/mcp_config.json` configurado com Context7 MCP.
