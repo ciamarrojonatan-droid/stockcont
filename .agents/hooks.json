@@ -1,0 +1,43 @@
+{
+  "auto-error-recovery": {
+    "PostToolUse": [
+      {
+        "matcher": "run_command",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python scripts/post_command_check.py",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  },
+  "context-injection": {
+    "PreInvocation": [
+      {
+        "type": "command",
+        "command": "python scripts/inject_state.py",
+        "timeout": 10
+      }
+    ]
+  },
+  "session-welcome": {
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "python scripts/session_start.py",
+        "timeout": 10
+      }
+    ]
+  },
+  "keep-alive": {
+    "Stop": [
+      {
+        "type": "command",
+        "command": "python scripts/stop_gate.py",
+        "timeout": 10
+      }
+    ]
+  }
+}

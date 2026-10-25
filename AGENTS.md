@@ -1,6 +1,8 @@
-# Autonomous Meta-Orchestrator Protocol (Orquestrador Mestre)
+# StockCont — Autonomous Meta-Orchestrator Protocol (Orquestrador Mestre)
 
-> **DIRETIVA MANDATÓRIA PERMANENTE**: A cada mensagem ou solicitação do usuário, o assistente DEVE executar este protocolo de orquestração antes de propor soluções, alterar arquivos ou responder. O objetivo é SEMPRE empregar a melhor combinação de ferramentas, skills, subagentes e workflows disponíveis no ecossistema do projeto.
+@[Contexto do Projeto](PROJECT_CONTEXT.md)
+
+> **DIRETIVA MANDATÓRIA PERMANENTE**: O assistente opera em **AUTONOMIA TOTAL**. A cada solicitação, analise a demanda, selecione os melhores recursos do ecossistema, execute as etapas multi-step de ponta a ponta sem interrupções desnecessárias, valide os resultados via testes (`pytest`) e mantenha o `state.md` sincronizado.
 
 ---
 
@@ -8,34 +10,36 @@
 
 ### Passo 1: Análise da Demanda & Varredura de Recursos
 Ao receber qualquer mensagem ou solicitação, avalie a natureza da tarefa:
-1. **Skills do Ecossistema**: Verifique a lista de skills do sistema e do projeto (`.agents/skills/`). Se o tema envolver uma skill existente (ex.: `python-patterns`, `python-testing`, `e2e-testing`, `error-handling`, `api-design`, `verification-loop`, etc.), leia imediatamente o respectivo `SKILL.md` via `view_file` para internalizar os padrões exigidos.
-2. **Subagentes Especializados**: Verifique se a demanda requer especialistas dedicados (`architect`, `code-architect`, `e2e-runner`, `python-reviewer`, `security-reviewer`, `silent-failure-hunter`, `build-error-resolver`, `performance-optimizer`, `planner`, etc.). Delegue via `invoke_subagent` sempre que exigir especialização profunda, isolamento de contexto ou revisão crítica.
-3. **Workflows e Comandos**: Avalie se a tarefa corresponde a um fluxo padrão (`/plan`, `/goal`, `/learn`, `/python-review`, etc.).
-4. **Ferramentas MCP & Core**: Selecione com precisão as ferramentas operacionais (`run_command`, `view_file`, `replace_file_content`, `write_to_file`, `manage_task`, `schedule`).
+1. **Contexto & Estado do Projeto**: Consulte sempre `PROJECT_CONTEXT.md` para regras de arquitetura e `state.md` para o status atual da esteira.
+2. **Skills do Ecossistema**: Verifique `.agents/skills/`. Ative imediatamente skills como `python-patterns`, `python-testing`, `e2e-testing`, `error-handling`, `orchestrator`, `verification-loop`.
+3. **Subagentes Especializados**: Quando a tarefa exigir foco profundo ou revisão crítica, acione subagentes dedicados (`e2e-runner`, `python-reviewer`, `security-reviewer`, `architect`, `tdd-guide`).
+4. **Resolução Inline Resiliente**: Caso um subagente atinja limite de quota (ex: erro 429), assuma a execução diretamente de forma cirúrgica e sem travar o usuário.
 
 ---
 
-### Passo 2: Matriz de Roteamento Especializado
+### Passo 2: Matriz de Roteamento Especializado StockCont
 
 | Tipo de Demanda | Subagente Recomendado | Skill / Regra a Consultar | Ferramentas Críticas |
 | :--- | :--- | :--- | :--- |
-| **Scraper / Playwright / Web Bots** | `e2e-runner` | `e2e-testing`, `error-handling` | `run_command`, `view_file` |
-| **Código Python & Padrões** | `python-reviewer` | `python-patterns`, `coding-standards` | `replace_file_content`, `view_file` |
-| **Integração com LLM / Gemini Vision** | `architect` | `api-design`, `error-handling` | `run_command`, `view_file` |
-| **Erros de Build / Falhas Silenciosas** | `build-error-resolver`, `silent-failure-hunter` | `agent-introspection-debugging` | `run_command`, `manage_task` |
-| **Novas Features / Planejamento** | `planner`, `code-architect` | `/plan`, `dev-team` | `ask_question`, `write_to_file` |
-| **Segurança & Revisão Pré-Merge** | `security-reviewer`, `code-reviewer` | `verification-loop`, `codehealth-mcp` | `view_file` |
-| **Testes Automatizados (Pytest)** | `tdd-guide` | `python-testing`, `tdd-workflow` | `run_command` |
+| **Fase 1: Scraper / Playwright / Web Bots** | `e2e-runner` | `e2e-testing`, `error-handling` | `run_command`, `read_file` |
+| **Fase 2: Prompts 700-1000 palavras & Gemini** | `architect` | `api-design`, `error-handling` | `run_command`, `read_file` |
+| **Fase 3: RunningHub RPA & Fila SHA-256** | `e2e-runner` | `error-handling` | `run_command`, `edit_file` |
+| **Fase 4: Metadados IPTC/EXIF & CSV** | `python-reviewer` | `python-patterns`, `coding-standards` | `edit_file`, `read_file` |
+| **Fase 5: Upload SFTP/FTP & Backup Cloud** | `security-reviewer` | `python-patterns` | `run_command`, `read_file` |
+| **Dashboard Web SPA (FastAPI/HTML/JS)** | `architect` | `frontend-patterns`, `api-design` | `edit_file`, `run_command` |
+| **Qualidade de Código & Testes (Pytest)** | `tdd-guide` | `python-testing`, `tdd-workflow` | `run_command` |
+| **Segurança & Credenciais (.env)** | `security-reviewer` | `verification-loop` | `read_file` |
 
 ---
 
-### Passo 3: Execução Rigorosa & Validação Cruzada
-- **Não improvisar**: Se houver padrão estabelecido na skill relevante, siga as convenções estritas dela.
-- **Revisão pós-código**: Após qualquer criação ou modificação de script funcional, acione o revisor correspondente (`python-reviewer`, `code-reviewer` ou `security-reviewer`).
+### Passo 3: Execução Rigorosa & Auto-Recuperação
+- **Autonomia em Execução**: Execute tarefas de forma proativa. Não peça confirmação para ler arquivos, rodar testes ou formatar código.
+- **Auto-Correção Obrigatória**: Se um comando falhar com erro de compilação ou teste quebrado, auto-diagnostique a causa raiz e aplique o fix antes de reportar.
+- **Transparência Operacional**: Indique a rota de orquestração escolhida:
+  `🎯 Orquestrador: [Skill: <nome> | Agente: <nome> | Ferramenta: <nome>]`
 
 ---
 
-### Passo 4: Transparência na Resposta
-Ao executar ações no projeto, identifique brevemente a rota de orquestração escolhida no início ou conclusão da resposta:
-`🎯 Orquestrador: [Skill: <nome> | Agente: <nome> | Ferramenta: <nome>]`
-Isso garante visibilidade total de que os melhores recursos foram acionados para a tarefa.
+### Passo 4: Persistência & Manutenção de Estado
+- Ao concluir alterações de fases ou refatorações, atualize o `state.md` para refletir o status real do pipeline.
+- Mantenha a integridade dos arquivos criptográficos e atômicos (`prompts.json`, `generation_history.json`, `upload_history.json`).
