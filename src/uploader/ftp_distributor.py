@@ -10,6 +10,7 @@ to major stock photography agencies and marketplaces:
   - Alamy (FTP)
   - Vecteezy (FTP)
   - 123RF (FTP)
+  - Ingram (FTP)
 
 Features:
   - Supports both SFTP (paramiko) and FTP (ftplib) protocols
@@ -147,6 +148,16 @@ def get_available_agencies() -> Dict[str, AgencyConfig]:
             password=os.getenv("ONETWOTHREERF_FTP_PASS", "").strip(),
             remote_dir=os.getenv("ONETWOTHREERF_FTP_DIR", ""),
         ),
+        "ingram": AgencyConfig(
+            key="ingram",
+            name="Ingram",
+            protocol="ftp",
+            host=os.getenv("INGRAM_FTP_HOST", "ftp.ingrampublishing.com"),
+            port=int(os.getenv("INGRAM_FTP_PORT", "21")),
+            username=os.getenv("INGRAM_FTP_USER", "").strip(),
+            password=os.getenv("INGRAM_FTP_PASS", "").strip(),
+            remote_dir=os.getenv("INGRAM_FTP_DIR", ""),
+        ),
     }
 
 
@@ -177,9 +188,17 @@ def save_upload_history(history: Dict[str, Dict[str, str]]) -> None:
 def get_ready_images(images_dir: Optional[Path] = None) -> List[Path]:
     """Find all cataloged JPG images ready for upload."""
     target_dir = images_dir or FINAL_IMAGES_DIR
+    if images_dir is None and (not target_dir.exists() or not (list(target_dir.glob("*.jpg")) or list(target_dir.glob("*.jpeg")))):
+        # Fallback to Google Drive local path if configured
+        gdrive_path = os.getenv("GOOGLE_DRIVE_LOCAL_PATH", "").strip()
+        if gdrive_path:
+            gd_p = Path(gdrive_path)
+            if gd_p.exists() and gd_p.is_dir():
+                target_dir = gd_p
+
     if not target_dir.exists():
         return []
-    
+
     # Priority: .jpg and .jpeg images containing embedded IPTC metadata
     jpg_images = sorted(list(target_dir.glob("*.jpg")) + list(target_dir.glob("*.jpeg")))
     

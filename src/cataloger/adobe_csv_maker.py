@@ -3,9 +3,10 @@ import csv
 import json
 import logging
 import os
+import re
 import time
 from pathlib import Path
-from typing import Any, List, Dict
+from typing import Any
 
 import httpx
 import iptcinfo3
@@ -29,26 +30,94 @@ logger = logging.getLogger("Cataloger")
 # Priority model list for microstock vision analysis
 PREFERRED_MODELS = ["gemini-3.5-flash-lite", "gemini-3.8-flash"]
 
-import re
+DANGLING_WORDS = {'a', 'an', 'the', 'on', 'in', 'of', 'to', 'for', 'with', 'at', 'by', 'from', 'and', 'or', 'is', 'as'}
+MANDATORY_AI_KEYWORDS = ["ai generated", "generative ai", "digital art", "illustration"]
 
-def sanitize_filename(title: str, max_length: int = 60) -> str:
-    """Creates a safe, SEO-friendly filename from the title."""
-    name = re.sub(r'[^a-z0-9\s-]', '', title.lower())
+
+def sanitize_filename(title: str, max_length: int = 75) -> str:
+    """Creates a safe, SEO-friendly filename from the title without dangling prepositions or AI prefixes."""
+    clean_title = re.sub(
+        r'^(generative\s+ai|ai\s+generated)(\s+(illustration|image|photo|art))?(\s+of)?\s*[:.-]?\s*',
+        '',
+        title,
+        flags=re.IGNORECASE,
+    )
+    name = re.sub(r'[^a-z0-9\s-]', '', clean_title.lower())
     name = re.sub(r'[\s-]+', '-', name).strip('-')
     if len(name) > max_length:
         name = name[:max_length].rsplit('-', 1)[0]
-        if not name:
-            name = name[:max_length]
-    return name
 
-def embed_metadata(source_path: Path, target_path: Path, title: str, keywords: list[str]) -> Path:
+    parts = name.split('-')
+    # Strip leading articles (e.g. avoiding a-futuristic-robot -> futuristic-robot)
+    while parts and parts[0] in {'a', 'an', 'the'}:
+        parts.pop(0)
+    # Strip dangling trailing prepositions/stopwords (e.g. avoiding -on-a)
+    while parts and parts[-1] in DANGLING_WORDS:
+        parts.pop()
+    name = '-'.join(parts)
+    return name or "stock-image"
+
+
+def normalize_keywords(keywords: list[str], max_keywords: int = 50) -> tuple[list[str], str]:
+    """Ensures mandatory AI tags are present, deduplicates, and caps strictly at max_keywords (agency limit)."""
+    clean_kws: list[str] = []
+    seen = set()
+    for k in keywords:
+        k_clean = k.strip()
+        if k_clean and k_clean.lower() not in seen:
+            seen.add(k_clean.lower())
+            clean_kws.append(k_clean)
+
+    # Append missing mandatory keywords
+    for mkw in MANDATORY_AI_KEYWORDS:
+        if mkw not in seen:
+            clean_kws.append(mkw)
+            seen.add(mkw)
+
+    # Enforce strict agency ceiling (default 50) without discarding mandatory tags
+    if len(clean_kws) > max_keywords:
+        mandatory_set = set(MANDATORY_AI_KEYWORDS)
+        preserved_mandatory = [k for k in clean_kws if k.lower() in mandatory_set]
+        other_kws = [k for k in clean_kws if k.lower() not in mandatory_set]
+        clean_kws = other_kws[: max_keywords - len(preserved_mandatory)] + preserved_mandatory
+
+    return clean_kws, ", ".join(clean_kws)
+
+
+def format_description(title: str, description: str | None = None) -> str:
+    """Formats a clean, non-duplicated commercial description with mandatory AI disclosure."""
+    desc_raw = (description or title).strip()
+    desc_body = re.sub(
+        r'^(generative\s+ai|ai\s+generated)(\s+(illustration|image|photo|art))?(\s+of)?\s*[:.-]?\s*',
+        '',
+        desc_raw,
+        flags=re.IGNORECASE,
+    ).strip()
+
+    if not desc_body:
+        desc_body = title.strip()
+
+    # Capitalize the first letter of desc_body for clean sentence case
+    if desc_body:
+        desc_body = desc_body[0].upper() + desc_body[1:]
+
+    return f"Generative AI illustration. {desc_body.rstrip('.')}."
+
+
+def embed_metadata(
+    source_path: Path,
+    target_path: Path,
+    title: str,
+    keywords: list[str],
+    description: str | None = None,
+) -> Path:
     """Embed IPTC and EXIF metadata directly into the image file.
     
     If the image is a PNG, it will be automatically converted to high-quality JPEG and renamed.
     If it's already a JPG, it will just be renamed.
     """
-    clean_kws = [k.strip() for k in keywords if k.strip()]
-    keywords_str = ", ".join(clean_kws)
+    clean_kws, keywords_str = normalize_keywords(keywords, max_keywords=50)
+    formatted_description = format_description(title, description)
 
     # 1. Convert PNG to JPG or just rename if it's already JPG
     if source_path.suffix.lower() == ".png":
@@ -57,7 +126,7 @@ def embed_metadata(source_path: Path, target_path: Path, title: str, keywords: l
                 rgb_img = img.convert("RGB")
                 rgb_img.save(target_path, "JPEG", quality=98)
             logger.info(f"Converted & Renamed {source_path.name} to {target_path.name}")
-            source_path.unlink() # Excluir o PNG original para economizar espaço
+            source_path.unlink()  # Excluir o PNG original para economizar espaço
         except Exception as e:
             logger.error(f"Failed to convert PNG to JPG for {source_path.name}: {e}")
             return source_path
@@ -70,11 +139,21 @@ def embed_metadata(source_path: Path, target_path: Path, title: str, keywords: l
                 logger.error(f"Failed to rename {source_path.name} to {target_path.name}: {e}")
                 target_path = source_path
 
-    # 2. Embed IPTC metadata (Adobe Stock native indexing: 2:05 Title, 2:25 Keywords, 2:120 Caption)
+    # 2. Embed IPTC metadata (2:05 ObjectName/Title, 2:25 Keywords, 2:120 Caption/Description)
     try:
         iptc = iptcinfo3.IPTCInfo(str(target_path), force=True)
-        iptc["object name"] = title.encode("utf-8")
-        iptc["caption/abstract"] = title.encode("utf-8")
+        # IPTC ObjectName (2:05) legacy spec standard limit is 64 octets (bytes)
+        iptc_title = title.strip()
+        if len(iptc_title.encode("utf-8")) > 64:
+            short = iptc_title[:64]
+            if " " in short:
+                short = short.rsplit(" ", 1)[0]
+            encoded_title = short.encode("utf-8")[:64].decode("utf-8", "ignore").encode("utf-8")
+        else:
+            encoded_title = iptc_title.encode("utf-8")
+
+        iptc["object name"] = encoded_title
+        iptc["caption/abstract"] = formatted_description.encode("utf-8")
         iptc["keywords"] = [k.encode("utf-8") for k in clean_kws]
         iptc.save()
 
@@ -86,7 +165,7 @@ def embed_metadata(source_path: Path, target_path: Path, title: str, keywords: l
     except Exception as e:
         logger.warning(f"Could not write IPTC to {target_path.name}: {e}")
 
-    # 3. Embed EXIF metadata (ImageDescription, XPTitle, XPKeywords)
+    # 3. Embed EXIF metadata (ImageDescription, XPTitle, XPComment, XPKeywords)
     try:
         try:
             exif_dict = piexif.load(str(target_path))
@@ -96,9 +175,11 @@ def embed_metadata(source_path: Path, target_path: Path, title: str, keywords: l
         if "0th" not in exif_dict:
             exif_dict["0th"] = {}
 
-        exif_dict["0th"][piexif.ImageIFD.ImageDescription] = title.encode("utf-8")
-        exif_dict["0th"][0x9C9B] = title.encode("utf-16le")  # XPTitle
-        exif_dict["0th"][0x9C9E] = keywords_str.encode("utf-16le")  # XPKeywords
+        exif_dict["0th"][piexif.ImageIFD.ImageDescription] = formatted_description.encode("utf-8")
+        # Windows EXIF XP Tags require null-terminated UTF-16LE byte strings
+        exif_dict["0th"][0x9C9B] = f"{title}\0".encode("utf-16le")  # XPTitle
+        exif_dict["0th"][0x9C9C] = f"{formatted_description}\0".encode("utf-16le")  # XPComment
+        exif_dict["0th"][0x9C9E] = f"{keywords_str}\0".encode("utf-16le")  # XPKeywords
 
         exif_bytes = piexif.dump(exif_dict)
         piexif.insert(exif_bytes, str(target_path))
@@ -108,8 +189,9 @@ def embed_metadata(source_path: Path, target_path: Path, title: str, keywords: l
 
     return target_path
 
+
 def analyze_image(image_path: Path) -> dict:
-    """Uses Gemini Vision (REST) to generate commercial title, 50 keywords, and category."""
+    """Uses Gemini Vision (REST) to generate commercial title, description, 50 keywords, and category."""
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         raise ValueError("GEMINI_API_KEY environment variable is not set in .env")
@@ -122,7 +204,7 @@ def analyze_image(image_path: Path) -> dict:
     mime_type = "image/png" if image_path.suffix.lower() == ".png" else "image/jpeg"
 
     prompt = (
-        "You are an expert Adobe Stock QA Reviewer and microstock SEO specialist.\n"
+        "You are an expert microstock reviewer and SEO specialist (Adobe Stock, Dreamstime, Freepik, Shutterstock).\n"
         "Analyze this AI-generated image. First, evaluate its quality based on these strict rules:\n"
         "1. No anatomical issues (no extra fingers, fused limbs, distorted faces or bodies).\n"
         "2. No illegible text, gibberish, watermarks, or recognizable brand logos.\n"
@@ -130,9 +212,10 @@ def analyze_image(image_path: Path) -> dict:
         "If the image FAILS these rules, respond ONLY with JSON: {\"approved\": false, \"reason\": \"short explanation of what is wrong\"}.\n"
         "If it PASSES, provide:\n"
         "1. \"approved\": true\n"
-        "2. \"title\": A highly commercial, descriptive Title in English (under 200 characters, no symbols).\n"
-        "3. \"keywords\": Exactly 50 highly relevant Keywords in English, ordered by relevance.\n"
-        "4. \"category\": The best Adobe Stock Category number (1=Animals, 2=Buildings, 3=Business, 4=Drinks, 5=Environment, "
+        "2. \"title\": A concise, natural commercial Title in English (5 to 12 words, 40 to 80 characters, no symbols, complete phrase without trailing prepositions).\n"
+        "3. \"description\": A detailed commercial Description in English (1 to 2 complete sentences) MUST explicitly begin with 'Generative AI illustration. ' followed by a vivid description of the scene, subjects, setting, lighting, and mood (required by Dreamstime and microstock AI policies).\n"
+        "4. \"keywords\": Exactly 50 highly relevant Keywords in English, ordered by relevance. MUST include standard microstock AI tags such as: 'ai generated', 'generative ai', 'digital art', 'concept art', 'illustration'.\n"
+        "5. \"category\": The best Adobe Stock Category number (1=Animals, 2=Buildings, 3=Business, 4=Drinks, 5=Environment, "
         "6=States of Mind, 7=Food, 8=Graphic Resources, 9=Hobbies, 10=Industry, 11=Landscapes, 12=Lifestyle, "
         "13=People, 14=Plants, 15=Culture, 16=Science, 17=Social Issues, 18=Sports, 19=Technology, 20=Transport, 21=Travel).\n"
         "Respond ONLY in valid JSON."
@@ -174,6 +257,7 @@ def analyze_image(image_path: Path) -> dict:
 
     logger.error(f"Failed to analyze {image_path.name} across all available models.")
     return {}
+
 
 def run_cataloger(images_dir: Path | None = None, output_dir: Path | None = None) -> list[dict[str, Any]]:
     """Reads final images, extracts metadata with Gemini, embeds IPTC/EXIF, and exports to CSV."""
@@ -236,12 +320,14 @@ def run_cataloger(images_dir: Path | None = None, output_dir: Path | None = None
         raw_keywords = metadata.get("keywords", [])
         if isinstance(raw_keywords, list):
             keywords_list = [str(k).strip() for k in raw_keywords if str(k).strip()]
-            keywords_str = ", ".join(keywords_list)
         else:
-            keywords_str = str(raw_keywords).strip()
-            keywords_list = [k.strip() for k in keywords_str.split(",") if k.strip()]
+            keywords_list = [k.strip() for k in str(raw_keywords).split(",") if k.strip()]
+
+        # Synchronize keywords with strict 50 cap and mandatory AI tags for both image and CSV
+        clean_kws, keywords_str = normalize_keywords(keywords_list, max_keywords=50)
 
         title = str(metadata.get("title", "")).strip()
+        description = str(metadata.get("description", "")).strip()
         category = str(metadata.get("category", "3")).strip()
 
         # Build target filename for SEO
@@ -257,7 +343,12 @@ def run_cataloger(images_dir: Path | None = None, output_dir: Path | None = None
             counter += 1
 
         # Injetar metadados diretamente no arquivo da imagem (IPTC + EXIF) e Renomear
-        final_image_path = embed_metadata(img_path, target_path, title, keywords_list)
+        final_image_path = embed_metadata(img_path, target_path, title, clean_kws, description=description)
+
+        # Skip recording in CSV if conversion failed (e.g. left as .png)
+        if final_image_path.suffix.lower() not in [".jpg", ".jpeg"]:
+            logger.error(f"Skipping CSV entry for unconverted image: {final_image_path.name}")
+            continue
 
         results.append({
             "Filename": final_image_path.name,
@@ -283,6 +374,7 @@ def run_cataloger(images_dir: Path | None = None, output_dir: Path | None = None
 
     logger.info(f"Successfully processed and appended {len(results)} items to {CSV_FILE}")
     return results
+
 
 if __name__ == "__main__":
     import argparse

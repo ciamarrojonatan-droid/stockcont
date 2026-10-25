@@ -1,20 +1,27 @@
-"""Read-only data readers for the StockCont Dashboard.
+"""Data readers and state managers for the StockCont Dashboard.
 
-All functions read pipeline JSON/CSV files and directories
-without modifying any data. Gracefully returns defaults on errors.
+All pipeline telemetry and assets are inspected safely, with synchronized
+atomic writes for the distribution matrix and prompt queue managers.
 """
 
 import csv
 import json
 import logging
 import os
+import threading
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Set
+from typing import Any, Dict, List, Optional, Set
+
+from dotenv import load_dotenv
 
 logger = logging.getLogger(__name__)
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
+load_dotenv(BASE_DIR / ".env", override=False)
+
+_history_lock = threading.Lock()
 
 # ── Data Paths ───────────────────────────────────
 RAW_DIR = BASE_DIR / "data" / "raw"
@@ -72,16 +79,34 @@ def read_generation_history() -> Dict[str, Any]:
     return data if isinstance(data, dict) else {}
 
 
+def get_gdrive_dir() -> Optional[Path]:
+    """Return configured and existing local Google Drive directory, if any."""
+    path_str = os.getenv("GOOGLE_DRIVE_LOCAL_PATH", "").strip()
+    if path_str:
+        p = Path(path_str)
+        if p.exists() and p.is_dir():
+            return p
+    return None
+
+
+def read_upload_history_dict() -> Dict[str, Dict[str, str]]:
+    """Read upload history in native mapping format {filename: {agency: timestamp}}."""
+    data = _read_json(UPLOAD_HISTORY_FILE)
+    if isinstance(data, dict):
+        return data
+    return {}
+
+
 def read_upload_history() -> List[Dict[str, Any]]:
     data = _read_json(UPLOAD_HISTORY_FILE)
     if isinstance(data, list):
         return data
     if isinstance(data, dict):
-        # Some formats store as {hash: entry}
         result: List[Dict[str, Any]] = []
-        for _k, v in data.items():
+        for fn, v in data.items():
             if isinstance(v, dict):
-                result.append(v)
+                for agency, ts in v.items():
+                    result.append({"filename": fn, "agency": agency, "timestamp": ts})
             elif isinstance(v, list):
                 result.extend(v)
         return result
@@ -93,11 +118,60 @@ def read_gdrive_history() -> Dict[str, Any]:
     return data if isinstance(data, dict) else {}
 
 
+_metadata_cache: Dict[str, Any] = {}
+
+
+def get_image_embedded_metadata(file_path: Path) -> Optional[Dict[str, str]]:
+    """Extract embedded IPTC metadata directly from an image file, with mtime caching."""
+    if not file_path.exists() or file_path.suffix.lower() not in {".jpg", ".jpeg"}:
+        return None
+
+    try:
+        mtime = file_path.stat().st_mtime
+        cache_key = str(file_path.resolve())
+        if cache_key in _metadata_cache:
+            cached_mtime, cached_val = _metadata_cache[cache_key]
+            if cached_mtime == mtime:
+                return cached_val
+
+        import logging
+        logging.getLogger("iptcinfo").setLevel(logging.ERROR)
+        from iptcinfo3 import IPTCInfo
+        info = IPTCInfo(str(file_path))
+        if info:
+            title_raw = info.get("object name") or info.get("caption/abstract")
+            title = title_raw.decode("utf-8", errors="replace") if isinstance(title_raw, bytes) else (str(title_raw) if title_raw else None)
+            kws_raw = info.get("keywords") or []
+            kws = [k.decode("utf-8", errors="replace") if isinstance(k, bytes) else str(k) for k in kws_raw]
+            if title or kws:
+                res = {
+                    "Filename": file_path.name,
+                    "Title": title or file_path.stem.replace("-", " ").title(),
+                    "Keywords": ", ".join(kws),
+                    "Category": "3",
+                    "Releases": ""
+                }
+                _metadata_cache[cache_key] = (mtime, res)
+                return res
+
+        _metadata_cache[cache_key] = (mtime, None)
+    except Exception as e:
+        logger.debug("Could not read embedded IPTC from %s: %s", file_path.name, e)
+
+    return None
+
+
 def read_csv_catalog() -> List[Dict[str, str]]:
-    if not CSV_FILE.exists():
+    target_csv = CSV_FILE
+    if not target_csv.exists():
+        gdrive = get_gdrive_dir()
+        if gdrive and (gdrive / "adobe_stock_upload.csv").exists():
+            target_csv = gdrive / "adobe_stock_upload.csv"
+
+    if not target_csv.exists():
         return []
     try:
-        with open(CSV_FILE, "r", encoding="utf-8") as f:
+        with open(target_csv, "r", encoding="utf-8", errors="replace") as f:
             return list(csv.DictReader(f))
     except Exception as e:
         logger.warning("Error reading CSV: %s", e)
@@ -107,11 +181,17 @@ def read_csv_catalog() -> List[Dict[str, str]]:
 # ── Composite Readers ────────────────────────────
 
 def list_final_images() -> List[Dict[str, Any]]:
-    """List all images in data/final/images/ with catalog status."""
-    if not FINAL_IMAGES_DIR.exists():
+    """List all images in data/final/images/ (or Google Drive fallback) with catalog status."""
+    target_dir = FINAL_IMAGES_DIR
+    exts = {".jpg", ".jpeg", ".png"}
+    if not target_dir.exists() or _count_dir_files(target_dir, exts) == 0:
+        gdrive = get_gdrive_dir()
+        if gdrive and _count_dir_files(gdrive, exts) > 0:
+            target_dir = gdrive
+
+    if not target_dir or not target_dir.exists():
         return []
 
-    exts = {".jpg", ".jpeg", ".png"}
     catalog = read_csv_catalog()
     cataloged_map: Dict[str, Dict[str, str]] = {}
     for row in catalog:
@@ -120,11 +200,14 @@ def list_final_images() -> List[Dict[str, Any]]:
             cataloged_map[fn] = row
 
     images: List[Dict[str, Any]] = []
-    for f in sorted(FINAL_IMAGES_DIR.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True):
+    for f in sorted(target_dir.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True):
         if not f.is_file() or f.suffix.lower() not in exts:
             continue
         stat = f.stat()
         row = cataloged_map.get(f.name)
+        if not row:
+            row = get_image_embedded_metadata(f)
+
         images.append({
             "filename": f.name,
             "path": str(f),
@@ -184,6 +267,7 @@ def get_agency_status() -> List[Dict[str, Any]]:
         {"name": "Alamy", "key": "alamy", "env_prefix": "ALAMY_FTP", "protocol": "FTP"},
         {"name": "Vecteezy", "key": "vecteezy", "env_prefix": "VECTEEZY_FTP", "protocol": "FTP"},
         {"name": "123RF", "key": "123rf", "env_prefix": "ONETWOTHREERF_FTP", "protocol": "FTP"},
+        {"name": "Ingram", "key": "ingram", "env_prefix": "INGRAM_FTP", "protocol": "FTP"},
     ]
 
     upload_history = read_upload_history()
@@ -246,8 +330,16 @@ def build_full_status() -> Dict[str, Any]:
     total_gen_prompts = sum(len(item.get("generated_prompts", [])) for item in prompts_data)
     raw_img_count = _count_dir_files(RAW_IMAGES_DIR)
     final_img_count = _count_dir_files(FINAL_IMAGES_DIR, {".jpg", ".jpeg", ".png"})
+    if final_img_count == 0:
+        gdrive = get_gdrive_dir()
+        if gdrive:
+            final_img_count = _count_dir_files(gdrive, {".jpg", ".jpeg", ".png"})
 
     api_key = os.getenv("GEMINI_API_KEY", "")
+
+    images = list_final_images()
+    actual_cataloged = sum(1 for i in images if i["is_cataloged"])
+    cataloged_count = actual_cataloged if images else len(catalog)
 
     kpis = {
         "trends": len(trends),
@@ -259,7 +351,7 @@ def build_full_status() -> Dict[str, Any]:
         "queue_pending": queue_stats.get("pending", 0),
         "queue_percent": queue_stats.get("progress_percent", 0.0),
         "final_images": final_img_count,
-        "cataloged": len(catalog),
+        "cataloged": cataloged_count,
         "distributed": len(uploads),
         "gemini_configured": bool(api_key and len(api_key) > 5),
     }
@@ -289,12 +381,12 @@ def build_full_status() -> Dict[str, Any]:
         },
         {
             "phase": 4, "name": "Cataloger", "icon": "📋",
-            "count": len(catalog), "total": final_img_count,
+            "count": cataloged_count, "total": final_img_count,
             "status": (
-                "ok" if len(catalog) >= final_img_count and final_img_count > 0
-                else ("warning" if final_img_count > len(catalog) else "idle")
+                "ok" if cataloged_count >= final_img_count and final_img_count > 0
+                else ("warning" if final_img_count > cataloged_count else "idle")
             ),
-            "detail": f"{len(catalog)} cataloged | {max(0, final_img_count - len(catalog))} pending",
+            "detail": f"{cataloged_count} catalogados | {max(0, final_img_count - cataloged_count)} pendentes",
         },
         {
             "phase": 5, "name": "Distributor", "icon": "🚀",
@@ -320,3 +412,179 @@ def get_seasonal_forecast() -> Dict[str, Any]:
     except Exception as e:
         logger.warning('Error calculating seasonal forecast: %s', e)
         return {'recommended_niches': []}
+
+
+# ── Distribution Matrix ──────────────────────────
+
+AGENCY_KEYS = [
+    {"key": "dreamstime", "name": "Dreamstime", "protocol": "FTP", "env_prefix": "DREAMSTIME_FTP"},
+    {"key": "123rf", "name": "123RF", "protocol": "FTP", "env_prefix": "ONETWOTHREERF_FTP"},
+    {"key": "adobe", "name": "Adobe Stock", "protocol": "SFTP", "env_prefix": "ADOBE_SFTP"},
+    {"key": "pond5", "name": "Pond5", "protocol": "FTP", "env_prefix": "POND5_FTP"},
+    {"key": "freepik", "name": "Freepik", "protocol": "FTP", "env_prefix": "FREEPIK_FTP"},
+    {"key": "vecteezy", "name": "Vecteezy", "protocol": "FTP", "env_prefix": "VECTEEZY_FTP"},
+    {"key": "alamy", "name": "Alamy", "protocol": "FTP", "env_prefix": "ALAMY_FTP"},
+    {"key": "ingram", "name": "Ingram", "protocol": "FTP", "env_prefix": "INGRAM_FTP"},
+]
+
+
+def get_distribution_matrix() -> Dict[str, Any]:
+    """Generate distribution matrix data matching images against upload ledger."""
+    gdrive_dir = get_gdrive_dir()
+    target_dir = gdrive_dir if gdrive_dir and _count_dir_files(gdrive_dir, {".jpg", ".jpeg", ".png"}) > 0 else FINAL_IMAGES_DIR
+
+    cataloged = read_csv_catalog()
+    cataloged_map = {row.get("Filename", "").strip(): row for row in cataloged if row.get("Filename")}
+
+    raw_history = _read_json(UPLOAD_HISTORY_FILE)
+    history_dict: Dict[str, Dict[str, str]] = raw_history if isinstance(raw_history, dict) else {}
+
+    agencies = []
+    for ag in AGENCY_KEYS:
+        user_val = os.getenv(f"{ag['env_prefix']}_USER", "").strip()
+        agencies.append({
+            "key": ag["key"],
+            "name": ag["name"],
+            "protocol": ag["protocol"],
+            "configured": bool(user_val),
+        })
+
+    exts = {".jpg", ".jpeg", ".png"}
+    items: List[Dict[str, Any]] = []
+
+    if target_dir and target_dir.exists():
+        for f in sorted(target_dir.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True):
+            if not f.is_file() or f.suffix.lower() not in exts:
+                continue
+
+            row = cataloged_map.get(f.name)
+            if not row:
+                row = get_image_embedded_metadata(f)
+
+            file_history = history_dict.get(f.name, {})
+
+            platforms = {}
+            for ag in agencies:
+                k = ag["key"]
+                is_uploaded = k in file_history
+                platforms[k] = {
+                    "uploaded": is_uploaded,
+                    "timestamp": file_history.get(k) if is_uploaded else None,
+                }
+
+            uploaded_count = sum(1 for p in platforms.values() if p["uploaded"])
+            pending_configured = sum(1 for ag in agencies if ag["configured"] and not platforms[ag["key"]]["uploaded"])
+
+            items.append({
+                "filename": f.name,
+                "title": (row.get("Title") if row else None) or f.stem.replace("-", " ").title(),
+                "size_mb": round(f.stat().st_size / (1024 * 1024), 2),
+                "is_cataloged": row is not None,
+                "platforms": platforms,
+                "uploaded_count": uploaded_count,
+                "pending_configured": pending_configured,
+            })
+
+    summary = {
+        "total_images": len(items),
+        "source_dir": str(target_dir) if target_dir else "",
+        "total_uploads": sum(item["uploaded_count"] for item in items),
+        "total_slots": len(items) * len(agencies) if items else 0,
+    }
+
+    return {
+        "summary": summary,
+        "agencies": agencies,
+        "items": items,
+    }
+
+
+def update_matrix_cell(filename: str, agency: str, uploaded: bool) -> bool:
+    """Toggle or set uploaded status for a specific file and agency."""
+    safe_fn = Path(filename).name
+    with _history_lock:
+        if UPLOAD_HISTORY_FILE.exists():
+            history = _read_json(UPLOAD_HISTORY_FILE)
+            if history is None or not isinstance(history, dict):
+                logger.error("Failed to safely read %s; aborting write to prevent data loss.", UPLOAD_HISTORY_FILE.name)
+                return False
+        else:
+            history = {}
+
+        if uploaded:
+            if safe_fn not in history:
+                history[safe_fn] = {}
+            history[safe_fn][agency] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        else:
+            if safe_fn in history and agency in history[safe_fn]:
+                del history[safe_fn][agency]
+                if not history[safe_fn]:
+                    del history[safe_fn]
+
+        PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
+        tmp_file = UPLOAD_HISTORY_FILE.with_suffix(f".tmp.{os.getpid()}.{uuid.uuid4().hex[:6]}")
+        try:
+            with open(tmp_file, "w", encoding="utf-8") as f:
+                json.dump(history, f, indent=2, ensure_ascii=False)
+            tmp_file.replace(UPLOAD_HISTORY_FILE)
+            return True
+        except Exception as e:
+            logger.error("Error updating upload history cell: %s", e)
+            return False
+        finally:
+            if tmp_file.exists():
+                try:
+                    tmp_file.unlink()
+                except Exception:
+                    pass
+
+
+def batch_update_matrix_agency(agency: str, action: str, filenames: Optional[List[str]] = None) -> int:
+    """Batch mark or unmark an agency for given filenames or all images."""
+    with _history_lock:
+        if UPLOAD_HISTORY_FILE.exists():
+            history = _read_json(UPLOAD_HISTORY_FILE)
+            if history is None or not isinstance(history, dict):
+                logger.error("Failed to safely read %s; aborting batch write to prevent data loss.", UPLOAD_HISTORY_FILE.name)
+                return 0
+        else:
+            history = {}
+
+        if filenames is None:
+            matrix = get_distribution_matrix()
+            filenames = [item["filename"] for item in matrix["items"]]
+
+        updated_count = 0
+        now_ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+        for fn in filenames:
+            safe_fn = Path(fn).name
+            if action == "mark_all":
+                if safe_fn not in history:
+                    history[safe_fn] = {}
+                if agency not in history[safe_fn]:
+                    history[safe_fn][agency] = now_ts
+                    updated_count += 1
+            elif action == "unmark_all":
+                if safe_fn in history and agency in history[safe_fn]:
+                    del history[safe_fn][agency]
+                    updated_count += 1
+                    if not history[safe_fn]:
+                        del history[safe_fn]
+
+        PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
+        tmp_file = UPLOAD_HISTORY_FILE.with_suffix(f".tmp.{os.getpid()}.{uuid.uuid4().hex[:6]}")
+        try:
+            with open(tmp_file, "w", encoding="utf-8") as f:
+                json.dump(history, f, indent=2, ensure_ascii=False)
+            tmp_file.replace(UPLOAD_HISTORY_FILE)
+            return updated_count
+        except Exception as e:
+            logger.error("Error batch updating upload history: %s", e)
+            return 0
+        finally:
+            if tmp_file.exists():
+                try:
+                    tmp_file.unlink()
+                except Exception:
+                    pass

@@ -83,7 +83,8 @@
   <nav class="tabs">
     <button class="tab active" data-tab="gallery" onclick="switchTab('gallery')">🖼️ Galeria</button>
     <button class="tab" data-tab="queue" onclick="switchTab('queue')">⏳ Fila de Prompts</button>
-    <button class="tab" data-tab="agencies" onclick="switchTab('agencies')">🌐 Agências</button>
+    <button class="tab" data-tab="matrix" onclick="switchTab('matrix')">🌐 Matriz de Distribuição</button>
+    <button class="tab" data-tab="agencies" onclick="switchTab('agencies')">🏢 Agências</button>
     <button class="tab" data-tab="timeline" onclick="switchTab('timeline')">📜 Timeline</button>
     <button class="tab" data-tab="seasonal" onclick="switchTab('seasonal')">🔮 Radar Sazonal</button>
     <button class="tab" data-tab="backup" onclick="switchTab('backup')">☁️ Backup</button>
@@ -139,6 +140,36 @@
         </thead>
         <tbody id="queue-tbody">
           <tr><td colspan="7" class="loading">Carregando fila…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ── Tab Content: Distribution Matrix ────────── -->
+  <section class="tab-content" id="tab-matrix">
+    <div class="tab-toolbar">
+      <div class="filter-group">
+        <button class="filter-btn active" id="matrix-filter-all" onclick="filterMatrix('all')">Todas</button>
+        <button class="filter-btn" id="matrix-filter-pending" onclick="filterMatrix('pending')">Com Pendências</button>
+        <button class="filter-btn" id="matrix-filter-done" onclick="filterMatrix('done')">100% Enviadas</button>
+      </div>
+      <div class="search-group" style="display:inline-flex; align-items:center; gap:8px;">
+        <input type="text" id="matrix-search" class="input-sm" placeholder="🔍 Filtrar por nome ou título..." oninput="onMatrixSearch(this.value)" style="width:240px;">
+      </div>
+      <div class="queue-actions-group">
+        <button id="btn-matrix-upload-pending" class="btn btn-sm btn-primary" onclick="triggerMatrixUpload()" title="Disparar upload para Dreamstime e 123RF das imagens pendentes">
+          🚀 Disparar Upload dos Pendentes
+        </button>
+      </div>
+      <span class="tab-stat" id="matrix-stat">—</span>
+    </div>
+    <div class="matrix-table-wrapper">
+      <table class="data-table matrix-table" id="matrix-table">
+        <thead id="matrix-thead">
+          <!-- Rendered by JS with agency columns and quick action buttons -->
+        </thead>
+        <tbody id="matrix-tbody">
+          <tr><td colspan="10" class="loading">Carregando matriz de distribuição…</td></tr>
         </tbody>
       </table>
     </div>

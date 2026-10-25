@@ -12,11 +12,11 @@ Sistema autônomo para inteligência de microstock, mineração de tendências, 
 | **Fase 1: Olheiro (Scout)** | 🟢 Concluído | 10 tendências mineradas (Top Sellers Adobe Stock) \| 10 referências em `data/raw/images/` |
 | **Fase 2: Diretor de Arte** | 🟢 Concluído | 10 itens analisados \| **100 prompts comerciais gerados** com Gemini Vision |
 | **Fase 3: A Fábrica (RunningHub)** | 🟢 Operacional | **94/100 prompts gerados (94% concluído)** \| **6 prompts pendentes na fila** |
-| **Fase 4: O Catalogador** | 🟢 Concluído | **98 imagens JPG 4K com IPTC/EXIF embutidos** \| CSV `adobe_stock_upload.csv` atualizado |
-| **Backup Google Drive** | 🟢 Operacional | **52+ assets sincronizados** em `G:\Meu Drive\StockCont_backup` via modo `local_sync` |
+| **Fase 4: O Catalogador** | 🟢 Concluído | **61/61 imagens 4K reconhecidas com IPTC/EXIF embutidos** \| CSV `adobe_stock_upload.csv` com 157 assets |
+| **Backup Google Drive** | 🟢 Operacional | **61+ assets sincronizados** em `G:\Meu Drive\StockCont_backup` via modo `local_sync` |
 | **Fase 5: O Distribuidor** | 🟢 Operacional | **58 assets 4K enviados via FTP** (123RF e Pond5) \| 116 transferências com 100% de sucesso |
-| **Dashboard Web SPA** | 🟢 Operacional | FastAPI + SPA Dark Theme (`http://localhost:8501`) \| Streaming de logs, controle de tarefas e seleção na fila |
-| **Qualidade & Testes** | 🟢 100% Verde | **55 testes automatizados passando** (`pytest`) |
+| **Dashboard Web SPA** | 🟢 Operacional | FastAPI + SPA Dark Theme (`http://localhost:8501`) \| Streaming de logs, Matriz de Distribuição e controle de tarefas |
+| **Qualidade & Testes** | 🟢 100% Verde | **69 testes automatizados passando** (`pytest`) |
 
 ---
 
@@ -65,25 +65,32 @@ Sistema autônomo para inteligência de microstock, mineração de tendências, 
 - [x] Cancelamento automático da tarefa em "Lista de tarefas" após salvar as imagens esperadas para poupar créditos.
 - [x] Sessão persistente em `playwright_session`.
 
-### Fase 4: O Catalogador (Metadados SEO & IPTC/EXIF Binários)
-*Status: 🟢 Concluído & Testado de Ponta a Ponta*
+### Fase 4: O Catalogador (Metadados SEO, IPTC/EXIF Binários & Conformidade Multi-Agência)
+*Status: 🟢 Concluído & 100% Conforme*
 - [x] Análise visual ultrarrápida com Gemini Vision via REST (`src/cataloger/adobe_csv_maker.py`).
-- [x] Geração de títulos comerciais e 50 palavras-chave ranqueadas por relevância.
-- [x] Classificação da categoria numérica nativa do Adobe Stock.
-- [x] **Injeção binária de IPTC**: Object Name, Caption e Keywords gravados no JPG via `iptcinfo3` (auto-preenchimento no Adobe Stock e agências FTP).
+- [x] **Conformidade Estrita com Políticas de IA de Microstock (Dreamstime, Freepik, Adobe Stock, Shutterstock)**:
+  - IPTC Caption e EXIF ImageDescription formatados obrigatoriamente com "Generative AI illustration. [Descrição detalhada da cena]".
+  - IPTC ObjectName e EXIF XPTitle contendo o título comercial limpo, sem quebra de palavras.
+  - Keywords normalizadas com presença obrigatória de tags de IA ("ai generated", "generative ai", "digital art", "illustration") e teto estrito de 50 tags.
+  - Nomes de arquivo higienizados (`sanitize_filename`) sem stopwords pendentes ao final (ex: `-on-a`).
+  - Utilitário retroativo de conformidade em massa (`src/cataloger/reembed_compliance.py`).
+- [x] **Reconhecimento Híbrido (Dual-Source)**:
+  - Leitor nativo de IPTC direto dos arquivos JPG com cache de alta performance no Dashboard (`readers.py`).
+  - Sincronização automática do CSV `adobe_stock_upload.csv` com 157 ativos catalogados.
+- [x] **Injeção binária de IPTC**: Object Name, Caption e Keywords gravados no JPG via `iptcinfo3`.
 - [x] **Injeção binária de EXIF**: ImageDescription, XPTitle e XPKeywords gravados via `piexif` (compatível com Windows, Lightroom e Bridge).
 - [x] Conversão automática de PNG para JPG de alta qualidade (qualidade 98).
-- [x] Exportação e atualização incremental do CSV `data/processed/adobe_stock_upload.csv` (43+ assets catalogados).
+- [x] Exportação e atualização incremental do CSV `data/processed/adobe_stock_upload.csv` (157 assets catalogados).
 
 ### Fase 5: O Distribuidor & Expansão Multi-Agência
 *Status: 🟢 Operacional & Em Onboarding*
 - [x] Módulo autônomo desenvolvido em `src/uploader/ftp_distributor.py`.
 - [x] Suporte multi-protocolo completo:
   - **SFTP** seguro com `paramiko` para **Adobe Stock Contributor** (`sftp.contributor.adobestock.com:22`).
-  - **FTP/FTPS** com `ftplib` para **Freepik**, **Dreamstime**, **Pond5**, **Alamy**, **Vecteezy** e **123RF**.
+  - **FTP/FTPS** com `ftplib` para **Freepik**, **Dreamstime**, **Pond5**, **Alamy**, **Vecteezy**, **123RF** e **Ingram**.
 - [x] Livro-razão e histórico inteligente (`data/processed/upload_history.json`) prevenindo reenvios duplicados.
 - [x] Modo de simulação e validação prévia de conexões (`--dry-run`).
-- [x] Filtro granular por plataforma (`--platform [adobe|freepik|dreamstime|pond5|alamy|vecteezy|123rf|all]`) e envio forçado (`--force`).
+- [x] Filtro granular por plataforma (`--platform [adobe|freepik|dreamstime|pond5|alamy|vecteezy|123rf|ingram|all]`) e envio forçado (`--force`).
 - [x] **Status do Onboarding nas Agências Parceiras**:
   - **Adobe Stock**: Pronto para disparo via SFTP.
   - **Freepik / Magnific Contributors**: Aplicação enviada com portfólio Behance focado em ativos 4K fotorrealistas e ComfyUI.
@@ -91,6 +98,8 @@ Sistema autônomo para inteligência de microstock, mineração de tendências, 
   - **Alamy**: Cadastro de colaborador iniciado para monetização de alto valor ($20 a $150+ por ativo).
 - [x] **123RF**: Credenciais FTP configuradas e 58 assets 4K enviados com sucesso (`ftp.123rf.com:21`).
 - [x] **Pond5**: Credenciais FTP configuradas e 58 assets 4K enviados com sucesso (`ftp.pond5.com:21`).
+- [x] **Dreamstime**: Credenciais FTP configuradas e conexão/autenticação passiva validada com sucesso (`upload.dreamstime.com:21`).
+- [x] **Ingram**: Suporte FTP integrado ao pipeline, variáveis de ambiente no `.env` e coluna interativa na Matriz de Distribuição.
 
 ### ☁️ Módulo de Backup em Nuvem: Google Drive
 *Status: 🟢 Concluído & Integrado ao Pipeline*
@@ -115,6 +124,14 @@ Sistema autônomo para inteligência de microstock, mineração de tendências, 
   - Botão `⚡ Marcar Todos Pendentes` para marcar todos os pendentes da fila com confirmação.
   - Botão individual de ação rápida `✓ Gerado` em cada linha pendente.
   - Endpoint `POST /api/prompts/mark-generated` para persistência atômica e recálculo instantâneo de KPIs.
+- [x] **Matriz de Distribuição Visual Interativa (`/api/matrix`)**:
+  - Rastreamento em tempo real de fotos do Google Drive (`G:\Meu Drive\StockCont_backup`) com miniaturas e metadados.
+  - Tabela cruzada por agência (Dreamstime, 123RF, Adobe Stock, Pond5, Freepik, Vecteezy, Alamy, Ingram).
+  - Checkboxes interativos com persistência atômica instantânea em `upload_history.json`.
+  - Concorrência protegida com `threading.Lock()` e arquivos temporários dinâmicos (`.tmp.{pid}.{uuid}`) com cleanup em `finally`.
+  - Segurança de streaming de arquivos com whitelist de extensões (`.jpg`, `.jpeg`, `.png`) e bloqueio de path traversal.
+  - Botões rápidos por agência (`✓ Todos` / `✕ Limpar`) e filtros por pendências/enviados.
+  - Botão de disparo de upload dos pendentes diretamente pela interface da Matriz.
 - [x] **Script de Inicialização Windows (`start.bat`)**:
   - Inicialização com duplo clique compatível com `cmd.exe` (terminação CRLF estrita e caracteres ASCII seguros).
   - Validação de ambiente virtual e abertura automática do navegador.
@@ -149,7 +166,7 @@ Sistema autônomo para inteligência de microstock, mineração de tendências, 
 - [x] Binários do Playwright Chromium instalados e operacionais.
 - [x] Chave `GEMINI_API_KEY` e caminho `GOOGLE_DRIVE_LOCAL_PATH` configurados no `.env`.
 - [x] Resiliência de encoding no terminal Windows (UTF-8 forçado com `PYTHONUNBUFFERED`, `PYTHONIOENCODING` e `PYTHONUTF8`).
-- [x] **55 testes automatizados passando em `tests/` (`pytest`)**.
+- [x] **69 testes automatizados passando em `tests/` (`pytest`)**.
 - [x] Protocolo de orquestração autônoma e skills ECC configurados.
 
 ---

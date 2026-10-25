@@ -94,6 +94,8 @@ async function pollTasksOnly() {
     }
     if (currentTab === 'agencies') {
       loadAgencies();
+    } else if (currentTab === 'matrix') {
+      loadMatrix();
     } else if (currentTab === 'backup') {
       loadBackup();
     } else if (currentTab === 'seasonal') {
@@ -272,6 +274,7 @@ async function loadCurrentTab() {
   switch (currentTab) {
     case 'gallery': return loadGallery();
     case 'queue': return loadQueue();
+    case 'matrix': return loadMatrix();
     case 'agencies': return loadAgencies();
     case 'timeline': return loadTimeline();
     case 'backup': return loadBackup();
@@ -569,6 +572,239 @@ function filterQueue(f) {
   document.querySelectorAll('#tab-queue .filter-btn').forEach(function(b) { b.classList.remove('active'); });
   if (event && event.target) event.target.classList.add('active');
   loadQueue();
+}
+
+// ── Distribution Matrix ──────────────────────────
+let matrixData = null;
+let currentMatrixFilter = 'all';
+let matrixSearchQuery = '';
+
+async function loadMatrix() {
+  const tbody = document.getElementById('matrix-tbody');
+  try {
+    const res = await fetch(API + '/api/matrix');
+    if (!res.ok) throw new Error('Falha ao carregar matriz: ' + res.status);
+    matrixData = await res.json();
+    renderMatrix();
+  } catch (err) {
+    console.error('Matrix error:', err);
+    if (tbody) {
+      tbody.innerHTML = '<tr><td colspan="10" class="loading">❌ Erro ao carregar matriz: ' + esc(err.message) + '</td></tr>';
+    }
+  }
+}
+
+function filterMatrix(mode) {
+  currentMatrixFilter = mode;
+  document.querySelectorAll('#tab-matrix .filter-btn').forEach(function(b) { b.classList.remove('active'); });
+  const activeBtn = document.getElementById('matrix-filter-' + mode);
+  if (activeBtn) activeBtn.classList.add('active');
+  renderMatrix();
+}
+
+function onMatrixSearch(query) {
+  matrixSearchQuery = (query || '').toLowerCase().trim();
+  renderMatrix();
+}
+
+function renderMatrix() {
+  if (!matrixData) return;
+
+  const thead = document.getElementById('matrix-thead');
+  const tbody = document.getElementById('matrix-tbody');
+  const statEl = document.getElementById('matrix-stat');
+
+  const agencies = matrixData.agencies || [];
+  let items = matrixData.items || [];
+
+  // Filter items
+  if (matrixSearchQuery) {
+    items = items.filter(function(it) {
+      return (it.filename && it.filename.toLowerCase().indexOf(matrixSearchQuery) !== -1) ||
+             (it.title && it.title.toLowerCase().indexOf(matrixSearchQuery) !== -1);
+    });
+  }
+
+  if (currentMatrixFilter === 'pending') {
+    items = items.filter(function(it) {
+      return it.pending_configured > 0 || it.uploaded_count < agencies.length;
+    });
+  } else if (currentMatrixFilter === 'done') {
+    items = items.filter(function(it) {
+      return it.uploaded_count === agencies.length || (it.uploaded_count > 0 && it.pending_configured === 0);
+    });
+  }
+
+  // Update stat label
+  const totalImgs = matrixData.summary ? matrixData.summary.total_images : 0;
+  const totalUploads = matrixData.summary ? matrixData.summary.total_uploads : 0;
+  const totalSlots = matrixData.summary ? matrixData.summary.total_slots : 0;
+  const pct = totalSlots > 0 ? Math.round((totalUploads / totalSlots) * 100) : 0;
+  if (statEl) {
+    statEl.textContent = items.length + '/' + totalImgs + ' fotos | ' + totalUploads + ' uploads concluídos (' + pct + '%)';
+  }
+
+  // Render THEAD with Agency Quick Action Buttons
+  let headerHtml = '<tr>' +
+    '<th style="width:50px; text-align:center;">Foto</th>' +
+    '<th style="min-width:220px;">Arquivo & Título</th>';
+
+  agencies.forEach(function(ag) {
+    const badge = ag.configured
+      ? '<span class="badge-configured">Configurado</span>'
+      : '<span class="badge-unconfigured">Não config.</span>';
+
+    headerHtml += '' +
+      '<th>' +
+        '<div class="matrix-agency-header">' +
+          '<div class="matrix-agency-name">' +
+            '<span>' + esc(ag.name) + '</span> ' + badge +
+          '</div>' +
+          '<div class="matrix-header-actions">' +
+            '<button class="btn-mini" onclick="batchSetMatrixAgency(\'' + ag.key + '\', \'mark_all\')" title="Marcar todos como enviados para ' + esc(ag.name) + '">✓ Todos</button>' +
+            '<button class="btn-mini btn-mini-danger" onclick="batchSetMatrixAgency(\'' + ag.key + '\', \'unmark_all\')" title="Desmarcar todos de ' + esc(ag.name) + '">✕ Limpar</button>' +
+          '</div>' +
+        '</div>' +
+      '</th>';
+  });
+
+  headerHtml += '<th style="text-align:center; width:100px;">Progresso</th></tr>';
+  if (thead) thead.innerHTML = headerHtml;
+
+  // Render TBODY
+  if (items.length === 0) {
+    if (tbody) tbody.innerHTML = '<tr><td colspan="' + (agencies.length + 3) + '" class="loading">Nenhuma foto encontrada para os filtros selecionados</td></tr>';
+    return;
+  }
+
+  let bodyHtml = '';
+  items.forEach(function(it) {
+    const thumbUrl = API + '/api/images/' + encodeURIComponent(it.filename) + '/thumb';
+    const fullImgUrl = API + '/api/images/' + encodeURIComponent(it.filename);
+
+    bodyHtml += '<tr>';
+    bodyHtml += '<td style="text-align:center;"><img src="' + thumbUrl + '" class="matrix-thumb" alt="Thumb" onclick="openModal(\'' + fullImgUrl + '\', \'' + esc(it.title) + '\', \'' + esc(it.filename) + '\')"></td>';
+    bodyHtml += '<td>' +
+      '<div style="font-weight:600; color:var(--text-primary); font-size:0.83rem;">' + esc(it.title) + '</div>' +
+      '<div style="font-family:var(--font-mono); font-size:0.72rem; color:var(--text-muted); margin-top:2px;">' +
+        esc(it.filename) + ' • ' + it.size_mb + ' MB ' + (it.is_cataloged ? '• <span style="color:#10b981;">✓ IPTC</span>' : '') +
+      '</div>' +
+    '</td>';
+
+    agencies.forEach(function(ag) {
+      const plat = it.platforms[ag.key] || { uploaded: false, timestamp: null };
+      const isChecked = plat.uploaded ? 'checked' : '';
+      const dotClass = plat.uploaded ? 'status-dot-uploaded' : 'status-dot-pending';
+      const tooltip = plat.uploaded
+        ? ('Enviado em ' + (plat.timestamp || 'data não informada'))
+        : ('Pendente de envio para ' + ag.name);
+
+      bodyHtml += '<td>' +
+        '<div class="matrix-cell-status-wrap" title="' + tooltip + '">' +
+          '<input type="checkbox" class="matrix-checkbox" ' + isChecked + ' ' +
+            'onchange="toggleMatrixCell(\'' + esc(it.filename) + '\', \'' + ag.key + '\', this.checked)">' +
+          '<span class="' + dotClass + '"></span>' +
+        '</div>' +
+      '</td>';
+    });
+
+    const progPct = Math.round((it.uploaded_count / agencies.length) * 100);
+    const progColor = progPct === 100 ? '#10b981' : (progPct > 0 ? '#06b6d4' : 'var(--text-muted)');
+
+    bodyHtml += '<td style="text-align:center;">' +
+      '<span style="font-weight:700; color:' + progColor + '; font-size:0.82rem;">' + it.uploaded_count + '/' + agencies.length + '</span>' +
+      '<div style="font-size:0.68rem; color:var(--text-muted);">' + progPct + '%</div>' +
+    '</td>';
+    bodyHtml += '</tr>';
+  });
+
+  if (tbody) tbody.innerHTML = bodyHtml;
+}
+
+async function toggleMatrixCell(filename, agency, uploaded) {
+  try {
+    const res = await fetch(API + '/api/matrix/toggle', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filename: filename, agency: agency, uploaded: uploaded })
+    });
+    const data = await res.json();
+    if (!data.success) {
+      showToast('❌ Erro ao atualizar status');
+      await loadMatrix();
+    } else {
+      showToast((uploaded ? '✅ Marcado como enviado' : '⚪ Marcado como pendente') + ': ' + agency);
+      if (matrixData && matrixData.items) {
+        const item = matrixData.items.find(function(i) { return i.filename === filename; });
+        if (item) {
+          if (!item.platforms[agency]) item.platforms[agency] = {};
+          item.platforms[agency].uploaded = uploaded;
+          item.uploaded_count = Object.values(item.platforms).filter(function(p) { return p.uploaded; }).length;
+          const totalUploads = matrixData.items.reduce(function(acc, i) { return acc + i.uploaded_count; }, 0);
+          if (matrixData.summary) matrixData.summary.total_uploads = totalUploads;
+          renderMatrix();
+        }
+      }
+    }
+  } catch (err) {
+    showToast('❌ Erro de conexão: ' + err.message);
+    await loadMatrix();
+  }
+}
+
+async function batchSetMatrixAgency(agency, action) {
+  const isMark = action === 'mark_all';
+  const confirmMsg = isMark
+    ? ('Deseja marcar TODAS as fotos como enviadas para ' + agency.toUpperCase() + '?')
+    : ('Deseja desmarcar TODAS as fotos de ' + agency.toUpperCase() + ' (definir como pendentes)?');
+
+  if (!confirm(confirmMsg)) return;
+
+  try {
+    showToast('⏳ Atualizando coluna ' + agency + '...');
+    const res = await fetch(API + '/api/matrix/batch-set', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ agency: agency, action: action })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast('✅ ' + data.updated_count + ' fotos atualizadas para ' + agency);
+      await loadMatrix();
+    } else {
+      showToast('❌ Falha ao atualizar em lote');
+    }
+  } catch (err) {
+    showToast('❌ Erro: ' + err.message);
+  }
+}
+
+async function triggerMatrixUpload() {
+  const taskKey = 'phase-5';
+  const currentTask = currentTasks[taskKey];
+  const isRunning = currentTask && ((typeof currentTask === 'object' && currentTask !== null) ? currentTask.status === 'running' : currentTask === 'running');
+  if (isRunning) {
+    showToast('⚠️ Distribuição já está em execução.');
+    return;
+  }
+
+  if (!confirm('Iniciar upload automático das fotos pendentes para Dreamstime e 123RF?')) {
+    return;
+  }
+
+  showToast('🚀 Disparando upload dos pendentes...');
+  try {
+    const res = await fetch(API + '/api/matrix/upload-pending', { method: 'POST' });
+    const data = await res.json();
+    if (data.success) {
+      showToast('✅ Upload iniciado em segundo plano!');
+      pollTasksOnly();
+    } else {
+      showToast('❌ ' + (data.message || 'Falha ao iniciar upload'));
+    }
+  } catch (err) {
+    showToast('❌ Erro: ' + err.message);
+  }
 }
 
 // ── Agencies ───────────────────────────────────────

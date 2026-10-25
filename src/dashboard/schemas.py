@@ -1,6 +1,6 @@
 """Pydantic response models for the StockCont Dashboard API."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel
 
@@ -94,3 +94,15 @@ class RunPhaseResponse(BaseModel):
 class MarkGeneratedRequest(BaseModel):
     hashes: Optional[List[str]] = None
     all_pending: Optional[bool] = False
+
+
+class MatrixToggleRequest(BaseModel):
+    filename: str
+    agency: str
+    uploaded: bool
+
+
+class MatrixBatchRequest(BaseModel):
+    agency: str
+    action: Literal["mark_all", "unmark_all"]
+    filenames: Optional[List[str]] = None

@@ -136,19 +136,43 @@ async def get_images(filter: str = "all"):
     }
 
 
+ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
+
+
+def _resolve_image_path(filename: str) -> Path:
+    """Safely locate image file in IMAGES_DIR or Google Drive directory."""
+    safe_name = Path(filename).name
+    if safe_name != filename or not filename:
+        raise HTTPException(status_code=400, detail="Invalid filename")
+
+    if Path(safe_name).suffix.lower() not in ALLOWED_IMAGE_EXTENSIONS:
+        raise HTTPException(status_code=400, detail="Tipo de arquivo não permitido")
+
+    candidate = IMAGES_DIR / safe_name
+    if candidate.exists() and candidate.is_file():
+        try:
+            candidate.resolve().relative_to(IMAGES_DIR.resolve())
+            return candidate
+        except ValueError:
+            pass
+
+    gdrive_dir = readers.get_gdrive_dir()
+    if gdrive_dir:
+        candidate_gd = gdrive_dir / safe_name
+        if candidate_gd.exists() and candidate_gd.is_file():
+            try:
+                candidate_gd.resolve().relative_to(gdrive_dir.resolve())
+                return candidate_gd
+            except ValueError:
+                pass
+
+    raise HTTPException(status_code=404, detail="Image not found")
+
+
 @app.get("/api/images/{filename}")
 async def get_image_file(filename: str):
     """Serve an original image file."""
-    file_path = IMAGES_DIR / filename
-    if not file_path.exists() or not file_path.is_file():
-        raise HTTPException(status_code=404, detail="Image not found")
-
-    # Security: ensure path stays within IMAGES_DIR
-    try:
-        file_path.resolve().relative_to(IMAGES_DIR.resolve())
-    except ValueError:
-        raise HTTPException(status_code=403, detail="Access denied")
-
+    file_path = _resolve_image_path(filename)
     media = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png"}
     return FileResponse(str(file_path), media_type=media.get(file_path.suffix.lower(), "application/octet-stream"))
 
@@ -156,13 +180,7 @@ async def get_image_file(filename: str):
 @app.get("/api/images/{filename}/thumb")
 async def get_image_thumbnail(filename: str):
     """Serve a resized thumbnail (max 400px) for gallery performance."""
-    file_path = IMAGES_DIR / filename
-    if not file_path.exists():
-        raise HTTPException(status_code=404, detail="Image not found")
-    try:
-        file_path.resolve().relative_to(IMAGES_DIR.resolve())
-    except ValueError:
-        raise HTTPException(status_code=403, detail="Access denied")
+    file_path = _resolve_image_path(filename)
 
     try:
         import io
@@ -183,9 +201,7 @@ async def get_image_thumbnail(filename: str):
 @app.get("/api/images/{filename}/meta")
 async def get_image_metadata(filename: str):
     """Read IPTC/EXIF metadata embedded in a cataloged JPG."""
-    file_path = IMAGES_DIR / filename
-    if not file_path.exists():
-        raise HTTPException(status_code=404, detail="Image not found")
+    file_path = _resolve_image_path(filename)
 
     meta: dict = {"filename": filename, "iptc": {}, "exif": {}}
 
@@ -242,6 +258,35 @@ async def get_agencies():
 async def get_uploads():
     """Raw upload history entries."""
     return readers.read_upload_history()
+
+
+# ── Distribution Matrix ──────────────────────────────
+
+@app.get("/api/matrix")
+async def get_distribution_matrix():
+    """Return distribution matrix matching images with stock agencies."""
+    return readers.get_distribution_matrix()
+
+
+@app.post("/api/matrix/toggle")
+async def toggle_matrix_cell(req: schemas.MatrixToggleRequest):
+    """Toggle or update an agency upload status for a single image."""
+    success = readers.update_matrix_cell(req.filename, req.agency, req.uploaded)
+    return {"success": success, "filename": req.filename, "agency": req.agency, "uploaded": req.uploaded}
+
+
+@app.post("/api/matrix/batch-set")
+async def batch_matrix_set(req: schemas.MatrixBatchRequest):
+    """Batch mark or unmark an agency for images."""
+    count = readers.batch_update_matrix_agency(req.agency, req.action, req.filenames)
+    return {"success": True, "agency": req.agency, "action": req.action, "updated_count": count}
+
+
+@app.post("/api/matrix/upload-pending")
+async def trigger_matrix_upload(platform: str = "all"):
+    """Trigger Phase 5 distribution upload for pending files."""
+    args = ["--platform", platform]
+    return await runner.run_phase(5, extra_args=args)
 
 
 # ── Backup ───────────────────────────────────────────
