@@ -112,3 +112,12 @@ def test_embed_metadata_iptc_and_exif(tmp_path):
 
     assert xp_title_raw.endswith(b"\x00\x00")
     assert xp_desc_raw.endswith(b"\x00\x00")
+
+    # Verify 300 DPI in EXIF and PIL
+    assert exif["0th"][piexif.ImageIFD.XResolution] == (300, 1)
+    assert exif["0th"][piexif.ImageIFD.YResolution] == (300, 1)
+    assert exif["0th"][piexif.ImageIFD.ResolutionUnit] == 2
+    with Image.open(result_path) as res_img:
+        dpi_val = res_img.info.get("dpi", (0, 0))
+        assert int(round(dpi_val[0])) == 300
+        assert int(round(dpi_val[1])) == 300

@@ -123,8 +123,20 @@ def embed_metadata(
     if source_path.suffix.lower() == ".png":
         try:
             with Image.open(source_path) as img:
-                rgb_img = img.convert("RGB")
-                rgb_img.save(target_path, "JPEG", quality=98)
+                if img.mode in ("RGBA", "LA", "P"):
+                    bg = Image.new("RGB", img.size, (255, 255, 255))
+                    if img.mode == "P":
+                        img = img.convert("RGBA")
+                    bg.paste(img, mask=img.split()[-1] if img.mode == "RGBA" else None)
+                    rgb_img = bg
+                else:
+                    rgb_img = img.convert("RGB")
+
+                icc = img.info.get("icc_profile")
+                if icc:
+                    rgb_img.save(target_path, "JPEG", quality=98, dpi=(300, 300), icc_profile=icc)
+                else:
+                    rgb_img.save(target_path, "JPEG", quality=98, dpi=(300, 300))
             logger.info(f"Converted & Renamed {source_path.name} to {target_path.name}")
             source_path.unlink()  # Excluir o PNG original para economizar espaço
         except Exception as e:
@@ -176,6 +188,10 @@ def embed_metadata(
             exif_dict["0th"] = {}
 
         exif_dict["0th"][piexif.ImageIFD.ImageDescription] = formatted_description.encode("utf-8")
+        # Commercial 300 DPI Resolution Tags
+        exif_dict["0th"][piexif.ImageIFD.XResolution] = (300, 1)
+        exif_dict["0th"][piexif.ImageIFD.YResolution] = (300, 1)
+        exif_dict["0th"][piexif.ImageIFD.ResolutionUnit] = 2  # 2 = Inches (DPI)
         # Windows EXIF XP Tags require null-terminated UTF-16LE byte strings
         exif_dict["0th"][0x9C9B] = f"{title}\0".encode("utf-16le")  # XPTitle
         exif_dict["0th"][0x9C9C] = f"{formatted_description}\0".encode("utf-16le")  # XPComment
@@ -186,6 +202,13 @@ def embed_metadata(
         logger.info(f"EXIF metadata embedded in {target_path.name}")
     except Exception as e:
         logger.warning(f"Could not write EXIF to {target_path.name}: {e}")
+
+    # 4. Enforce 300 DPI across both JFIF APP0 and EXIF IFD0 headers
+    try:
+        from src.cataloger.platform_compliance import ensure_image_dpi
+        ensure_image_dpi(target_path, target_dpi=300)
+    except Exception as e:
+        logger.warning(f"Could not enforce 300 DPI on {target_path.name}: {e}")
 
     return target_path
 
@@ -349,6 +372,13 @@ def run_cataloger(images_dir: Path | None = None, output_dir: Path | None = None
         if final_image_path.suffix.lower() not in [".jpg", ".jpeg"]:
             logger.error(f"Skipping CSV entry for unconverted image: {final_image_path.name}")
             continue
+
+        # Multi-Platform Compliance Verification
+        from src.cataloger.platform_compliance import validate_all_platforms
+        comp_map = validate_all_platforms(final_image_path, is_ai_generated=True)
+        passed = [plat for plat, c in comp_map.items() if c.is_compliant and not c.blocked]
+        blocked = [plat for plat, c in comp_map.items() if c.blocked]
+        logger.info(f"  🛡️ Conformidade: {final_image_path.name} apto para {len(passed)} plataformas ({', '.join(passed)}). Bloqueado preventivo: {', '.join(blocked)}.")
 
         results.append({
             "Filename": final_image_path.name,

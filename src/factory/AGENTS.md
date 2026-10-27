@@ -5,12 +5,17 @@ Regras e padrões obrigatórios para o módulo RPA do ComfyUI e gestão de fila:
 1. **Gestor de Fila Criptográfica (`PromptQueueManager`)**:
    - Todo prompt possui hash SHA-256 canônico calculado sobre texto normalizado.
    - NUNCA submeta prompts à GPU sem antes verificar o ledger `data/processed/generation_history.json`.
-   - Marque os prompts como `generated` atômica e incrementalmente à medida que os arquivos físicos 4K forem confirmados em `data/final/images/`.
-2. **Topologia de Nós RunningHub ComfyUI**:
-   - Nós `#128` e `#129`: Injeção dos prompts do lote (10 por lote).
-   - Nós `#130` e `#131`: Limpeza obrigatória para lotes menores que 10 para evitar reaproveitamento residual de prompts antigos.
-   - Nó `#192`: Saída 4K com upscale onde as imagens devem ser capturadas via monitoramento do DOM.
-3. **Cancelamento Atômico de Tarefas Excedentes**:
-   - Ao capturar a 10ª imagem do lote, o bot deve acessar a "Lista de tarefas" e cancelar a 11ª tarefa em fila para poupar créditos de GPU no RunningHub.
+   - Marque os prompts como `generated` atômica e incrementalmente à medida que os arquivos físicos forem confirmados.
+2. **Topologia de Nós RunningHub ComfyUI — Conta 1 (Raw Producer)**:
+   - Workflow URL: `https://www.runninghub.ai/pt-br/workflow/2113606426114670593?source=workspace`
+   - Nós de Injeção: 42 nós PromptList (`#128`, `#129`, `#130`, `#131`, `#204`, `#218`, `#224`, `#223`, `#222`, `#221`, `#219`, `#220`, `#230`, `#229`, `#228`, `#227`, `#225`, `#226`, `#236`, `#235`, `#234`, `#233`, `#231`, `#232`, `#242`, `#241`, `#240`, `#239`, `#237`, `#238`, `#254`, `#253`, `#252`, `#251`, `#249`, `#250`, `#248`, `#247`, `#246`, `#245`, `#243`, `#244`).
+   - Capacidade por Lote: 5 prompts por nó = até 210 prompts por execução na janela de 40 minutos do RunningHub.
+   - Nó de Captura Raw: `#121` (Preview Image).
+   - Destino dos Renders Raw: `data/staging/images/`.
+   - Registro Automático: cada render bruto capturado é imediatamente registrado no `QCInspector` (`data/processed/qc_manifest.json`).
+3. **Métricas e Cronômetro de Benchmark**:
+   - O bot cronometra o tempo individual de cada imagem bruta capturada e o tempo total do lote (até 210 imagens).
+   - Ao concluir, emite o relatório executivo com a taxa média por imagem e a projeção para a sessão de 40 minutos.
 4. **Isolamento de Sessão Playwright**:
-   - Utilize exclusivamente `playwright_session/` para o RunningHub, mantendo total separação do `chrome_session/` do Adobe Stock.
+   - Conta 1 (Raw Producer): opera com `playwright_session_raw/` (ou `playwright_session/`).
+   - Conta 2 (SeedVR 2.5 8K Upscaler): opera com `playwright_session_upscale/`.

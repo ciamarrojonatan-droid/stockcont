@@ -83,6 +83,8 @@
   <nav class="tabs">
     <button class="tab active" data-tab="gallery" onclick="switchTab('gallery')">🖼️ Galeria</button>
     <button class="tab" data-tab="queue" onclick="switchTab('queue')">⏳ Fila de Prompts</button>
+
+    <button class="tab" data-tab="qc" onclick="switchTab('qc')">🔍 Curadoria & QC</button>
     <button class="tab" data-tab="matrix" onclick="switchTab('matrix')">🌐 Matriz de Distribuição</button>
     <button class="tab" data-tab="agencies" onclick="switchTab('agencies')">🏢 Agências</button>
     <button class="tab" data-tab="timeline" onclick="switchTab('timeline')">📜 Timeline</button>
@@ -145,6 +147,54 @@
     </div>
   </section>
 
+  <!-- ── Tab Content: Curadoria & QC ─────────────── -->
+  <section class="tab-content" id="tab-qc">
+    <div class="qc-control-panel">
+      <div class="qc-mode-switch-wrapper">
+        <span class="qc-mode-label">Modo QC:</span>
+        <div class="qc-toggle-group">
+          <button id="qc-mode-auto-btn" class="qc-toggle-btn active" onclick="setQCMode('auto')">
+            🤖 Automático (Gemini Vision)
+          </button>
+          <button id="qc-mode-manual-btn" class="qc-toggle-btn" onclick="setQCMode('manual')">
+            👁️ Manual (Visual)
+          </button>
+        </div>
+        <div class="qc-threshold-wrapper">
+          <label for="qc-min-score">Nota Mínima:</label>
+          <input type="number" id="qc-min-score" min="1.0" max="10.0" step="0.5" value="7.5" onchange="updateQCMinScore(this.value)">
+        </div>
+      </div>
+
+      <div class="qc-actions-group">
+        <button id="btn-qc-eval-all" class="btn btn-sm btn-primary" onclick="runQCEvaluate()" title="Dispara auditoria visual do Gemini Vision para imagens pendentes">
+          ⚡ Avaliar com Gemini
+        </button>
+        <button id="btn-qc-upscale-all" class="btn btn-sm btn-success" onclick="runQCUpscale()" title="Upscala para 8K todas as imagens aprovadas">
+          🚀 Upscale 8K Aprovadas (<span id="qc-approved-count">0</span>)
+        </button>
+        <button class="btn btn-sm btn-outline" onclick="loadQC()" title="Recarregar imagens de staging">
+          ⟳ Atualizar
+        </button>
+      </div>
+    </div>
+
+    <div class="tab-toolbar" style="margin-top: 15px;">
+      <div class="filter-group">
+        <button class="filter-btn active" id="qc-filter-all" onclick="filterQC('all')">Todos (<span id="qc-count-all">0</span>)</button>
+        <button class="filter-btn" id="qc-filter-pending" onclick="filterQC('pending')">Pendentes (<span id="qc-count-pending">0</span>)</button>
+        <button class="filter-btn" id="qc-filter-approved" onclick="filterQC('approved')">Aprovadas (<span id="qc-count-approved">0</span>)</button>
+        <button class="filter-btn" id="qc-filter-rejected" onclick="filterQC('rejected')">Rejeitadas (<span id="qc-count-rejected">0</span>)</button>
+        <button class="filter-btn" id="qc-filter-upscaled" onclick="filterQC('upscaled')">8K Prontas (<span id="qc-count-upscaled">0</span>)</button>
+      </div>
+      <span class="tab-stat" id="qc-stat">—</span>
+    </div>
+
+    <div class="qc-grid" id="qc-grid">
+      <div class="loading">Carregando imagens para curadoria…</div>
+    </div>
+  </section>
+
   <!-- ── Tab Content: Distribution Matrix ────────── -->
   <section class="tab-content" id="tab-matrix">
     <div class="tab-toolbar">
@@ -185,11 +235,12 @@
           <th>Status</th>
           <th>Enviados</th>
           <th>Último Envio</th>
+          <th>Portal Contributor</th>
           <th>Ação</th>
         </tr>
       </thead>
       <tbody id="agencies-tbody">
-        <tr><td colspan="6" class="loading">Carregando agências…</td></tr>
+        <tr><td colspan="7" class="loading">Carregando agências…</td></tr>
       </tbody>
     </table>
   </section>

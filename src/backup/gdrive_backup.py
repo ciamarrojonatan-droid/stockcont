@@ -48,6 +48,7 @@ FINAL_IMAGES_DIR = BASE_DIR / "data" / "final" / "images"
 PROCESSED_DIR = BASE_DIR / "data" / "processed"
 CSV_FILE = PROCESSED_DIR / "adobe_stock_upload.csv"
 BACKUP_HISTORY_FILE = PROCESSED_DIR / "gdrive_backup_history.json"
+UPLOAD_HISTORY_FILE = PROCESSED_DIR / "upload_history.json"
 
 SCOPES = ["https://www.googleapis.com/auth/drive.file"]
 
@@ -282,7 +283,8 @@ class GoogleDriveBackup:
         self,
         dry_run: bool = False,
         force: bool = False,
-        include_csv: bool = True
+        include_csv: bool = True,
+        include_history: bool = True
     ) -> Dict[str, Any]:
         """Execute full backup of all final assets to Google Drive."""
         logger.info("=" * 65)
@@ -307,8 +309,13 @@ class GoogleDriveBackup:
             for ext in ("*.jpg", "*.jpeg", "*.png"):
                 assets.extend(sorted(FINAL_IMAGES_DIR.glob(ext)))
 
-        if include_csv and CSV_FILE.exists():
-            assets.append(CSV_FILE)
+        csv_file = PROCESSED_DIR / "adobe_stock_upload.csv"
+        if include_csv and csv_file.exists():
+            assets.append(csv_file)
+
+        history_file = PROCESSED_DIR / "upload_history.json"
+        if include_history and history_file.exists():
+            assets.append(history_file)
 
         logger.info(f"📊 Modo Ativo: {self.mode.upper()}")
         logger.info(f"📁 Total de assets locais identificados: {len(assets)}")
@@ -388,6 +395,274 @@ class GoogleDriveBackup:
             "failed": failed,
         }
 
+    def restore_assets(
+        self,
+        dry_run: bool = False,
+        overwrite: bool = False
+    ) -> Dict[str, Any]:
+        """Pull and restore all images, CSV, and upload history from Google Drive backup into local workspace."""
+        logger.info("=" * 65)
+        logger.info("☁️ RESTAURANDO ASSETS DO BACKUP DO GOOGLE DRIVE")
+        logger.info("=" * 65)
+
+        if not self.is_configured:
+            logger.warning("⚠️ Google Drive não está configurado. Restauração ignorada.")
+            return {
+                "status": "unconfigured",
+                "restored_images": 0,
+                "restored_metadata": 0,
+                "skipped": 0,
+                "failed": 0,
+            }
+
+        FINAL_IMAGES_DIR.mkdir(parents=True, exist_ok=True)
+        PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
+
+        target_upload_history = PROCESSED_DIR / "upload_history.json"
+        target_csv = PROCESSED_DIR / "adobe_stock_upload.csv"
+
+        restored_images = 0
+        restored_metadata = 0
+        skipped = 0
+        failed = 0
+
+        if self.mode == "local_sync":
+            source_dir = Path(self.local_sync_path)
+            if not source_dir.exists():
+                logger.warning(f"⚠️ Pasta local do Google Drive não encontrada: {source_dir}")
+                return {
+                    "status": "source_dir_not_found",
+                    "restored_images": 0,
+                    "restored_metadata": 0,
+                    "skipped": 0,
+                    "failed": 0,
+                }
+
+            # 1. Restore images
+            candidate_images = []
+            for ext in ("*.jpg", "*.jpeg", "*.png"):
+                candidate_images.extend(sorted(source_dir.glob(ext)))
+
+            logger.info(f"📁 Imagens encontradas no backup local ({source_dir}): {len(candidate_images)}")
+
+            for img in candidate_images:
+                dest_file = FINAL_IMAGES_DIR / img.name
+                if dest_file.exists() and not overwrite:
+                    skipped += 1
+                    continue
+
+                if dry_run:
+                    restored_images += 1
+                    continue
+
+                try:
+                    shutil.copy2(img, dest_file)
+                    try:
+                        from src.cataloger.platform_compliance import ensure_image_dpi
+                        ensure_image_dpi(dest_file, target_dpi=300)
+                    except Exception as dpi_err:
+                        logger.debug(f"Aviso ao garantir DPI em {dest_file.name}: {dpi_err}")
+                    restored_images += 1
+                except Exception as e:
+                    logger.error(f"Erro ao restaurar imagem {img.name}: {e}")
+                    failed += 1
+
+            # 2. Restore upload history (merge with existing local ledger)
+            src_history_file = source_dir / "upload_history.json"
+            if src_history_file.exists():
+                try:
+                    with open(src_history_file, "r", encoding="utf-8") as f:
+                        remote_history = json.load(f)
+                    local_history = {}
+                    if target_upload_history.exists():
+                        try:
+                            with open(target_upload_history, "r", encoding="utf-8") as f:
+                                local_history = json.load(f)
+                        except Exception:
+                            local_history = {}
+
+                    for item_name, platforms in remote_history.items():
+                        if item_name not in local_history or not isinstance(local_history[item_name], dict):
+                            local_history[item_name] = {}
+                        if isinstance(platforms, dict):
+                            local_history[item_name].update(platforms)
+
+                    if not dry_run:
+                        tmp_hist = target_upload_history.with_suffix(".tmp")
+                        with open(tmp_hist, "w", encoding="utf-8") as f:
+                            json.dump(local_history, f, indent=2, ensure_ascii=False)
+                        tmp_hist.replace(target_upload_history)
+                    restored_metadata += 1
+                    logger.info(f"✅ Histórico de uploads sincronizado com sucesso ({len(local_history)} registros).")
+                except Exception as e:
+                    logger.error(f"Erro ao sincronizar upload_history.json: {e}")
+                    failed += 1
+
+            # 3. Restore CSV if missing
+            src_csv = source_dir / "adobe_stock_upload.csv"
+            if src_csv.exists() and (overwrite or not target_csv.exists()):
+                if not dry_run:
+                    try:
+                        shutil.copy2(src_csv, target_csv)
+                        restored_metadata += 1
+                        logger.info(f"✅ CSV restaurado: {target_csv.name}")
+                    except Exception as e:
+                        logger.error(f"Erro ao restaurar CSV: {e}")
+                        failed += 1
+                else:
+                    restored_metadata += 1
+
+        elif self.mode in ("api_service_account", "api_oauth"):
+            service = self.get_service()
+            if not service:
+                return {
+                    "status": "auth_failed",
+                    "restored_images": 0,
+                    "restored_metadata": 0,
+                    "skipped": 0,
+                    "failed": 0,
+                }
+
+            folder_id = self.get_or_create_remote_folder()
+            if not folder_id:
+                return {
+                    "status": "folder_not_found",
+                    "restored_images": 0,
+                    "restored_metadata": 0,
+                    "skipped": 0,
+                    "failed": 0,
+                }
+
+            try:
+                from io import BytesIO
+                from googleapiclient.http import MediaIoBaseDownload
+
+                query = f"'{folder_id}' in parents and trashed = false"
+                page_token = None
+                remote_files = []
+                while True:
+                    res = service.files().list(
+                        q=query,
+                        spaces="drive",
+                        fields="nextPageToken, files(id, name, mimeType, size)",
+                        pageToken=page_token
+                    ).execute()
+                    remote_files.extend(res.get("files", []))
+                    page_token = res.get("nextPageToken")
+                    if not page_token:
+                        break
+
+                logger.info(f"📁 Arquivos remotos encontrados no Google Drive: {len(remote_files)}")
+
+                for rfile in remote_files:
+                    fname = rfile["name"]
+                    fid = rfile["id"]
+                    is_img = any(fname.lower().endswith(ext) for ext in (".jpg", ".jpeg", ".png"))
+                    is_history = fname == "upload_history.json"
+                    is_csv = fname == "adobe_stock_upload.csv"
+
+                    if not (is_img or is_history or is_csv):
+                        continue
+
+                    if is_img:
+                        dest_file = FINAL_IMAGES_DIR / fname
+                        if dest_file.exists() and not overwrite:
+                            skipped += 1
+                            continue
+                        if dry_run:
+                            restored_images += 1
+                            continue
+
+                        try:
+                            request = service.files().get_media(fileId=fid)
+                            with open(dest_file, "wb") as f:
+                                downloader = MediaIoBaseDownload(f, request)
+                                done = False
+                                while not done:
+                                    _, done = downloader.next_chunk()
+                            try:
+                                from src.cataloger.platform_compliance import ensure_image_dpi
+                                ensure_image_dpi(dest_file, target_dpi=300)
+                            except Exception:
+                                pass
+                            restored_images += 1
+                        except Exception as e:
+                            logger.error(f"Erro ao baixar imagem {fname}: {e}")
+                            failed += 1
+
+                    elif is_history:
+                        try:
+                            request = service.files().get_media(fileId=fid)
+                            fh = BytesIO()
+                            downloader = MediaIoBaseDownload(fh, request)
+                            done = False
+                            while not done:
+                                _, done = downloader.next_chunk()
+                            fh.seek(0)
+                            remote_history = json.loads(fh.read().decode("utf-8"))
+
+                            local_history = {}
+                            if (PROCESSED_DIR / "upload_history.json").exists():
+                                try:
+                                    with open(UPLOAD_HISTORY_FILE, "r", encoding="utf-8") as f:
+                                        local_history = json.load(f)
+                                except Exception:
+                                    local_history = {}
+
+                            for item_name, platforms in remote_history.items():
+                                if item_name not in local_history or not isinstance(local_history[item_name], dict):
+                                    local_history[item_name] = {}
+                                if isinstance(platforms, dict):
+                                    local_history[item_name].update(platforms)
+
+                            if not dry_run:
+                                tmp_hist = (PROCESSED_DIR / "upload_history.json").with_suffix(".tmp")
+                                with open(tmp_hist, "w", encoding="utf-8") as f:
+                                    json.dump(local_history, f, indent=2, ensure_ascii=False)
+                                tmp_hist.replace((PROCESSED_DIR / "upload_history.json"))
+                            restored_metadata += 1
+                        except Exception as e:
+                            logger.error(f"Erro ao baixar/mesclar upload_history.json: {e}")
+                            failed += 1
+
+                    elif is_csv:
+                        if not (PROCESSED_DIR / "adobe_stock_upload.csv").exists() or overwrite:
+                            if not dry_run:
+                                try:
+                                    request = service.files().get_media(fileId=fid)
+                                    with open(CSV_FILE, "wb") as f:
+                                        downloader = MediaIoBaseDownload(f, request)
+                                        done = False
+                                        while not done:
+                                            _, done = downloader.next_chunk()
+                                    restored_metadata += 1
+                                except Exception as e:
+                                    logger.error(f"Erro ao baixar CSV: {e}")
+                                    failed += 1
+                            else:
+                                restored_metadata += 1
+
+            except Exception as e:
+                logger.error(f"Erro ao restaurar do Google Drive API: {e}")
+                return {
+                    "status": "error",
+                    "error": str(e),
+                    "restored_images": restored_images,
+                    "restored_metadata": restored_metadata,
+                    "skipped": skipped,
+                    "failed": failed,
+                }
+
+        logger.info(f"🎉 Restauração concluída: {restored_images} imagens restauradas, {restored_metadata} metadados sincronizados, {skipped} já presentes.")
+        return {
+            "status": "completed",
+            "restored_images": restored_images,
+            "restored_metadata": restored_metadata,
+            "skipped": skipped,
+            "failed": failed,
+        }
+
+
 
 def run_gdrive_backup(
     dry_run: bool = False,
@@ -397,6 +672,16 @@ def run_gdrive_backup(
     """Helper entry point for pipeline and CLI invocation."""
     backup = GoogleDriveBackup()
     return backup.backup_assets(dry_run=dry_run, force=force, include_csv=include_csv)
+
+
+def run_gdrive_restore(
+    dry_run: bool = False,
+    overwrite: bool = False
+) -> Dict[str, Any]:
+    """Helper entry point for pipeline and CLI invocation."""
+    backup = GoogleDriveBackup()
+    return backup.restore_assets(dry_run=dry_run, overwrite=overwrite)
+
 
 
 if __name__ == "__main__":

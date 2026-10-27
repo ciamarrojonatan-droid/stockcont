@@ -220,28 +220,62 @@ def process_image(item: Dict[str, Any]) -> Optional[Dict[str, Any]]:
             except Exception as dl_err:
                 logger.warning(f"Failed to auto-download image for item {item_id}: {dl_err}")
 
-    if not local_path or not local_path.is_file():
-        logger.warning(f"Image not found for item {item.get('id')}: {local_path_str or 'path unknown'}")
-        return None
+    is_textual_fallback = False
+    b64_img = ""
+    mime_type = "image/jpeg"
+
+    if local_path and local_path.is_file():
+        try:
+            with open(local_path, "rb") as f:
+                b64_img = base64.b64encode(f.read()).decode("utf-8")
+            mime_type = "image/png" if local_path.suffix.lower() == ".png" else "image/jpeg"
+        except Exception as read_err:
+            logger.warning(f"Failed reading image for {item_id}: {read_err}. Activating graceful textual synthesis fallback.")
+            is_textual_fallback = True
+    else:
+        logger.warning(f"Image not found on disk for item {item.get('id')}. Activating graceful textual synthesis fallback.")
+        is_textual_fallback = True
 
     try:
-        with open(local_path, "rb") as f:
-            b64_img = base64.b64encode(f.read()).decode("utf-8")
+        if not is_textual_fallback and b64_img:
+            prompt_instruction = (
+                SYSTEM_PROMPT
+                + "\n\nCRITICAL MANDATE: Analyze this reference image and synthesize exactly 10 distinct derivative prompts "
+                + "numbered 1 through 10 in the 'derivative_prompts' array. Each prompt MUST follow the 700-1000 word density mandate."
+            )
+            contents_parts = [
+                {"inline_data": {"mime_type": mime_type, "data": b64_img}},
+                {"text": prompt_instruction}
+            ]
+        else:
+            is_textual_fallback = True
+            keywords_val = item.get("keywords")
+            if isinstance(keywords_val, list):
+                kw_str = ", ".join(keywords_val)
+            else:
+                kw_str = str(keywords_val or "N/A")
 
-        mime_type = "image/png" if local_path.suffix.lower() == ".png" else "image/jpeg"
-
-        prompt_instruction = (
-            SYSTEM_PROMPT
-            + "\n\nCRITICAL MANDATE: Analyze this reference image and synthesize exactly 10 distinct derivative prompts "
-            + "numbered 1 through 10 in the 'derivative_prompts' array. Each prompt MUST follow the 700-1000 word density mandate."
-        )
+            meta_context = (
+                f"Title: {item.get('title', 'Unknown Concept')}\n"
+                f"Content Type: {item.get('content_type', 'photo')}\n"
+                f"Contributor: {item.get('contributor_name', 'Top Contributor')}\n"
+                f"Keywords: {kw_str}\n"
+                f"Source Niche: {item.get('source', 'Commercial Microstock')}"
+            )
+            prompt_instruction = (
+                SYSTEM_PROMPT
+                + f"\n\nCRITICAL CONTEXT: Physical reference image is temporarily unavailable. Based on the following top-selling stock metadata:\n{meta_context}\n\n"
+                + "Perform a conceptual reverse-engineering of the aesthetic DNA and synthesize exactly 10 distinct derivative prompts "
+                + "numbered 1 through 10 in the 'derivative_prompts' array. Each prompt MUST strictly follow the 700-1000 word density mandate. "
+                + "In 'analysis_metadata', ensure 'reference_available' is set to false."
+            )
+            contents_parts = [
+                {"text": prompt_instruction}
+            ]
 
         payload = {
             "contents": [{
-                "parts": [
-                    {"inline_data": {"mime_type": mime_type, "data": b64_img}},
-                    {"text": prompt_instruction}
-                ]
+                "parts": contents_parts
             }],
             "generationConfig": {
                 "response_mime_type": "application/json",
@@ -298,11 +332,15 @@ def process_image(item: Dict[str, Any]) -> Optional[Dict[str, Any]]:
                                     if isinstance(pd, dict) and "final_prompt" in pd and "prompt" not in dp:
                                         dp["prompt"] = pd["final_prompt"]
 
+                        analysis_metadata = result.get("analysis_metadata", {})
+                        if is_textual_fallback:
+                            analysis_metadata["reference_available"] = False
+
                         return {
                             "source_id": str(item.get("id")),
                             "source_title": item.get("title"),
                             "system_version": result.get("system_version", "3.0"),
-                            "analysis_metadata": result.get("analysis_metadata", {}),
+                            "analysis_metadata": analysis_metadata,
                             "analysis": result.get("visual_dna", {}),
                             "generated_prompts": derivative_prompts
                         }
@@ -327,6 +365,14 @@ def main(max_items: Optional[int] = None) -> None:
     if not os.getenv("GEMINI_API_KEY"):
         logger.critical("GEMINI_API_KEY not set in .env")
         return
+
+    # Pre-flight automatic hydration of raw reference images
+    try:
+        from src.scraper.hydrator import hydrate_raw_references
+        logger.info("Executing pre-flight hydration check for raw reference images...")
+        hydrate_raw_references()
+    except Exception as h_err:
+        logger.warning(f"Pre-flight hydration warning: {h_err}")
 
     trends = load_trends()
     if not trends:

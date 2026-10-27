@@ -274,6 +274,7 @@ async function loadCurrentTab() {
   switch (currentTab) {
     case 'gallery': return loadGallery();
     case 'queue': return loadQueue();
+    case 'qc': return loadQC();
     case 'matrix': return loadMatrix();
     case 'agencies': return loadAgencies();
     case 'timeline': return loadTimeline();
@@ -300,11 +301,15 @@ async function loadGallery() {
     const badge = img.is_cataloged
       ? '<span class="gallery-item-badge badge-cataloged">✓ IPTC</span>'
       : '<span class="gallery-item-badge badge-uncataloged">⏳</span>';
+    const uploadBadge = (img.uploaded_agencies && img.uploaded_agencies.length > 0)
+      ? '<span class="gallery-item-badge" style="right:auto; left:8px; background:rgba(6,182,212,0.9); color:#fff; font-size:0.65rem; padding:2px 6px; border-radius:4px; font-weight:600;">🚀 ' + img.uploaded_agencies.length + ' enviada' + (img.uploaded_agencies.length > 1 ? 's' : '') + '</span>'
+      : '';
     const title = img.title || img.filename;
     return '' +
       '<div class="gallery-item" onclick="openImageModal(\'' + esc(img.filename) + '\')">' +
         '<img src="/api/images/' + encodeURIComponent(img.filename) + '/thumb" alt="' + esc(title) + '" loading="lazy">' +
         badge +
+        uploadBadge +
         '<div class="gallery-item-overlay">' +
           '<div class="gallery-item-title">' + esc(title) + '</div>' +
           '<div class="gallery-item-size">' + img.size_mb + ' MB</div>' +
@@ -368,6 +373,18 @@ function renderModalMeta(meta) {
         '<div class="meta-group-title">Keywords (' + kws.length + ')</div>' +
         '<div class="keyword-tags">' +
           kws.map(function(k) { return '<span class="keyword-tag">' + esc(k.trim()) + '</span>'; }).join('') +
+        '</div>' +
+      '</div>';
+  }
+
+  if (meta.uploaded_agencies && meta.uploaded_agencies.length > 0) {
+    html += '' +
+      '<div class="meta-group">' +
+        '<div class="meta-group-title">Enviado para Agências (' + meta.uploaded_agencies.length + ')</div>' +
+        '<div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:4px;">' +
+          meta.uploaded_agencies.map(function(a) {
+            return '<span style="background:rgba(16,185,129,0.15); color:#10b981; border:1px solid rgba(16,185,129,0.3); font-weight:600; font-size:0.75rem; padding:3px 8px; border-radius:4px;">✓ ' + esc(a.toUpperCase()) + '</span>';
+          }).join('') +
         '</div>' +
       '</div>';
   }
@@ -828,6 +845,10 @@ async function loadAgencies() {
         actions = '<button class="btn btn-run" onclick="runUpload(\'' + a.key + '\')">Enviar</button>';
       }
     }
+    const portalLink = a.portal_url
+      ? '<a href="' + a.portal_url + '" target="_blank" rel="noopener noreferrer" class="btn btn-sm" style="text-decoration:none; display:inline-flex; align-items:center; gap:4px; font-size:0.75rem; padding:4px 9px; background:rgba(6,182,212,0.12); color:var(--accent-cyan); border:1px solid rgba(6,182,212,0.3); border-radius:4px;">🔗 Acessar Portal ↗</a>'
+      : '<span style="color:var(--text-muted); font-size:0.75rem;">—</span>';
+
     return '' +
       '<tr>' +
         '<td><strong>' + esc(a.name) + '</strong></td>' +
@@ -835,6 +856,7 @@ async function loadAgencies() {
         '<td>' + statusChip + '</td>' +
         '<td class="mono">' + a.uploads + '</td>' +
         '<td class="mono">' + lastUpload + '</td>' +
+        '<td>' + portalLink + '</td>' +
         '<td>' + actions + '</td>' +
       '</tr>';
   }).join('');
@@ -1228,3 +1250,318 @@ function showToast(msg) {
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') closeModal();
 });
+
+// ══════════════════════════════════════════════════
+// Curadoria & Quality Control (QC) Logic
+// ══════════════════════════════════════════════════
+
+let currentQCFilter = 'all';
+let currentQCConfig = { mode: 'auto', min_score: 7.5, auto_upscale: true };
+
+async function loadQC() {
+  const grid = document.getElementById('qc-grid');
+  if (!grid) return;
+
+  try {
+    const [cfgRes, dataRes] = await Promise.all([
+      fetch(API + '/api/qc/config'),
+      fetch(API + '/api/qc/images?filter=' + encodeURIComponent(currentQCFilter)),
+    ]);
+
+    if (cfgRes.ok) {
+      currentQCConfig = await cfgRes.json();
+    }
+
+    if (dataRes.ok) {
+      const data = await dataRes.json();
+      renderQCControls(currentQCConfig, data.stats);
+      renderQCCards(data.images, data.stats);
+    }
+  } catch (err) {
+    console.error('Error loading QC:', err);
+    if (grid) grid.innerHTML = '<div class="loading">Erro ao carregar dados de QC.</div>';
+  }
+}
+
+function renderQCControls(config, stats) {
+  const autoBtn = document.getElementById('qc-mode-auto-btn');
+  const manualBtn = document.getElementById('qc-mode-manual-btn');
+  if (autoBtn && manualBtn) {
+    if (config.mode === 'auto') {
+      autoBtn.className = 'qc-toggle-btn active';
+      manualBtn.className = 'qc-toggle-btn';
+    } else {
+      manualBtn.className = 'qc-toggle-btn active';
+      autoBtn.className = 'qc-toggle-btn';
+    }
+  }
+
+  const minScoreInput = document.getElementById('qc-min-score');
+  if (minScoreInput && document.activeElement !== minScoreInput) {
+    minScoreInput.value = config.min_score || 7.5;
+  }
+
+  if (stats) {
+    const elAll = document.getElementById('qc-count-all');
+    const elPending = document.getElementById('qc-count-pending');
+    const elApproved = document.getElementById('qc-count-approved');
+    const elRejected = document.getElementById('qc-count-rejected');
+    const elUpscaled = document.getElementById('qc-count-upscaled');
+    const elApprovedBtn = document.getElementById('qc-approved-count');
+    const elStat = document.getElementById('qc-stat');
+
+    if (elAll) elAll.textContent = stats.total_staging || 0;
+    if (elPending) elPending.textContent = stats.pending || 0;
+    if (elApproved) elApproved.textContent = stats.approved || 0;
+    if (elRejected) elRejected.textContent = stats.rejected || 0;
+    if (elUpscaled) elUpscaled.textContent = stats.upscaled || 0;
+    if (elApprovedBtn) elApprovedBtn.textContent = stats.approved || 0;
+
+    if (elStat) {
+      elStat.textContent = (stats.total_staging || 0) + ' imagens em staging | ' + (stats.approved || 0) + ' aprovadas | ' + (stats.upscaled || 0) + ' prontas em 8K';
+    }
+
+    const btnUpscale = document.getElementById('btn-qc-upscale-all');
+    if (btnUpscale) {
+      btnUpscale.disabled = (stats.approved || 0) === 0;
+    }
+
+    const btnEval = document.getElementById('btn-qc-eval-all');
+    if (btnEval) {
+      btnEval.disabled = (stats.pending || 0) === 0;
+    }
+  }
+}
+
+async function setQCMode(mode) {
+  try {
+    const res = await fetch(API + '/api/qc/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode: mode }),
+    });
+    if (res.ok) {
+      currentQCConfig = await res.json();
+      loadQC();
+    }
+  } catch (e) {
+    console.error('Error setting QC mode:', e);
+  }
+}
+
+async function updateQCMinScore(val) {
+  const num = parseFloat(val);
+  if (isNaN(num) || num < 1 || num > 10) return;
+  try {
+    await fetch(API + '/api/qc/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ min_score: num }),
+    });
+    loadQC();
+  } catch (e) {
+    console.error('Error updating QC min score:', e);
+  }
+}
+
+function filterQC(status) {
+  currentQCFilter = status;
+  document.querySelectorAll('#tab-qc .filter-btn').forEach(function(b) {
+    b.classList.remove('active');
+  });
+  const activeBtn = document.getElementById('qc-filter-' + status);
+  if (activeBtn) activeBtn.classList.add('active');
+  loadQC();
+}
+
+async function runQCEvaluate() {
+  const btn = document.getElementById('btn-qc-eval-all');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '⚡ Avaliando com Gemini...';
+  }
+  try {
+    const res = await fetch(API + '/api/qc/evaluate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+    const data = await res.json();
+    console.log('QC Evaluation completed:', data);
+    await Promise.all([loadQC(), loadStatus()]);
+  } catch (e) {
+    console.error('Error running QC evaluate:', e);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '⚡ Avaliar com Gemini';
+    }
+  }
+}
+
+async function runQCUpscale() {
+  const btn = document.getElementById('btn-qc-upscale-all');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '🚀 Upscaling para 8K...';
+  }
+  try {
+    const res = await fetch(API + '/api/qc/upscale', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+    const data = await res.json();
+    console.log('QC Upscale completed:', data);
+    await Promise.all([loadQC(), loadGallery(), loadStatus()]);
+  } catch (e) {
+    console.error('Error running QC upscale:', e);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '🚀 Upscale 8K Aprovadas (<span id="qc-approved-count">0</span>)';
+    }
+  }
+}
+
+async function setSingleQCStatus(filename, status) {
+  try {
+    const res = await fetch(API + '/api/qc/set-status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filename: filename, status: status }),
+    });
+    if (res.ok) {
+      loadQC();
+    }
+  } catch (e) {
+    console.error('Error setting single QC status:', e);
+  }
+}
+
+async function evalSingleQC(filename) {
+  try {
+    const res = await fetch(API + '/api/qc/evaluate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filenames: [filename], force: true }),
+    });
+    if (res.ok) {
+      loadQC();
+    }
+  } catch (e) {
+    console.error('Error evaluating single QC:', e);
+  }
+}
+
+async function upscaleSingleQC(filename) {
+  try {
+    const res = await fetch(API + '/api/qc/upscale', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filenames: [filename] }),
+    });
+    if (res.ok) {
+      await Promise.all([loadQC(), loadGallery(), loadStatus()]);
+    }
+  } catch (e) {
+    console.error('Error upscaling single QC:', e);
+  }
+}
+
+function openQCPreview(filename) {
+  window.open(API + '/api/qc/staging/' + encodeURIComponent(filename), '_blank');
+}
+
+function renderQCCards(images, stats) {
+  const grid = document.getElementById('qc-grid');
+  if (!grid) return;
+
+  if (!images || images.length === 0) {
+    grid.innerHTML = '<div class="empty-state" style="grid-column: 1/-1; text-align:center; padding: 40px; color:var(--text-muted);">' +
+      '<div style="font-size:32px; margin-bottom:10px;">🔍</div>' +
+      '<div>Nenhuma imagem em staging para o filtro <strong>' + esc(currentQCFilter) + '</strong>.</div>' +
+      '<div style="font-size:12px; margin-top:6px;">Gere imagens em Fase 3 ou envie imagens brutas para <code>data/staging/images/</code> para curadoria.</div>' +
+      '</div>';
+    return;
+  }
+
+  grid.innerHTML = images.map(function(item) {
+    const status = item.status || 'pending';
+    let statusClass = 'qc-card-pending';
+    let badgeText = '⏳ Pendente';
+    let badgeClass = 'qc-badge-pending';
+
+    if (status === 'approved') {
+      statusClass = 'qc-card-approved';
+      badgeText = '✓ Aprovada';
+      badgeClass = 'qc-badge-approved';
+    } else if (status === 'rejected') {
+      statusClass = 'qc-card-rejected';
+      badgeText = '✗ Rejeitada';
+      badgeClass = 'qc-badge-rejected';
+    }
+
+    let upscaledBadge = '';
+    if (item.upscaled) {
+      upscaledBadge = '<span class="qc-badge-8k" title="Render 4K salvo em data/final/images (8K)">✨ 8K Pronta</span>';
+    }
+
+    let scorePill = '';
+    if (item.score !== null && item.score !== undefined) {
+      const scoreVal = Number(item.score).toFixed(1);
+      let scoreColorClass = 'qc-score-mid';
+      if (item.score >= 7.5) scoreColorClass = 'qc-score-high';
+      else if (item.score < 6.0) scoreColorClass = 'qc-score-low';
+      scorePill = '<span class="qc-score-pill ' + scoreColorClass + '">⭐ ' + scoreVal + '</span>';
+    }
+
+    let critiqueBoxHtml = '';
+    if (item.critique) {
+      const c = item.critique;
+      let tagsHtml = '';
+
+      if (c.strengths && c.strengths.length > 0) {
+        tagsHtml += c.strengths.slice(0, 2).map(function(s) {
+          return '<span class="qc-tag qc-tag-strength">✓ ' + esc(s) + '</span>';
+        }).join('');
+      }
+
+      if (c.flaws && c.flaws.length > 0) {
+        tagsHtml += c.flaws.slice(0, 2).map(function(f) {
+          return '<span class="qc-tag qc-tag-flaw">⚠️ ' + esc(f) + '</span>';
+        }).join('');
+      }
+
+      critiqueBoxHtml = '<div class="qc-critique-box">' +
+        (c.summary ? ('<div style="margin-bottom:4px;">' + esc(c.summary) + '</div>') : '') +
+        (tagsHtml ? ('<div class="qc-critique-tags">' + tagsHtml + '</div>') : '') +
+        '</div>';
+    }
+
+    const createdDate = item.created_at ? new Date(item.created_at).toLocaleDateString('pt-BR') : '';
+
+    return '' +
+      '<div class="qc-card ' + statusClass + '">' +
+        '<div class="qc-card-img-wrap" onclick="openQCPreview('' + esc(item.filename) + '')">' +
+          '<span class="qc-badge ' + badgeClass + '">' + badgeText + '</span>' +
+          upscaledBadge +
+          scorePill +
+          '<img src="' + API + '/api/qc/staging/' + encodeURIComponent(item.filename) + '/thumb" alt="' + esc(item.filename) + '" loading="lazy" onerror="this.onerror=null;this.src='/static/img/placeholder.png';">' +
+        '</div>' +
+        '<div class="qc-card-body">' +
+          '<div class="qc-card-header">' +
+            '<span class="qc-card-title" title="' + esc(item.filename) + '">' + esc(item.filename) + '</span>' +
+            '<span class="qc-card-date">' + createdDate + '</span>' +
+          '</div>' +
+          critiqueBoxHtml +
+          '<div class="qc-card-actions">' +
+            '<button class="btn-qc-action btn-qc-approve" onclick="setSingleQCStatus('' + esc(item.filename) + '', 'approved')" title="Aprovar imagem para upscale 4K">✓ Aprovar</button>' +
+            '<button class="btn-qc-action btn-qc-reject" onclick="setSingleQCStatus('' + esc(item.filename) + '', 'rejected')" title="Rejeitar imagem (não fará upscale)">✗ Rejeitar</button>' +
+            '<button class="btn-qc-action btn-qc-eval" onclick="evalSingleQC('' + esc(item.filename) + '')" title="Auditar com Gemini Vision">⚡ IA</button>' +
+            (item.status === 'approved' && !item.upscaled ? ('<button class="btn-qc-action" style="background:var(--accent-purple); color:#fff;" onclick="upscaleSingleQC('' + esc(item.filename) + '')" title="Fazer upscale 8K agora">🚀 8K</button>') : '') +
+          '</div>' +
+        '</div>' +
+      '</div>';
+  }).join('');
+}

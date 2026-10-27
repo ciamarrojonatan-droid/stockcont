@@ -9,14 +9,17 @@ service_account*.json
 credentials*.json
 *secret*.json
 data/processed/*history.json
+data/processed/qc_manifest.json
 
-# Image data & sessions
+# Image data, staging & sessions
 data/raw/images/
 data/final/images/
 data/final/rejected/
 data/final/
-playwright_session/
-chrome_session/
+data/staging/
+playwright_session*/
+*chrome_session*/
+*test_session*/
 scratch*
 
 # Python & testing cache

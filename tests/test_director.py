@@ -119,13 +119,70 @@ def test_process_image_with_local_image_path(tmp_path, test_image, monkeypatch):
         assert prompt_item["prompt"] == "Abstract tech visual essay"
 
 
-def test_process_image_missing_image(monkeypatch):
-    """Verify process_image returns None when image file cannot be found."""
+def test_process_image_missing_image_textual_fallback(monkeypatch):
+    """Verify process_image falls back to text metadata when image file cannot be found."""
     monkeypatch.setenv("GEMINI_API_KEY", "test_mock_api_key_123456789")
+
+    mock_gemini_response = {
+        "candidates": [{
+            "content": {
+                "parts": [{
+                    "text": json.dumps({
+                        "system_version": "3.0",
+                        "analysis_metadata": {"reference_available": False},
+                        "visual_dna": {"style": "Photorealistic"},
+                        "derivative_prompts": [
+                            {
+                                "id": 1,
+                                "concept": "Fallback Text Desk",
+                                "prompt_data": {
+                                    "final_prompt": "Cinematic text fallback prompt essay"
+                                }
+                            }
+                        ]
+                    })
+                }]
+            }
+        }]
+    }
+
     item = {
-        "id": "non_existent_99999",
-        "title": "Non-existent",
+        "id": "missing_item_99999",
+        "title": "FinTech Future AI Workspace",
+        "content_type": "photo",
+        "contributor_name": "ProShooter",
+        "keywords": ["ai", "fintech", "workspace"],
         "local_path": "data/raw/images/non_existent_99999.jpg"
     }
-    result = process_image(item)
-    assert result is None
+
+    with patch("httpx.post") as mock_post:
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = mock_gemini_response
+        mock_post.return_value = mock_resp
+
+        result = process_image(item)
+        assert result is not None
+        assert result["source_id"] == "missing_item_99999"
+        assert result["analysis_metadata"]["reference_available"] is False
+        assert len(result["generated_prompts"]) == 1
+        assert result["generated_prompts"][0]["prompt"] == "Cinematic text fallback prompt essay"
+
+
+def test_process_image_gemini_failure(monkeypatch):
+    """Verify process_image returns None when Gemini API fails completely."""
+    monkeypatch.setenv("GEMINI_API_KEY", "test_mock_api_key_123456789")
+    item = {
+        "id": "item_failing_gemini",
+        "title": "Fail Item",
+        "local_path": "data/raw/images/non_existent.jpg"
+    }
+    with patch("httpx.post") as mock_post:
+        mock_resp = MagicMock()
+        mock_resp.status_code = 500
+        mock_resp.text = "Internal Server Error"
+        mock_post.return_value = mock_resp
+
+        result = process_image(item)
+        assert result is None
+

@@ -12,6 +12,7 @@ from src.backup.gdrive_backup import (
     load_backup_history,
     save_backup_history,
     run_gdrive_backup,
+    run_gdrive_restore,
 )
 
 
@@ -138,3 +139,86 @@ def test_dry_run_simulation(tmp_path, monkeypatch):
     # Ensure no file was transferred
     copied_file = dst_sync_dir / "simulated_render.jpg"
     assert not copied_file.exists()
+
+
+def test_restore_assets_unconfigured(monkeypatch):
+    """Verify restore_assets returns unconfigured when not setup."""
+    monkeypatch.delenv("GOOGLE_DRIVE_SERVICE_ACCOUNT_FILE", raising=False)
+    monkeypatch.delenv("GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON", raising=False)
+    monkeypatch.delenv("GOOGLE_DRIVE_CREDENTIALS_FILE", raising=False)
+    monkeypatch.delenv("GOOGLE_DRIVE_LOCAL_PATH", raising=False)
+
+    backup = GoogleDriveBackup()
+    res = backup.restore_assets()
+    assert res["status"] == "unconfigured"
+    assert res["restored_images"] == 0
+
+
+def test_local_sync_restore_assets(tmp_path, monkeypatch):
+    """Verify local sync restore copies images, restores CSV, and merges upload history."""
+    final_images = tmp_path / "final_images"
+    final_images.mkdir()
+    processed_dir = tmp_path / "processed"
+    processed_dir.mkdir()
+    gdrive_sync = tmp_path / "GDrive_Sync"
+    gdrive_sync.mkdir()
+
+    # Create dummy image in backup
+    backup_img = gdrive_sync / "asset_99.jpg"
+    backup_img.write_bytes(b"\xFF\xD8\xFF\xE0" + b"dummy_backup_bytes" * 50)
+
+    # Create dummy upload history in backup
+    backup_history = gdrive_sync / "upload_history.json"
+    backup_history.write_text(json.dumps({
+        "asset_99.jpg": {"123rf": "2026-10-25T12:00:00Z", "pond5": "2026-10-25T12:05:00Z"}
+    }), encoding="utf-8")
+
+    # Create dummy csv in backup
+    backup_csv = gdrive_sync / "adobe_stock_upload.csv"
+    backup_csv.write_text("Filename,Title,Keywords,Category\nasset_99.jpg,Test Title,test,1", encoding="utf-8")
+
+    target_upload_history = processed_dir / "upload_history.json"
+    target_csv = processed_dir / "adobe_stock_upload.csv"
+
+    monkeypatch.setattr("src.backup.gdrive_backup.FINAL_IMAGES_DIR", final_images)
+    monkeypatch.setattr("src.backup.gdrive_backup.PROCESSED_DIR", processed_dir)
+    monkeypatch.setattr("src.backup.gdrive_backup.UPLOAD_HISTORY_FILE", target_upload_history)
+    monkeypatch.setattr("src.backup.gdrive_backup.CSV_FILE", target_csv)
+    monkeypatch.setenv("GOOGLE_DRIVE_LOCAL_PATH", str(gdrive_sync))
+
+    backup = GoogleDriveBackup()
+    assert backup.mode == "local_sync"
+
+    # First run: should restore image, CSV, and merge history
+    result = backup.restore_assets()
+    assert result["status"] == "completed"
+    assert result["restored_images"] == 1
+    assert result["restored_metadata"] == 2
+    assert result["skipped"] == 0
+
+    assert (final_images / "asset_99.jpg").exists()
+    assert target_csv.exists()
+    assert target_upload_history.exists()
+
+    with open(target_upload_history, "r", encoding="utf-8") as f:
+        loaded_history = json.load(f)
+    assert "asset_99.jpg" in loaded_history
+    assert loaded_history["asset_99.jpg"]["123rf"] == "2026-10-25T12:00:00Z"
+
+    # Second run without overwrite: image should be skipped
+    result2 = backup.restore_assets(overwrite=False)
+    assert result2["restored_images"] == 0
+    assert result2["skipped"] == 1
+
+
+def test_run_gdrive_restore_entrypoint(tmp_path, monkeypatch):
+    """Verify run_gdrive_restore helper functions correctly."""
+    gdrive_sync = tmp_path / "GDrive_Sync"
+    gdrive_sync.mkdir()
+
+    monkeypatch.setattr("src.backup.gdrive_backup.FINAL_IMAGES_DIR", tmp_path / "final_images")
+    monkeypatch.setattr("src.backup.gdrive_backup.PROCESSED_DIR", tmp_path / "processed")
+    monkeypatch.setenv("GOOGLE_DRIVE_LOCAL_PATH", str(gdrive_sync))
+
+    res = run_gdrive_restore()
+    assert res["status"] == "completed"

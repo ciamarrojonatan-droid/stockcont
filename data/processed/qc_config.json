@@ -1,0 +1,9 @@
+{
+  "mode": "auto",
+  "min_score": 7.5,
+  "auto_upscale": false,
+  "target_resolution": [
+    7680,
+    4320
+  ]
+}

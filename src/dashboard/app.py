@@ -26,6 +26,17 @@ IMAGES_DIR = readers.FINAL_IMAGES_DIR
 async def lifespan(app: FastAPI):
     # Startup: Clean up any orphan background processes
     runner.cleanup_orphan_processes()
+
+    # Startup: Auto-pull all assets and upload history from Google Drive backup
+    try:
+        from src.backup.gdrive_backup import GoogleDriveBackup
+        gdrive = GoogleDriveBackup()
+        if gdrive.is_configured:
+            logger.info("☁️ Google Drive configurado. Puxando assets do backup para o dashboard...")
+            gdrive.restore_assets()
+    except Exception as e:
+        logger.warning("Falha ao restaurar assets do Google Drive no startup: %s", e)
+
     yield
     # Shutdown: Clean up any child tasks running under this server instance
     for task_key in list(runner._running_tasks.keys()):
@@ -243,6 +254,11 @@ async def get_image_metadata(filename: str):
     except Exception as e:
         meta["exif"]["error"] = str(e)
 
+    upload_dict = readers.read_upload_history_dict()
+    file_hist = upload_dict.get(filename, {})
+    meta["uploaded_agencies"] = list(file_hist.keys()) if isinstance(file_hist, dict) else []
+    meta["platforms"] = file_hist
+
     return meta
 
 
@@ -299,6 +315,17 @@ async def get_backup():
 @app.post("/api/backup/sync")
 async def sync_backup():
     return await runner.run_backup()
+
+
+@app.post("/api/backup/pull")
+async def pull_backup():
+    """Manually pull and restore all assets, CSV, and upload history from Google Drive."""
+    from src.backup.gdrive_backup import GoogleDriveBackup
+    gdrive = GoogleDriveBackup()
+    if not gdrive.is_configured:
+        return {"success": False, "message": "Google Drive não está configurado no .env"}
+    result = gdrive.restore_assets()
+    return {"success": True, "details": result}
 
 
 # ── Timeline ─────────────────────────────────────────
@@ -391,6 +418,119 @@ async def run_phase(phase: int, query: Optional[str] = None, mode: Optional[str]
     if platform:
         extra_args.extend(["--platform", platform])
     return await runner.run_phase(phase, extra_args=extra_args if extra_args else None)
+
+
+# ── Quality Control (QC) & Curation ──────────────────
+
+def _resolve_staging_image_path(filename: str) -> Path:
+    safe_name = Path(filename).name
+    if safe_name != filename or not filename:
+        raise HTTPException(status_code=400, detail="Invalid filename")
+    if Path(safe_name).suffix.lower() not in ALLOWED_IMAGE_EXTENSIONS:
+        raise HTTPException(status_code=400, detail="Tipo de arquivo não permitido")
+    candidate = readers.STAGING_IMAGES_DIR / safe_name
+    if candidate.exists() and candidate.is_file():
+        try:
+            candidate.resolve().relative_to(readers.STAGING_IMAGES_DIR.resolve())
+            return candidate
+        except ValueError:
+            pass
+    raise HTTPException(status_code=404, detail="Staging image not found")
+
+
+@app.get("/api/qc/config")
+async def get_qc_config():
+    from src.analyzer.qc_inspector import QCInspector
+    inspector = QCInspector()
+    return inspector.get_config()
+
+
+@app.post("/api/qc/config")
+async def set_qc_config(req: schemas.QCConfigRequest):
+    from src.analyzer.qc_inspector import QCInspector
+    inspector = QCInspector()
+    return inspector.set_config(mode=req.mode, min_score=req.min_score, auto_upscale=req.auto_upscale)
+
+
+@app.get("/api/qc/stats")
+async def get_qc_stats():
+    return readers.get_qc_stats()
+
+
+@app.get("/api/qc/images")
+async def get_qc_images(filter: str = "all"):
+    images = readers.list_staging_images(filter_status=filter)
+    stats = readers.get_qc_stats()
+    return {
+        "images": images,
+        "total": len(images),
+        "stats": stats,
+    }
+
+
+@app.post("/api/qc/evaluate")
+async def evaluate_qc_images(req: schemas.QCEvaluateRequest):
+    from src.analyzer.qc_inspector import QCInspector
+    inspector = QCInspector()
+    results = inspector.run_batch_qc(filenames=req.filenames)
+    return {"success": True, "evaluated_count": len(results), "items": results}
+
+
+@app.post("/api/qc/set-status")
+async def set_qc_status(req: schemas.QCSetStatusRequest):
+    from src.analyzer.qc_inspector import QCInspector
+    inspector = QCInspector()
+    item = inspector.set_status(req.filename, req.status, notes=req.notes or "")
+    return {"success": True, "item": item}
+
+
+@app.post("/api/qc/batch-set-status")
+async def batch_set_qc_status(req: schemas.QCBatchStatusRequest):
+    from src.analyzer.qc_inspector import QCInspector
+    inspector = QCInspector()
+    count = inspector.batch_set_status(req.filenames, req.status)
+    return {"success": True, "updated_count": count}
+
+
+@app.post("/api/qc/upscale")
+async def trigger_qc_upscale(req: schemas.QCUpscaleRequest):
+    from src.factory.upscaler import Upscaler
+    upscaler = Upscaler()
+    if req.filenames:
+        upscaled = []
+        for fn in req.filenames:
+            res = upscaler.upscale_image(fn)
+            if res:
+                upscaled.append(res.name)
+        return {"success": True, "upscaled_count": len(upscaled), "files": upscaled}
+    else:
+        results = upscaler.upscale_all_approved()
+        return {"success": True, "upscaled_count": len(results), "files": [p.name for p in results]}
+
+
+@app.get("/api/qc/staging/{filename}")
+async def get_staging_image_file(filename: str):
+    file_path = _resolve_staging_image_path(filename)
+    media = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp"}
+    return FileResponse(str(file_path), media_type=media.get(file_path.suffix.lower(), "application/octet-stream"))
+
+
+@app.get("/api/qc/staging/{filename}/thumb")
+async def get_staging_image_thumb(filename: str):
+    file_path = _resolve_staging_image_path(filename)
+    try:
+        import io
+        from PIL import Image
+
+        img = Image.open(file_path)
+        img.thumbnail((400, 400), Image.Resampling.LANCZOS)
+        buf = io.BytesIO()
+        img.save(buf, format="JPEG", quality=80)
+        buf.seek(0)
+        return StreamingResponse(buf, media_type="image/jpeg")
+    except Exception as e:
+        logger.warning("Error generating staging thumbnail for %s: %s", filename, e)
+        return FileResponse(str(file_path))
 
 
 # ── Server Launcher ──────────────────────────────────

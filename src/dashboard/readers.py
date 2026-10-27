@@ -199,6 +199,8 @@ def list_final_images() -> List[Dict[str, Any]]:
         if fn:
             cataloged_map[fn] = row
 
+    upload_map = read_upload_history_dict()
+
     images: List[Dict[str, Any]] = []
     for f in sorted(target_dir.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True):
         if not f.is_file() or f.suffix.lower() not in exts:
@@ -208,6 +210,9 @@ def list_final_images() -> List[Dict[str, Any]]:
         if not row:
             row = get_image_embedded_metadata(f)
 
+        file_history = upload_map.get(f.name, {})
+        uploaded_agencies = list(file_history.keys()) if isinstance(file_history, dict) else []
+
         images.append({
             "filename": f.name,
             "path": str(f),
@@ -215,6 +220,9 @@ def list_final_images() -> List[Dict[str, Any]]:
             "size_mb": round(stat.st_size / (1024 * 1024), 2),
             "created_at": datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc).isoformat(),
             "is_cataloged": row is not None,
+            "is_uploaded": len(uploaded_agencies) > 0,
+            "uploaded_agencies": uploaded_agencies,
+            "platforms": file_history,
             "title": row.get("Title") if row else None,
             "keywords": row.get("Keywords") if row else None,
             "category": row.get("Category") if row else None,
@@ -260,14 +268,14 @@ def get_prompt_queue_items() -> List[Dict[str, Any]]:
 def get_agency_status() -> List[Dict[str, Any]]:
     """Check agency configuration from environment variables."""
     agencies_def = [
-        {"name": "Adobe Stock", "key": "adobe", "env_prefix": "ADOBE_SFTP", "protocol": "SFTP"},
-        {"name": "Freepik", "key": "freepik", "env_prefix": "FREEPIK_FTP", "protocol": "FTP"},
-        {"name": "Dreamstime", "key": "dreamstime", "env_prefix": "DREAMSTIME_FTP", "protocol": "FTP"},
-        {"name": "Pond5", "key": "pond5", "env_prefix": "POND5_FTP", "protocol": "FTP"},
-        {"name": "Alamy", "key": "alamy", "env_prefix": "ALAMY_FTP", "protocol": "FTP"},
-        {"name": "Vecteezy", "key": "vecteezy", "env_prefix": "VECTEEZY_FTP", "protocol": "FTP"},
-        {"name": "123RF", "key": "123rf", "env_prefix": "ONETWOTHREERF_FTP", "protocol": "FTP"},
-        {"name": "Ingram", "key": "ingram", "env_prefix": "INGRAM_FTP", "protocol": "FTP"},
+        {"name": "Adobe Stock", "key": "adobe", "env_prefix": "ADOBE_SFTP", "protocol": "SFTP", "portal_url": "https://contributor.stock.adobe.com/en/uploads"},
+        {"name": "Freepik", "key": "freepik", "env_prefix": "FREEPIK_FTP", "protocol": "FTP", "portal_url": "https://contributor.freepik.com/upload"},
+        {"name": "Dreamstime", "key": "dreamstime", "env_prefix": "DREAMSTIME_FTP", "protocol": "FTP", "portal_url": "https://www.dreamstime.com/uploadfile"},
+        {"name": "Pond5", "key": "pond5", "env_prefix": "POND5_FTP", "protocol": "FTP", "portal_url": "https://www.pond5.com/my-uploads"},
+        {"name": "Alamy", "key": "alamy", "env_prefix": "ALAMY_FTP", "protocol": "FTP", "portal_url": "https://www.alamy.com/contributor/"},
+        {"name": "Vecteezy", "key": "vecteezy", "env_prefix": "VECTEEZY_FTP", "protocol": "FTP", "portal_url": "https://contributor.vecteezy.com/"},
+        {"name": "123RF", "key": "123rf", "env_prefix": "ONETWOTHREERF_FTP", "protocol": "FTP", "portal_url": "https://contributor.123rf.com/"},
+        {"name": "Ingram", "key": "ingram", "env_prefix": "INGRAM_FTP", "protocol": "FTP", "portal_url": "https://www.ingrampublishing.com/"},
     ]
 
     upload_history = read_upload_history()
@@ -296,6 +304,7 @@ def get_agency_status() -> List[Dict[str, Any]]:
             "uploads": uploads,
             "last_upload": last_upload,
             "protocol": adef["protocol"],
+            "portal_url": adef.get("portal_url", ""),
         })
     return result
 
@@ -527,6 +536,13 @@ def update_matrix_cell(filename: str, agency: str, uploaded: bool) -> bool:
             with open(tmp_file, "w", encoding="utf-8") as f:
                 json.dump(history, f, indent=2, ensure_ascii=False)
             tmp_file.replace(UPLOAD_HISTORY_FILE)
+            gdrive_p = get_gdrive_dir()
+            if gdrive_p and gdrive_p.exists():
+                try:
+                    import shutil
+                    shutil.copy2(UPLOAD_HISTORY_FILE, gdrive_p / UPLOAD_HISTORY_FILE.name)
+                except Exception:
+                    pass
             return True
         except Exception as e:
             logger.error("Error updating upload history cell: %s", e)
@@ -578,6 +594,13 @@ def batch_update_matrix_agency(agency: str, action: str, filenames: Optional[Lis
             with open(tmp_file, "w", encoding="utf-8") as f:
                 json.dump(history, f, indent=2, ensure_ascii=False)
             tmp_file.replace(UPLOAD_HISTORY_FILE)
+            gdrive_p = get_gdrive_dir()
+            if gdrive_p and gdrive_p.exists():
+                try:
+                    import shutil
+                    shutil.copy2(UPLOAD_HISTORY_FILE, gdrive_p / UPLOAD_HISTORY_FILE.name)
+                except Exception:
+                    pass
             return updated_count
         except Exception as e:
             logger.error("Error batch updating upload history: %s", e)
@@ -588,3 +611,41 @@ def batch_update_matrix_agency(agency: str, action: str, filenames: Optional[Lis
                     tmp_file.unlink()
                 except Exception:
                     pass
+
+
+# ── Quality Control (QC) Data Readers ───────────────
+
+STAGING_DIR = BASE_DIR / "data" / "staging"
+STAGING_IMAGES_DIR = STAGING_DIR / "images"
+QC_MANIFEST_FILE = PROCESSED_DIR / "qc_manifest.json"
+QC_CONFIG_FILE = PROCESSED_DIR / "qc_config.json"
+
+
+def get_qc_stats() -> Dict[str, Any]:
+    """Retrieve aggregate stats for the Quality Control pipeline."""
+    from src.analyzer.qc_inspector import QCInspector
+    inspector = QCInspector()
+    return inspector.get_stats()
+
+
+def list_staging_images(filter_status: str = "all") -> List[Dict[str, Any]]:
+    """Return list of images in data/staging/images/ with their QC evaluation state."""
+    from src.analyzer.qc_inspector import QCInspector
+    inspector = QCInspector()
+    inspector.scan_staging()
+    manifest = inspector.get_manifest()
+
+    items = list(manifest.values())
+
+    if filter_status == "pending":
+        items = [i for i in items if i.get("status") == "pending"]
+    elif filter_status == "approved":
+        items = [i for i in items if i.get("status") == "approved"]
+    elif filter_status == "rejected":
+        items = [i for i in items if i.get("status") == "rejected"]
+    elif filter_status == "upscaled":
+        items = [i for i in items if i.get("upscaled", False)]
+
+    # Sort newest first
+    items.sort(key=lambda x: x.get("created_at") or "", reverse=True)
+    return items

@@ -106,3 +106,31 @@ class MatrixBatchRequest(BaseModel):
     agency: str
     action: Literal["mark_all", "unmark_all"]
     filenames: Optional[List[str]] = None
+
+
+# ── Quality Control (QC) & Curation ──────────────────
+
+class QCConfigRequest(BaseModel):
+    mode: Optional[Literal["auto", "manual"]] = None
+    min_score: Optional[float] = None
+    auto_upscale: Optional[bool] = None
+
+
+class QCSetStatusRequest(BaseModel):
+    filename: str
+    status: Literal["approved", "rejected", "pending"]
+    notes: Optional[str] = ""
+
+
+class QCBatchStatusRequest(BaseModel):
+    filenames: List[str]
+    status: Literal["approved", "rejected", "pending"]
+
+
+class QCEvaluateRequest(BaseModel):
+    filenames: Optional[List[str]] = None
+    force: Optional[bool] = False
+
+
+class QCUpscaleRequest(BaseModel):
+    filenames: Optional[List[str]] = None

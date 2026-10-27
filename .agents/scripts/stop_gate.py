@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """Stop hook: prevent the agent from stopping when background tasks are running.
 
-If `fullyIdle` is false (tasks still running), returns "continue" to keep
-the agent loop alive. Also continues if the termination reason indicates
-an error that might be recoverable.
+If `fullyIdle` is false (tasks still running), in Antigravity the system will
+automatically resume when the task finishes, so we allow stop cleanly.
 
 Contract: Stop → input has executionNum, terminationReason, fullyIdle, error.
            Output: { "decision": "continue"|"stop", "reason": "..." }
@@ -28,28 +27,12 @@ def main() -> None:
         print(json.dumps({"decision": "stop"}))
         return
 
-    fully_idle = payload.get("fullyIdle", True)
     termination_reason = payload.get("terminationReason", "")
     execution_num = payload.get("executionNum", 0)
 
     # Never override user cancellation or hard limits
     if termination_reason in TERMINAL_REASONS:
         print(json.dumps({"decision": "stop"}))
-        return
-
-    # If background tasks are still running, keep going
-    if not fully_idle:
-        print(
-            json.dumps(
-                {
-                    "decision": "continue",
-                    "reason": (
-                        "⏳ Background tasks are still running. "
-                        "Waiting for completion before stopping."
-                    ),
-                }
-            )
-        )
         return
 
     # Safety: don't loop forever — cap forced continuations

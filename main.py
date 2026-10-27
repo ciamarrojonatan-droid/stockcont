@@ -15,11 +15,19 @@ import json
 import logging
 import os
 import sys
+import subprocess
 from pathlib import Path
-from dotenv import load_dotenv
 
 # Root Directory
 BASE_DIR = Path(__file__).resolve().parent
+
+# Auto-bootstrap Virtual Environment if running under global/system Python
+venv_python = BASE_DIR / "venv" / "Scripts" / "python.exe"
+if venv_python.exists() and sys.executable.lower() != str(venv_python).lower():
+    if sys.prefix == sys.base_prefix or not os.environ.get("VIRTUAL_ENV"):
+        sys.exit(subprocess.call([str(venv_python)] + sys.argv))
+
+from dotenv import load_dotenv
 load_dotenv(BASE_DIR / ".env", override=True)
 
 # Reconfigure stdout/stderr to UTF-8 on Windows consoles to prevent cp1252 UnicodeEncodeError
@@ -80,7 +88,10 @@ def check_status() -> None:
         except Exception:
             trends_count = -1
     raw_images_count = len(list(RAW_IMAGES_DIR.glob("*.*"))) if RAW_IMAGES_DIR.exists() else 0
-    print(f"  [1] Phase 1 (Scout):     {trends_count} trends recorded | {raw_images_count} raw reference images")
+    missing_raw_str = ""
+    if trends_count > 0 and raw_images_count < trends_count:
+        missing_raw_str = f" ⚠️ ({trends_count - raw_images_count} ausentes - rode `python main.py --sync-raw`)"
+    print(f"  [1] Phase 1 (Scout):     {trends_count} trends recorded | {raw_images_count} raw reference images{missing_raw_str}")
 
     # Phase 2: Prompts
     prompts_count = 0
@@ -162,6 +173,13 @@ def check_status() -> None:
         print(f"  💡 Next Recommended Action: Run Phase 1 & 2 (`python main.py --phase 1 -q 'minimalist interior'`)")
     print("=" * 65 + "\n")
 
+def run_sync_raw(force: bool = False, workers: int = 8) -> None:
+    """Execute concurrent hydration of missing raw reference images."""
+    logger.info(f"--- Starting Raw Reference Hydration (Force: {force}, Workers: {workers}) ---")
+    from src.scraper.hydrator import hydrate_raw_references
+    stats = hydrate_raw_references(max_workers=workers, force=force)
+    logger.info(f"Hydration finished: {stats['downloaded']} downloaded, {stats['already_present']} present, {stats['failed']} failed.")
+
 def run_phase_1(
     mode: str = "insights",
     query: str = "trending",
@@ -201,11 +219,11 @@ def run_phase_2() -> None:
     director_main()
     logger.info("Phase 2 finished.")
 
-def run_phase_3(node: int = 192, batches: int = 1, all_batches: bool = False) -> None:
-    """Execute Phase 3: The Factory RPA Bot with batch queue support."""
-    logger.info(f"--- Starting Phase 3: The Factory (Runninghub Automation Bot - Output Node #{node}, Batches: {batches}, All: {all_batches}) ---")
+def run_phase_3(account: int = 1, node: int | None = None, batches: int = 1, all_batches: bool = False, batch_size: int = 210) -> None:
+    """Execute Phase 3: The Factory RPA Bot (Conta 1 - Raw Producer ou Conta 2 - SeedVR 8K)."""
+    logger.info(f"--- Starting Phase 3: The Factory (Conta {account}, Output Node: {node or 'default'}, Batch Size: {batch_size}, Batches: {batches}) ---")
     from src.factory.runninghub_bot import run_factory_bot
-    run_factory_bot(output_node_id=node, max_batches=batches, all_batches=all_batches)
+    run_factory_bot(account=account, output_node_id=node, batch_size=batch_size, max_batches=batches, all_batches=all_batches)
     logger.info("Phase 3 finished.")
 
 def run_phase_4(images_dir: Path | None = None, output_dir: Path | None = None) -> None:
@@ -253,6 +271,33 @@ def run_all_pipeline(query: str, max_items: int, node: int = 192, batches: int =
     logger.info("Full pipeline execution completed!")
 
 
+def run_qc(mode: str | None = None) -> None:
+    """Execute Quality Control visual auditing (Automated via Gemini Vision or Manual scan)."""
+    logger.info(f"--- Starting Quality Control & Curation (Mode: {mode or 'default'}) ---")
+    from src.analyzer.qc_inspector import QCInspector
+    inspector = QCInspector()
+    if mode in ("auto", "manual"):
+        inspector.set_config(mode=mode)
+    results = inspector.run_batch_qc()
+    stats = inspector.get_stats()
+    print("\n🔍 QUALITY CONTROL & CURATION SUMMARY:")
+    print(f"  • Modo Atual:       {stats['mode'].upper()} (Padrão: Auto)")
+    print(f"  • Total em Staging: {stats['total_staging']}")
+    print(f"  • Aprovadas:        {stats['approved']}")
+    print(f"  • Rejeitadas:       {stats['rejected']}")
+    print(f"  • Pendentes:        {stats['pending']}")
+    print(f"  • Prontas em 8K:    {stats['upscaled']}")
+    logger.info("Quality Control execution finished.")
+
+def run_upscale() -> None:
+    """Upscale all approved staging images to 8K."""
+    logger.info("--- Starting 8K Upscale for Approved Images ---")
+    from src.factory.upscaler import Upscaler
+    upscaler = Upscaler()
+    results = upscaler.upscale_all_approved()
+    logger.info(f"8K Upscale finished. Processed {len(results)} approved image(s).")
+
+
 def show_seasonal_radar() -> None:
     """Display the predictive seasonal calendar report and high-converting micro-niches."""
     from src.analyzer.seasonal_radar import get_target_procurement_window
@@ -276,10 +321,15 @@ def main() -> None:
         description="StockCont - Unified Microstock Automation Pipeline",
         formatter_class=argparse.RawTextHelpFormatter
     )
+    parser.add_argument("--sync-raw", "--hydrate", dest="sync_raw", action="store_true", help="Download missing raw reference images listed in trends.json concurrently")
     parser.add_argument("--status", "-s", action="store_true", help="Display the current pipeline dashboard status")
     parser.add_argument("--phase", "-p", type=int, choices=[1, 2, 3, 4, 5], help="Execute a specific phase (1, 2, 3, 4, or 5)")
     parser.add_argument("--backup", "-b", action="store_true", help="Execute Google Drive backup for all cataloged assets")
+    parser.add_argument("--restore", "--pull-backup", dest="restore", action="store_true", help="Pull all images, CSV, and upload history from Google Drive backup")
     parser.add_argument("--all", "-a", action="store_true", help="Run all pipeline phases sequentially")
+    parser.add_argument("--qc", action="store_true", help="Run Quality Control & Curation auditing on staging images")
+    parser.add_argument("--qc-mode", choices=["auto", "manual"], default=None, help="QC mode: 'auto' (Gemini Vision default) or 'manual' (Dashboard triage)")
+    parser.add_argument("--upscale", action="store_true", help="Upscale all approved staging images to 8K")
     parser.add_argument("--seasonal", action="store_true", help="Display predictive seasonal demand forecast and Blue Ocean niches")
     parser.add_argument("--dashboard", action="store_true", help="Launch the StockCont web dashboard (http://localhost:8501)")
     parser.add_argument("--port", type=int, default=8501, help="Port for the dashboard server (default: 8501)")
@@ -298,8 +348,10 @@ def main() -> None:
 
     # Options for Phase 3
     p3_group = parser.add_argument_group("Phase 3 Options")
-    p3_group.add_argument("--node", type=int, default=192, help="Output Node ID in Runninghub ComfyUI to capture upscaled 4K images (default: 192)")
-    p3_group.add_argument("--batches", type=int, default=1, help="Number of consecutive 10-prompt batches to process in Phase 3 (default: 1)")
+    p3_group.add_argument("--account", type=int, default=1, choices=[1, 2], help="RunningHub Account: 1 (Raw Producer) or 2 (SeedVR 8K Upscaler)")
+    p3_group.add_argument("--node", type=int, default=None, help="Output Node ID (default: 121 for Conta 1, 55 for Conta 2)")
+    p3_group.add_argument("--batch-size", type=int, default=210, help="Number of prompts per batch (default: 210)")
+    p3_group.add_argument("--batches", type=int, default=1, help="Number of consecutive batches to process in Phase 3 (default: 1)")
     p3_group.add_argument("--all-batches", action="store_true", help="Process all remaining pending batches until the prompt queue is exhausted")
 
     # Options for Phase 4
@@ -317,8 +369,18 @@ def main() -> None:
 
     # Dashboard mode - launch web UI server
     if args.dashboard:
+        from src.backup.gdrive_backup import GoogleDriveBackup
+        gdrive = GoogleDriveBackup()
+        if gdrive.is_configured:
+            logger.info("☁️ Puxando imagens e histórico do Google Drive antes de abrir o dashboard...")
+            gdrive.restore_assets()
         from src.dashboard.app import start_dashboard
         start_dashboard(port=args.port, open_browser=not args.no_browser)
+        return
+
+    if args.restore:
+        from src.backup.gdrive_backup import run_gdrive_restore
+        run_gdrive_restore()
         return
 
     # If no arguments provided, display status and help
@@ -326,6 +388,18 @@ def main() -> None:
         check_status()
         if len(sys.argv) == 1:
             parser.print_help()
+        return
+
+    if args.qc:
+        run_qc(mode=args.qc_mode)
+        return
+
+    if args.upscale:
+        run_upscale()
+        return
+
+    if args.sync_raw:
+        run_sync_raw(force=args.force)
         return
 
     if args.seasonal:
@@ -354,7 +428,7 @@ def main() -> None:
     elif args.phase == 2:
         run_phase_2()
     elif args.phase == 3:
-        run_phase_3(node=args.node, batches=args.batches, all_batches=args.all_batches)
+        run_phase_3(account=args.account, node=args.node, batches=args.batches, all_batches=args.all_batches, batch_size=args.batch_size)
     elif args.phase == 4:
         run_phase_4(images_dir=args.images_dir, output_dir=args.output_dir)
     elif args.phase == 5:

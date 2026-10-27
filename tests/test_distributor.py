@@ -139,3 +139,38 @@ def test_run_distributor_dry_run_unconfigured():
         }
         res = run_distributor(dry_run=True)
         assert res == {}
+
+
+def test_run_distributor_alamy_anti_ban_block(tmp_path, monkeypatch):
+    """Verify that Alamy uploads are automatically blocked when AI images are dispatched."""
+    from PIL import Image
+
+    images_dir = tmp_path / "images"
+    images_dir.mkdir(parents=True)
+    ai_img = images_dir / "ai_generated_art.jpg"
+    Image.new("RGB", (3840, 2160), color=(10, 20, 30)).save(ai_img, "JPEG")
+
+    history_file = tmp_path / "upload_history.json"
+    monkeypatch.setattr("src.uploader.ftp_distributor.UPLOAD_HISTORY_FILE", history_file)
+    monkeypatch.setattr("src.uploader.ftp_distributor.PROCESSED_DIR", tmp_path)
+
+    # Configure Alamy agency with dummy credentials
+    alamy_agency = AgencyConfig(
+        key="alamy",
+        name="Alamy",
+        protocol="ftp",
+        host="upload.alamy.com",
+        port=21,
+        username="alamy_user",
+        password="secret_password",
+    )
+
+    with patch("src.uploader.ftp_distributor.get_available_agencies") as mock_agencies,          patch("src.uploader.ftp_distributor.upload_via_ftp") as mock_ftp:
+        mock_agencies.return_value = {"alamy": alamy_agency}
+
+        # Run distributor targeting Alamy
+        results = run_distributor(target_platform="alamy", dry_run=False, images_dir=images_dir)
+
+        # Upload function should NEVER be called for Alamy with AI content!
+        mock_ftp.assert_not_called()
+        assert results.get("alamy", 0) == 0
