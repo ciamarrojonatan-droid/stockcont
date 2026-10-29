@@ -1,5 +1,6 @@
 import base64
 import csv
+import io
 import json
 import logging
 import os
@@ -28,7 +29,13 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - [%(levelname)s] - 
 logger = logging.getLogger("Cataloger")
 
 # Priority model list for microstock vision analysis
-PREFERRED_MODELS = ["gemini-3.5-flash-lite", "gemini-3.8-flash"]
+PREFERRED_MODELS = [
+    "gemini-3.1-flash-lite",
+    "gemini-3.5-flash",
+    "gemini-3.5-flash-lite",
+    "gemini-3.8-flash",
+    "gemini-flash-latest",
+]
 
 DANGLING_WORDS = {'a', 'an', 'the', 'on', 'in', 'of', 'to', 'for', 'with', 'at', 'by', 'from', 'and', 'or', 'is', 'as'}
 MANDATORY_AI_KEYWORDS = ["ai generated", "generative ai", "digital art", "illustration"]
@@ -221,28 +228,44 @@ def analyze_image(image_path: Path) -> dict:
 
     logger.info(f"Analyzing {image_path.name} with Gemini Vision...")
 
-    with open(image_path, "rb") as f:
-        b64_img = base64.b64encode(f.read()).decode("utf-8")
+    # Downsample image for vision analysis (microstock SEO requires at most 1024px)
+    # Reduces payload from ~15-20MB down to ~50-80KB, preventing 503 high demand & timeouts
+    try:
+        with Image.open(image_path) as im:
+            im_copy = im.copy()
+            im_copy.thumbnail((1024, 1024), Image.Resampling.LANCZOS)
+            if im_copy.mode in ("RGBA", "LA", "P"):
+                bg = Image.new("RGB", im_copy.size, (255, 255, 255))
+                if im_copy.mode == "P":
+                    im_copy = im_copy.convert("RGBA")
+                bg.paste(im_copy, mask=im_copy.split()[-1] if im_copy.mode == "RGBA" else None)
+                im_copy = bg
+            elif im_copy.mode != "RGB":
+                im_copy = im_copy.convert("RGB")
 
-    mime_type = "image/png" if image_path.suffix.lower() == ".png" else "image/jpeg"
+            buf = io.BytesIO()
+            im_copy.save(buf, format="JPEG", quality=80)
+            b64_img = base64.b64encode(buf.getvalue()).decode("utf-8")
+            mime_type = "image/jpeg"
+    except Exception as img_err:
+        logger.warning(f"Could not downsample {image_path.name}, using raw file: {img_err}")
+        with open(image_path, "rb") as f:
+            b64_img = base64.b64encode(f.read()).decode("utf-8")
+        mime_type = "image/png" if image_path.suffix.lower() == ".png" else "image/jpeg"
 
-    prompt = (
-        "You are an expert microstock reviewer and SEO specialist (Adobe Stock, Dreamstime, Freepik, Shutterstock).\n"
-        "Analyze this AI-generated image. First, evaluate its quality based on these strict rules:\n"
-        "1. No anatomical issues (no extra fingers, fused limbs, distorted faces or bodies).\n"
-        "2. No illegible text, gibberish, watermarks, or recognizable brand logos.\n"
-        "3. High commercial aesthetic value (good lighting, useful for advertising).\n"
-        "If the image FAILS these rules, respond ONLY with JSON: {\"approved\": false, \"reason\": \"short explanation of what is wrong\"}.\n"
-        "If it PASSES, provide:\n"
-        "1. \"approved\": true\n"
-        "2. \"title\": A concise, natural commercial Title in English (5 to 12 words, 40 to 80 characters, no symbols, complete phrase without trailing prepositions).\n"
-        "3. \"description\": A detailed commercial Description in English (1 to 2 complete sentences) MUST explicitly begin with 'Generative AI illustration. ' followed by a vivid description of the scene, subjects, setting, lighting, and mood (required by Dreamstime and microstock AI policies).\n"
-        "4. \"keywords\": Exactly 50 highly relevant Keywords in English, ordered by relevance. MUST include standard microstock AI tags such as: 'ai generated', 'generative ai', 'digital art', 'concept art', 'illustration'.\n"
-        "5. \"category\": The best Adobe Stock Category number (1=Animals, 2=Buildings, 3=Business, 4=Drinks, 5=Environment, "
-        "6=States of Mind, 7=Food, 8=Graphic Resources, 9=Hobbies, 10=Industry, 11=Landscapes, 12=Lifestyle, "
-        "13=People, 14=Plants, 15=Culture, 16=Science, 17=Social Issues, 18=Sports, 19=Technology, 20=Transport, 21=Travel).\n"
-        "Respond ONLY in valid JSON."
-    )
+    prompt = """You are an expert microstock reviewer and SEO specialist (Adobe Stock, Dreamstime, Freepik, Shutterstock).
+Analyze this AI-generated image. First, evaluate its quality based on these strict rules:
+1. No anatomical issues (no extra fingers, fused limbs, distorted faces or bodies).
+2. No illegible text, gibberish, watermarks, or recognizable brand logos).
+3. High commercial aesthetic value (good lighting, useful for advertising).
+If the image FAILS these rules, respond ONLY with JSON: {"approved": false, "reason": "short explanation of what is wrong"}.
+If it PASSES, provide:
+1. "approved": true
+2. "title": A concise, natural commercial Title in English (5 to 12 words, 40 to 80 characters, no symbols, complete phrase without trailing prepositions).
+3. "description": A detailed commercial Description in English (1 to 2 complete sentences) MUST explicitly begin with 'Generative AI illustration. ' followed by a vivid description of the scene, subjects, setting, lighting, and mood (required by Dreamstime and microstock AI policies).
+4. "keywords": Exactly 50 highly relevant Keywords in English, ordered by relevance. MUST include standard microstock AI tags such as: 'ai generated', 'generative ai', 'digital art', 'concept art', 'illustration'.
+5. "category": The best Adobe Stock Category number (1=Animals, 2=Buildings, 3=Business, 4=Drinks, 5=Environment, 6=States of Mind, 7=Food, 8=Graphic Resources, 9=Hobbies, 10=Industry, 11=Landscapes, 12=Lifestyle, 13=People, 14=Plants, 15=Culture, 16=Science, 17=Social Issues, 18=Sports, 19=Technology, 20=Transport, 21=Travel).
+Respond ONLY in valid JSON."""
 
     payload = {
         "contents": [{
@@ -261,11 +284,33 @@ def analyze_image(image_path: Path) -> dict:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
         for attempt in range(1, 3):
             try:
-                response = httpx.post(url, json=payload, timeout=45.0)
+                response = httpx.post(url, json=payload, timeout=60.0)
                 if response.status_code == 200:
                     data = response.json()
-                    raw_text = data["candidates"][0]["content"]["parts"][0]["text"]
-                    parsed = json.loads(raw_text)
+                    candidates = data.get("candidates", [])
+                    if not candidates:
+                        logger.warning(f"No candidates returned by {model_name} for {image_path.name}")
+                        break
+
+                    parts = candidates[0].get("content", {}).get("parts", [])
+                    raw_text = ""
+                    for part in parts:
+                        if "text" in part and not part.get("thought", False):
+                            raw_text = part["text"]
+                            break
+                    if not raw_text and parts and "text" in parts[0]:
+                        raw_text = parts[0]["text"]
+
+                    clean_json = raw_text.strip()
+                    if clean_json.startswith("```json"):
+                        clean_json = clean_json[7:]
+                    elif clean_json.startswith("```"):
+                        clean_json = clean_json[3:]
+                    if clean_json.endswith("```"):
+                        clean_json = clean_json[:-3]
+                    clean_json = clean_json.strip()
+
+                    parsed = json.loads(clean_json)
                     logger.info(f"Successfully analyzed {image_path.name} using {model_name}.")
                     return parsed
                 elif response.status_code in [429, 503]:
@@ -335,7 +380,11 @@ def run_cataloger(images_dir: Path | None = None, output_dir: Path | None = None
             rejected_dir = FINAL_IMAGES_DIR.parent / "rejected"
             rejected_dir.mkdir(parents=True, exist_ok=True)
             try:
-                img_path.rename(rejected_dir / img_path.name)
+                dest = rejected_dir / img_path.name
+                if dest.exists():
+                    dest.unlink()
+                img_path.rename(dest)
+                logger.info(f"Moved rejected asset {img_path.name} to {dest}")
             except Exception as e:
                 logger.error(f"Could not move rejected file {img_path.name}: {e}")
             continue
@@ -380,27 +429,28 @@ def run_cataloger(images_dir: Path | None = None, output_dir: Path | None = None
         blocked = [plat for plat, c in comp_map.items() if c.blocked]
         logger.info(f"  🛡️ Conformidade: {final_image_path.name} apto para {len(passed)} plataformas ({', '.join(passed)}). Bloqueado preventivo: {', '.join(blocked)}.")
 
-        results.append({
+        row = {
             "Filename": final_image_path.name,
             "Title": title,
             "Keywords": keywords_str,
             "Category": category,
             "Releases": ""
-        })
+        }
+        results.append(row)
+        processed_filenames.add(final_image_path.name)
+
+        # Incremental write to CSV: instantly persist every cataloged asset
+        csv_headers = ["Filename", "Title", "Keywords", "Category", "Releases"]
+        file_exists = CSV_FILE.exists()
+        with open(CSV_FILE, mode="a", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=csv_headers)
+            if not file_exists:
+                writer.writeheader()
+            writer.writerow(row)
 
     if not results:
         logger.info("No new items were cataloged.")
         return []
-
-    # Write/Append to CSV
-    csv_headers = ["Filename", "Title", "Keywords", "Category", "Releases"]
-    file_exists = CSV_FILE.exists()
-
-    with open(CSV_FILE, mode="a", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=csv_headers)
-        if not file_exists:
-            writer.writeheader()
-        writer.writerows(results)
 
     logger.info(f"Successfully processed and appended {len(results)} items to {CSV_FILE}")
     return results

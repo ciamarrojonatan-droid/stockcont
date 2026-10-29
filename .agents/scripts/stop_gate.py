@@ -1,13 +1,11 @@
 #!/usr/bin/env python3
-"""Stop hook: prevent the agent from stopping when background tasks are running.
+"""Stop hook: enforce mandatory git commit and git push before agent completes.
 
-If `fullyIdle` is false (tasks still running), in Antigravity the system will
-automatically resume when the task finishes, so we allow stop cleanly.
-
-Contract: Stop → input has executionNum, terminationReason, fullyIdle, error.
-           Output: { "decision": "continue"|"stop", "reason": "..." }
+Contract: Stop -> input has executionNum, terminationReason, fullyIdle, error.
+          Output: { "decision": "continue"|"stop", "reason": "..." }
 """
 import json
+import subprocess
 import sys
 
 
@@ -46,6 +44,42 @@ def main() -> None:
             )
         )
         return
+
+    # Mandato Permanente de Git Push (AGENTS.md & GEMINI.md)
+    # Verifica se há arquivos modificados/untracked ou commits locais não enviados
+    if execution_num < 3:
+        try:
+            status_proc = subprocess.run(
+                ["git", "status", "--porcelain"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            has_uncommitted = bool(status_proc.stdout and status_proc.stdout.strip())
+
+            cherry_proc = subprocess.run(
+                ["git", "cherry", "-v"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            has_unpushed = bool(cherry_proc.stdout and cherry_proc.stdout.strip())
+
+            if has_uncommitted or has_unpushed:
+                issues = []
+                if has_uncommitted:
+                    issues.append("arquivos não commitados no working tree")
+                if has_unpushed:
+                    issues.append("commits locais pendentes de git push")
+                reason = (
+                    f"⚠️ [HOOK GATE - GIT PUSH MANDATÓRIO] Detectado: {', '.join(issues)}. "
+                    "Conforme diretiva mandatória permanente de AGENTS.md e GEMINI.md, "
+                    "você DEVE rodar 'git add .', 'git commit' e 'git push origin master' antes de encerrar."
+                )
+                print(json.dumps({"decision": "continue", "reason": reason}))
+                return
+        except Exception:
+            pass
 
     # Normal completion — allow stop
     print(json.dumps({"decision": "stop"}))

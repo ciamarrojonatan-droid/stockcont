@@ -30,10 +30,11 @@ logging.basicConfig(
 logger = logging.getLogger("Director")
 
 PREFERRED_MODELS = [
+    "gemini-3.1-flash-lite",
+    "gemini-3.5-flash",
     "gemini-3.5-flash-lite",
     "gemini-3.8-flash",
-    "gemini-2.5-flash",
-    "gemini-flash-latest"
+    "gemini-flash-latest",
 ]
 
 SYSTEM_PROMPT = """# SYSTEM PROMPT — ULTRA-DETAILED MASTER COMMERCIAL VISUAL DNA & ADAPTIVE COPY-SPACE ARCHITECT v3.0

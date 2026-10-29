@@ -247,10 +247,15 @@ class StockContDaemon:
         queue_mgr = PromptQueueManager()
         stats = queue_mgr.get_stats()
         pending_prompts = stats.get("pending", 0)
-        logger.info(f"📊 Fila de prompts: {pending_prompts} pendentes (Mínimo exigido: {self.min_prompt_buffer})")
+        staging_count = len(list(STAGING_IMAGES_DIR.glob("*.png"))) if STAGING_IMAGES_DIR.exists() else 0
+        approved_zip = BASE_DIR / "data" / "staging" / "approved_batch.zip"
+        logger.info(f"📊 Fila de prompts: {pending_prompts} pendentes | Staging: {staging_count} renders brutos (Mínimo buffer: {self.min_prompt_buffer})")
 
-        if pending_prompts < self.min_prompt_buffer:
-            logger.info("⚡ Buffer de prompts baixo! Disparando Fase 1 (Olheiro) e Fase 2 (Diretor de Arte)...")
+        # Se houver imagens em staging ou pacote pronto para upscale, prioriza avançar a esteira atual
+        if staging_count > 0 or approved_zip.exists():
+            logger.info(f"⚡ Esteira ativa: {staging_count} renders em staging aguardando QC/Upscale (Conta 2). Processando esteira antes de nova mineração.")
+        elif pending_prompts < self.min_prompt_buffer:
+            logger.info("⚡ Buffer de prompts baixo e esteira livre! Disparando Fase 1 (Olheiro) e Fase 2 (Diretor de Arte)...")
             try:
                 if not self.dry_run:
                     from src.scraper.adobe_stock import scrape_contributor_insights

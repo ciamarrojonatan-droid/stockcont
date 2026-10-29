@@ -50,6 +50,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 load_dotenv(BASE_DIR / ".env", override=True)
 
 FINAL_IMAGES_DIR = BASE_DIR / "data" / "final" / "images"
+FINAL_VIDEOS_DIR = BASE_DIR / "data" / "final" / "videos"
 PROCESSED_DIR = BASE_DIR / "data" / "processed"
 UPLOAD_HISTORY_FILE = PROCESSED_DIR / "upload_history.json"
 
@@ -189,8 +190,14 @@ def save_upload_history(history: Dict[str, Dict[str, str]]) -> None:
         logger.error(f"Erro ao salvar histórico de upload: {e}")
 
 
-def get_ready_images(images_dir: Optional[Path] = None) -> List[Path]:
-    """Find all cataloged JPG images ready for upload."""
+def get_ready_images(images_dir: Optional[Path] = None, asset_type: str = "image") -> List[Path]:
+    """Find all cataloged assets (JPG images or MP4/MOV videos) ready for upload."""
+    if asset_type in ["video", "videos"]:
+        target_dir = images_dir or FINAL_VIDEOS_DIR
+        if not target_dir.exists():
+            return []
+        return sorted(list(target_dir.glob("*.mp4")) + list(target_dir.glob("*.mov")))
+
     target_dir = images_dir or FINAL_IMAGES_DIR
     if images_dir is None and (not target_dir.exists() or not (list(target_dir.glob("*.jpg")) or list(target_dir.glob("*.jpeg")))):
         # Fallback to Google Drive local path if configured
@@ -215,6 +222,9 @@ def get_ready_images(images_dir: Optional[Path] = None) -> List[Path]:
     return jpg_images
 
 
+get_ready_assets = get_ready_images
+
+
 def upload_via_sftp(
     agency: AgencyConfig,
     file_path: Path,
@@ -222,6 +232,7 @@ def upload_via_sftp(
     timeout: int = 30
 ) -> bool:
     """Upload a file via SFTP using paramiko with retry backoff."""
+    actual_timeout = max(timeout, 120) if file_path.suffix.lower() in [".mp4", ".mov"] else timeout
     for attempt in range(1, max_retries + 1):
         ssh = None
         sftp = None
@@ -424,7 +435,8 @@ def run_distributor(
     dry_run: bool = False,
     force: bool = False,
     images_dir: Optional[Path] = None,
-    quota_manager: Optional[QuotaManager] = None
+    quota_manager: Optional[QuotaManager] = None,
+    asset_type: str = "image",
 ) -> Dict[str, int]:
     """Execute Phase 5: Mass Multi-Platform Asset Distributor with Weekly Quotas.
 
@@ -434,6 +446,7 @@ def run_distributor(
         force: If True, re-uploads files already registered in upload_history.json.
         images_dir: Optional custom directory of images.
         quota_manager: Optional QuotaManager instance for rate limiting.
+        asset_type: "image", "video", or "all".
     """
     logger.info("=" * 65)
     logger.info("🚀 INICIANDO FASE 5: O DISTRIBUIDOR (MULTI-PLATFORM AUTO-UPLOADER)")
@@ -470,12 +483,12 @@ def run_distributor(
         return {}
 
     # Discover ready files
-    images = get_ready_images(images_dir=images_dir)
-    dir_str = str(images_dir) if images_dir else "data/final/images/"
-    logger.info(f"\n📁 Imagens catalogadas prontas em {dir_str}: {len(images)} arquivos.")
+    images = get_ready_images(images_dir=images_dir, asset_type=asset_type)
+    dir_str = str(images_dir) if images_dir else ("data/final/videos/" if asset_type == "video" else "data/final/images/")
+    logger.info(f"\n📁 Assets catalogados prontos em {dir_str}: {len(images)} arquivos.")
 
     if not images:
-        logger.warning("⚠️ Nenhuma imagem JPG encontrada em data/final/images/ para distribuição.")
+        logger.warning(f"⚠️ Nenhum asset encontrado em {dir_str} para distribuição.")
         logger.info("Execute primeiro a Fase 3 e a Fase 4 para gerar e catalogar seus assets.")
         return {}
 
@@ -501,7 +514,12 @@ def run_distributor(
             pending_count = 0
             blocked_count = 0
             for img in images:
-                comp = validate_image_compliance(img, platform=key, is_ai_generated=True)
+                if img.suffix.lower() in [".mp4", ".mov"]:
+                    from src.cataloger.platform_compliance import validate_video_compliance
+                    comp = validate_video_compliance(img, platform=key, is_ai_generated=True)
+                else:
+                    comp = validate_image_compliance(img, platform=key, is_ai_generated=True)
+
                 if comp.blocked:
                     blocked_count += 1
                 elif force or key not in history.get(img.name, {}):
@@ -557,7 +575,11 @@ def run_distributor(
             logger.info(f"[{idx}/{len(files_to_send)}] Processando {file_path.name}...")
 
             # Platform Compliance & Anti-Ban Check (ADR-05)
-            comp = validate_image_compliance(file_path, platform=key, is_ai_generated=True)
+            if file_path.suffix.lower() in [".mp4", ".mov"]:
+                from src.cataloger.platform_compliance import validate_video_compliance
+                comp = validate_video_compliance(file_path, platform=key, is_ai_generated=True)
+            else:
+                comp = validate_image_compliance(file_path, platform=key, is_ai_generated=True)
             if comp.blocked:
                 logger.error(f"  ⛔ [PROTEÇÃO ANTI-BAN ATIVA] Envio de {file_path.name} abortado para {ag.name}:")
                 logger.error(f"     {comp.block_reason}")
@@ -597,6 +619,7 @@ if __name__ == "__main__":
     parser.add_argument("--dry-run", action="store_true", help="Test credentials and simulate upload without transferring files")
     parser.add_argument("--force", action="store_true", help="Re-upload files even if already marked as sent in history")
     parser.add_argument("--images-dir", type=Path, default=None, help="Custom images directory")
+    parser.add_argument("--asset-type", default="image", choices=["image", "video", "all"], help="Asset type to distribute: image, video, all")
     args = parser.parse_args()
 
-    run_distributor(target_platform=args.platform, dry_run=args.dry_run, force=args.force, images_dir=args.images_dir)
+    run_distributor(target_platform=args.platform, dry_run=args.dry_run, force=args.force, images_dir=args.images_dir, asset_type=args.asset_type)

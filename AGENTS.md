@@ -43,3 +43,14 @@ Ao receber qualquer mensagem ou solicitação, avalie a natureza da tarefa:
 ### Passo 4: Persistência & Manutenção de Estado
 - Ao concluir alterações de fases ou refatorações, atualize o `state.md` para refletir o status real do pipeline.
 - Mantenha a integridade dos arquivos criptográficos e atômicos (`prompts.json`, `generation_history.json`, `upload_history.json`).
+
+---
+
+### Passo 5: Git Commit & Push Mandatório (Zero Pendências)
+- **Mandato Permanente de Sincronização**: Ao concluir qualquer implementação, sprint, correção de bug, nova funcionalidade ou refatoração, o assistente **DEVE OBRIGATORIAMENTE**:
+  1. Validar a integridade da aplicação via suíte de testes (`pytest`).
+  2. Sincronizar o `state.md` com as métricas e status reais.
+  3. Adicionar todos os arquivos rastreados e untracked via `git add .`.
+  4. Realizar commit semântico e descritivo (`git commit -m "feat/fix/chore: ..."`).
+  5. **Executar `git push origin master` imediatamente**, garantindo que o repositório remoto esteja sempre atualizado com zero pendências locais (*working tree clean*).
+  6. É terminantemente proibido encerrar a tarefa sem realizar o `git push`.

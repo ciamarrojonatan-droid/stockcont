@@ -196,6 +196,8 @@ def scrape_contributor_insights(
                 target_tab = "Illustrations"
             elif content_type.lower() in ["vector", "vectors"]:
                 target_tab = "Vectors"
+            elif content_type.lower() in ["video", "videos", "footage"]:
+                target_tab = "Videos"
 
             logger.info(f"Selecionando aba '{target_tab}' em Recent Top Sellers...")
             try:
@@ -438,6 +440,8 @@ def build_adobe_stock_url(
         params["filters[content_type:photo]"] = "1"
     elif content_type == "illustration":
         params["filters[content_type:illustration]"] = "1"
+    elif content_type in ["video", "footage"]:
+        params["filters[content_type:video]"] = "1"
 
     return f"{base_url}?{urlencode(params)}"
 
@@ -567,7 +571,7 @@ def main() -> None:
     parser.add_argument("--mode", "-m", default="insights", choices=["insights", "search"], help="Modo de extração: 'insights' (Contributor Top Sellers) ou 'search' (busca pública por termo)")
     parser.add_argument("--query", "-q", default="trending", help="Palavra-chave/nicho para busca pública (usado quando mode=search)")
     parser.add_argument("--order", "-o", default="relevance", choices=["relevance", "nb_downloads", "creation"], help="Ordenação na busca pública")
-    parser.add_argument("--type", "-t", default="photo", choices=["all", "photo", "illustration", "vector"], help="Tipo de asset (photo, illustration, vector, all)")
+    parser.add_argument("--type", "-t", default="photo", choices=["all", "photo", "illustration", "vector", "video"], help="Tipo de asset (photo, illustration, vector, video, all)")
     parser.add_argument("--max-items", type=int, default=15, help="Quantidade máxima de imagens para capturar")
     parser.add_argument("--min-downloads", type=int, default=0, help="Filtro mínimo de downloads do contribuidor (ex: 10000)")
     parser.add_argument("--deep-profile", action="store_true", help="Minerar também portfólio completo dos maiores contribuidores")

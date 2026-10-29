@@ -4,6 +4,8 @@ venv/
 
 # Environment variables & secrets
 .env
+.env*
+env
 *.env.local
 service_account*.json
 credentials*.json

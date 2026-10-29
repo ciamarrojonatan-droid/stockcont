@@ -27,15 +27,19 @@ async def lifespan(app: FastAPI):
     # Startup: Clean up any orphan background processes
     runner.cleanup_orphan_processes()
 
-    # Startup: Auto-pull all assets and upload history from Google Drive backup
-    try:
-        from src.backup.gdrive_backup import GoogleDriveBackup
-        gdrive = GoogleDriveBackup()
-        if gdrive.is_configured:
-            logger.info("☁️ Google Drive configurado. Puxando assets do backup para o dashboard...")
-            gdrive.restore_assets()
-    except Exception as e:
-        logger.warning("Falha ao restaurar assets do Google Drive no startup: %s", e)
+    # Startup: Auto-pull all assets and upload history from Google Drive backup in background
+    def _bg_restore():
+        try:
+            from src.backup.gdrive_backup import GoogleDriveBackup
+            gdrive = GoogleDriveBackup()
+            if gdrive.is_configured:
+                logger.info("☁️ Google Drive configurado. Sincronizando backup em background...")
+                gdrive.restore_assets()
+        except Exception as e:
+            logger.warning("Falha ao restaurar assets do Google Drive no startup: %s", e)
+
+    import threading
+    threading.Thread(target=_bg_restore, daemon=True, name="GDriveStartupRestore").start()
 
     yield
     # Shutdown: Clean up any child tasks running under this server instance
@@ -581,6 +585,32 @@ async def get_staging_image_thumb(filename: str):
     except Exception as e:
         logger.warning("Error generating staging thumbnail for %s: %s", filename, e)
         return FileResponse(str(file_path))
+
+
+# ── Compatibility Aliases ────────────────────────────
+
+@app.get("/api/radar/forecast")
+async def get_radar_forecast_compat():
+    """Compatibility alias for /api/seasonal."""
+    return readers.get_seasonal_forecast()
+
+
+@app.get("/api/gallery/images")
+async def get_gallery_images_compat(filter: str = "all"):
+    """Compatibility alias for /api/images."""
+    return await get_images(filter=filter)
+
+
+@app.get("/api/qc/status")
+async def get_qc_status_compat():
+    """Compatibility alias for QC stats."""
+    return readers.get_qc_stats()
+
+
+@app.get("/api/qc/staging")
+async def get_qc_staging_compat(filter: str = "all"):
+    """Compatibility alias for /api/qc/images."""
+    return await get_qc_images(filter=filter)
 
 
 # ── Server Launcher ──────────────────────────────────

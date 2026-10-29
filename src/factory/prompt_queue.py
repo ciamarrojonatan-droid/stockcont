@@ -18,6 +18,8 @@ BASE_DIR: Path = Path(__file__).resolve().parent.parent.parent
 PROCESSED_DIR: Path = BASE_DIR / "data" / "processed"
 RAW_DIR: Path = BASE_DIR / "data" / "raw"
 FINAL_IMAGES_DIR: Path = BASE_DIR / "data" / "final" / "images"
+FINAL_VIDEOS_DIR: Path = BASE_DIR / "data" / "final" / "videos"
+STAGING_VIDEOS_DIR: Path = BASE_DIR / "data" / "staging" / "videos"
 
 DEFAULT_PROMPTS_FILE: Path = PROCESSED_DIR / "prompts.json"
 DEFAULT_HISTORY_FILE: Path = PROCESSED_DIR / "generation_history.json"
@@ -35,6 +37,9 @@ class PromptItem:
     status: str = "pending"
     generated_at: Optional[str] = None
     image_file: Optional[str] = None
+    asset_type: str = "image"
+    video_file: Optional[str] = None
+    aspect_ratio: str = "16:9"
 
     def __str__(self) -> str:
         return self.prompt_text
@@ -49,6 +54,9 @@ class PromptItem:
             "status": self.status,
             "generated_at": self.generated_at,
             "image_file": self.image_file,
+            "asset_type": self.asset_type,
+            "video_file": self.video_file,
+            "aspect_ratio": self.aspect_ratio,
         }
 
 
@@ -479,9 +487,14 @@ class PromptQueueManager:
         pending = total - generated
         pct = round((generated / total * 100), 1) if total > 0 else 0.0
 
+        videos_count = 0
+        if FINAL_VIDEOS_DIR.exists():
+            videos_count = len(list(FINAL_VIDEOS_DIR.glob("*.mp4")) + list(FINAL_VIDEOS_DIR.glob("*.mov")))
+
         return {
             "total": total,
             "generated": generated,
             "pending": pending,
             "progress_percent": pct,
+            "final_videos": videos_count,
         }

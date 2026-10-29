@@ -1,9 +1,9 @@
 # StockCont Pipeline State
 > Sincronizado automaticamente por hooks e comandos do ecossistema.
 
-## 🎯 Sprint Atual: Produção Autônoma 24/7 (Supervisor Daemon) + Gestor de Cotas Semanais (Rolling 7D) & Cofre de Backup
-- **Status da Sprint**: ✅ **Concluída com Sucesso: Esteira Contínua 24/7 com Pacing, Janela Deslizante de 7 Dias e Auto-Purga de SSD**
-- **Última Atualização**: 2026-10-29 02:40
+## 🎯 Sprint Atual: Expansão do Pipeline de Vídeos Industriais + Anti-Popup RunningHub + Git Push Mandatório nos Hooks
+- **Status da Sprint**: ✅ **Concluída com Sucesso: Pipeline Completo de Vídeo (Fases 1-5), Blindagem Anti-Popup RunningHub, Priorização de Staging no Daemon e Hook Gate de Git Push**
+- **Última Atualização**: 2026-10-29 20:56
 - **Modo Operacional**: Dual-Mode (Antigravity & Claude Code via SSOT `PROJECT_CONTEXT.md`)
 
 ---
@@ -12,18 +12,22 @@
 
 | Fase / Módulo | Status | Contagem / Métricas | Próxima Ação Recomendada |
 | :--- | :--- | :--- | :--- |
+| **Pipeline de Vídeo (Fases 1-5)** | 🟢 Operacional | **Motor I2V Multiplier (`src/video/`)** \| Probing FFmpeg, áudio mudo mandatória (`-an`), Seamless Loop Engine e injeção QuickTime/MP4 | `python main.py --video --status` |
+| **Diretor de Arte de Vídeo** | 🟢 Pronto | **Síntese 4D Temporal (`src/analyzer/video_director.py`)** \| Prompts cinemáticos 500-800 palavras para 16:9 Landscape e 9:16 Vertical (Reels) | `python main.py --video --phase 2` |
+| **Catalogador de Vídeo** | 🟢 Pronto | **Mastering & CSVs (`src/cataloger/video_cataloger.py`)** \| Injeção de metadados binários nos átomos MP4 + exportação para Adobe Stock Video e Pond5 | `python main.py --video --phase 4` |
+| **Compliance de Vídeo** | 🟢 Ativo | **Validação Técnica (`src/cataloger/platform_compliance.py`)** \| 4K/FHD, duração 5-60s, codecs H.264/ProRes e Bloqueio Anti-Ban Alamy | Integrado na esteira |
 | **Daemon 24/7 Supervisor** | 🟢 Operacional | **Motor Contínuo Pipelined (`src/orchestrator/daemon.py`)** \| Heartbeat atômico em `daemon_state.json` \| Watchdog Windows `run_24_7.bat` | `python main.py --daemon` ou `run_24_7.bat` |
-| **Gestor de Cotas (Rolling 7D)** | 🟢 Ativo | **Janela deslizante de 7 dias (`src/uploader/quota_manager.py`)** \| 395 vagas semanais livres \| Proteção anti-burst e anti-penalização algorítmica | `python main.py --quotas` |
+| **Gestor de Cotas (Rolling 7D)** | 🟢 Ativo | **Janela deslizante de 7 dias (`src/uploader/quota_manager.py`)** \| 316 vagas semanais livres \| Cotas diferenciadas para vídeo | `python main.py --quotas` |
 | **O Cofre (Google Drive + Purga SSD)** | 🟢 Protegido | **Cofre Híbrido com Auto-Purga Inteligente**: Arquivo no SSD é liberado apenas após envio a TODAS as agências ativas e confirmação no Google Drive | Operação contínua 24/7 |
-| **Fase 1: Olheiro (Scout)** | 🟢 Concluído | **59 tendências mineradas** \| **59/59 referências sincronizadas** em `data/raw/images/` | Disparado pelo Daemon sob demanda (< 50 prompts) |
-| **Fase 2: Diretor de Arte** | 🟢 Pronto | **Pré-flight auto-hydration + fallback textual gracioso** \| Suporte completo a Sandbox | Disparado pelo Daemon sob demanda |
-| **Conta 1: Raw Producer** | 🟢 Calibrada (210 Prompts) | **Workflow 2113606426114670593** \| 42 nós PromptList (5 prompts/nó) ➔ Capacidade: até 210 prompts/execução em 40 min | Integrado no Daemon |
-| **Módulo QC: Curadoria & Quality Control** | 🟢 70 Aprovadas (7 Packs) | **Gemini Vision auto-audit ativo** \| Empacotamento em zips de 10 (`approved_batch.zip`) para prevenir OOM na GPU | Integrado no Daemon |
+| **Fase 1: Olheiro (Scout)** | 🟢 Concluído | **74 tendências mineradas** \| **98 referências sincronizadas** em `data/raw/images/` | Disparado pelo Daemon sob demanda (< 50 prompts) |
+| **Fase 2: Diretor de Arte** | 🟢 Pronto | **408 prompts prontos** em `data/processed/prompts.json` \| Pré-flight auto-hydration ativo | Disparado pelo Daemon sob demanda |
+| **Conta 1: Raw Producer** | 🟢 Calibrada (210 Prompts) | **Workflow 2113606426114670593** \| 42 nós PromptList ➔ Capacidade: até 210 prompts/execução em 40 min | Integrado no Daemon |
+| **Módulo QC: Curadoria & Quality Control** | 🟢 Calibrado | **Gemini Vision auto-audit ativo** \| Empacotamento em zips de 10 (`approved_batch.zip`) para prevenir OOM na GPU | Integrado no Daemon |
 | **Conta 2: SeedVR 8K Upscaler** | 🟢 Calibrada & Pronta | **Workflow SeedVR 8K** \| Ingestão ZIP Nó #5 ➔ Preview Nó #55 (1 a 1 Real-Time) ➔ Auto-cancel na última imagem | Integrado no Daemon |
-| **Fase 4: O Catalogador** | 🟢 Concluído | **157 assets catalogados** em `adobe_stock_upload.csv` \| Injeção obrigatória de 300 DPI + IPTC/EXIF | Integrado no Daemon |
+| **Fase 4: O Catalogador** | 🟢 Concluído | **190 assets catalogados** em `adobe_stock_upload.csv` \| Injeção obrigatória de 300 DPI + IPTC/EXIF | Integrado no Daemon |
 | **Fase 5: O Distribuidor com Cotas** | 🟢 Protegido | **Despacho seletivo por plataforma**: Pausa agências com cotas esgotadas e prossegue nas demais \| Anti-Ban Alamy ativo | Integrado no Daemon |
-| **Dashboard Web SPA** | 🟢 Operacional | Servidor FastAPI ativo em `http://localhost:8501` com **Nova Aba "🤖 Produção 24/7"** (Controles, Medidores de Cotas e Status do Cofre) | `python main.py --dashboard` |
-| **Suíte de Testes (Pytest)** | 🟢 100% Verde | **118 testes passando (100% verde)** \| Regressão zero | Manter integridade contínua |
+| **Dashboard Web SPA** | 🟢 Operacional | Servidor FastAPI ativo em `http://localhost:8501` com Aba "🤖 Produção 24/7" (Controles, Medidores de Cotas e Status do Cofre) | `python main.py --dashboard` |
+| **Suíte de Testes (Pytest)** | 🟢 100% Verde | **131 testes passando (100% verde)** \| Regressão zero (118 testes existentes + 13 novos de vídeo) | `pytest tests/` |
 
 ---
 

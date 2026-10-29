@@ -16,7 +16,7 @@ Enforces strict compliance with submission guidelines across all target microsto
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 import logging
 import os
 import re
@@ -51,6 +51,14 @@ class PlatformRules:
     allowed_formats: List[str] = field(default_factory=lambda: [".jpg", ".jpeg"])
     allowed_color_modes: List[str] = field(default_factory=lambda: ["RGB"])
     min_dpi: int = 300
+    # Video Specific Rules
+    allows_video: bool = True
+    min_video_duration_sec: float = 5.0
+    max_video_duration_sec: float = 60.0
+    min_video_resolution: Tuple[int, int] = (1920, 1080)
+    allowed_video_codecs: List[str] = field(default_factory=lambda: ["h264", "prores", "hevc"])
+    allowed_video_containers: List[str] = field(default_factory=lambda: [".mp4", ".mov"])
+    require_silent_audio: bool = True
 
 
 PLATFORM_RULES: Dict[str, PlatformRules] = {
@@ -572,3 +580,146 @@ def sanitize_metadata_for_agency(
         "description": clean_desc,
         "keywords": clean_kws,
     }
+
+
+def validate_video_compliance(
+    video_path: Path | str,
+    platform: str = "adobe",
+    is_ai_generated: bool = True,
+    metadata_override: Optional[Dict[str, Any]] = None,
+) -> ComplianceResult:
+    """Validates video compliance against microstock platform rules with Anti-Ban safety barrier."""
+    from src.video.ffmpeg_processor import probe_video
+
+    path = Path(video_path).resolve()
+    platform_key = platform.lower()
+    rules = PLATFORM_RULES.get(platform_key)
+
+    if not rules:
+        return ComplianceResult(
+            platform=platform,
+            platform_name=platform,
+            is_compliant=False,
+            errors=[f"Plataforma desconhecida: '{platform}'"],
+        )
+
+    # 1. ADR-05 Anti-Ban Safety Barrier (Alamy strictly forbids AI video/footage)
+    if is_ai_generated and not rules.allows_ai:
+        return ComplianceResult(
+            platform=rules.key,
+            platform_name=rules.name,
+            is_compliant=False,
+            blocked=True,
+            block_reason=(
+                f"BLOQUEADO AUTOMATICAMENTE (Anti-Ban Safety Barrier): {rules.name} proíbe "
+                f"estritamente qualquer vídeo gerado por IA ({rules.ai_policy_notes}). "
+                f"Envio cancelado para evitar banimento da conta."
+            ),
+            errors=[f"Envio bloqueado: {rules.name} proíbe vídeos gerados por IA."],
+        )
+
+    errors: List[str] = []
+    warnings: List[str] = []
+    details: Dict[str, Any] = {}
+
+    if not path.is_file():
+        return ComplianceResult(
+            platform=rules.key,
+            platform_name=rules.name,
+            is_compliant=False,
+            errors=[f"Arquivo de vídeo não encontrado: {path}"],
+        )
+
+    # Check container extension
+    ext = path.suffix.lower()
+    if ext not in rules.allowed_video_containers:
+        errors.append(
+            f"Extensão de vídeo '{ext}' não aceita pela {rules.name}. "
+            f"Formatos aceitos: {', '.join(rules.allowed_video_containers)}"
+        )
+
+    # Probe video technical properties
+    try:
+        props = probe_video(path)
+        details["width"] = props.width
+        details["height"] = props.height
+        details["duration_seconds"] = props.duration_seconds
+        details["fps"] = props.fps
+        details["video_codec"] = props.video_codec
+        details["audio_codec"] = props.audio_codec
+        details["has_audio"] = props.has_audio
+        details["filesize_mb"] = round(props.filesize_bytes / (1024 * 1024), 2)
+        details["aspect_ratio"] = props.aspect_ratio
+
+        # Duration validation
+        if props.duration_seconds < rules.min_video_duration_sec:
+            errors.append(
+                f"Duração ({props.duration_seconds}s) inferior ao mínimo de {rules.min_video_duration_sec}s."
+            )
+        elif props.duration_seconds > rules.max_video_duration_sec:
+            errors.append(
+                f"Duração ({props.duration_seconds}s) superior ao máximo de {rules.max_video_duration_sec}s."
+            )
+
+        # Resolution validation (support both 16:9 Landscape and 9:16 Vertical)
+        min_w, min_h = rules.min_video_resolution
+        is_landscape_ok = props.width >= min_w and props.height >= min_h
+        is_vertical_ok = props.width >= min_h and props.height >= min_w
+        if not (is_landscape_ok or is_vertical_ok):
+            errors.append(
+                f"Resolução ({props.width}x{props.height}) abaixo do mínimo exigido "
+                f"({min_w}x{min_h} ou {min_h}x{min_w})."
+            )
+
+        # Codec validation
+        normalized_codecs = [c.lower() for c in rules.allowed_video_codecs]
+        if props.video_codec.lower() not in normalized_codecs:
+            errors.append(
+                f"Codec de vídeo '{props.video_codec}' não permitido. "
+                f"Aceitos: {', '.join(rules.allowed_video_codecs)}"
+            )
+
+        # Audio check
+        if rules.require_silent_audio and props.has_audio:
+            warnings.append(
+                f"Vídeo contém faixa de áudio '{props.audio_codec}'. "
+                f"Microstocks preferem vídeo mudo (-an) para evitar rejeição por ruído."
+            )
+
+    except Exception as e:
+        errors.append(f"Erro ao analisar propriedades do vídeo com ffprobe: {e}")
+
+    # Metadata validation if provided
+    if metadata_override:
+        title = metadata_override.get("title", "")
+        keywords = metadata_override.get("keywords", [])
+        if title and len(title) > rules.max_title_length:
+            warnings.append(f"Título ({len(title)} caracteres) excede o limite de {rules.max_title_length}.")
+        if keywords and len(keywords) > rules.max_keywords:
+            warnings.append(f"Número de keywords ({len(keywords)}) excede o máximo de {rules.max_keywords}.")
+
+    return ComplianceResult(
+        platform=rules.key,
+        platform_name=rules.name,
+        is_compliant=len(errors) == 0,
+        errors=errors,
+        warnings=warnings,
+        details=details,
+    )
+
+
+def validate_all_platforms_video(
+    video_path: Path | str,
+    is_ai_generated: bool = True,
+    metadata_override: Optional[Dict[str, Any]] = None,
+) -> Dict[str, ComplianceResult]:
+    """Validates a video against all configured microstock platforms."""
+    results: Dict[str, ComplianceResult] = {}
+    for key in PLATFORM_RULES:
+        results[key] = validate_video_compliance(
+            video_path=video_path,
+            platform=key,
+            is_ai_generated=is_ai_generated,
+            metadata_override=metadata_override,
+        )
+    return results

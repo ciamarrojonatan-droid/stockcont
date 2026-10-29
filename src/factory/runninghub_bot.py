@@ -423,6 +423,118 @@ def upload_zip_to_node(page: Page, frame: Optional[Frame], node_id: int, zip_pat
     return uploaded
 
 
+def close_unwanted_tabs(browser: Any, workflow_id: str) -> None:
+    """Fecha abas secundárias promocionais ou de marketing que o RunningHub possa abrir ao carregar."""
+    try:
+        pages = []
+        if hasattr(browser, "pages"):
+            pages = list(browser.pages)
+        elif hasattr(browser, "contexts") and browser.contexts:
+            for ctx in browser.contexts:
+                pages.extend(list(ctx.pages))
+
+        if len(pages) > 1:
+            for p in pages:
+                try:
+                    url = p.url.lower()
+                    if workflow_id not in p.url and "task" not in url and "workbench" not in url:
+                        logger.info(f"🛡️ [Anti-Popup] Fechando aba secundária/propaganda: {p.url}")
+                        p.close()
+                except Exception:
+                    pass
+    except Exception:
+        pass
+
+
+def dismiss_runninghub_popups(page: Page) -> bool:
+    """Detecta e fecha automaticamente popups de marketing, avisos e modais promocionais do RunningHub."""
+    dismissed = False
+    try:
+        page.keyboard.press("Escape")
+    except Exception:
+        pass
+
+    close_selectors = [
+        ".ant-modal-close",
+        ".ant-modal-close-x",
+        ".el-dialog__headerbtn",
+        ".el-dialog__close",
+        "button[aria-label='Close']",
+        "button[aria-label='close']",
+        "button:has-text('Close')",
+        "button:has-text('Fechar')",
+        "button:has-text('Cancel')",
+        "button:has-text('Dismiss')",
+        "button:has-text('Got it')",
+        "button:has-text('I know')",
+        "button:has-text('我知道了')",
+        "button:has-text('关闭')",
+        "button:has-text('Skip')",
+        "button:has-text('Remind me later')",
+        "button:has-text('以后再说')",
+        "button:has-text('×')",
+        ".close-icon",
+        ".modal-close",
+        "[class*='close-btn']",
+        "[class*='CloseBtn']",
+        "[class*='closeBtn']",
+        "[class*='dialog-close']",
+        "[class*='modal-close']",
+    ]
+
+    for sel in close_selectors:
+        try:
+            loc = page.locator(sel)
+            count = loc.count()
+            if count > 0:
+                for i in range(count):
+                    el = loc.nth(i)
+                    if el.is_visible():
+                        el.click(timeout=1000, force=True)
+                        dismissed = True
+                        logger.info(f"🛡️ [Anti-Popup] Fechou modal de marketing via seletor: {sel}")
+                        time.sleep(0.3)
+                        break
+        except Exception:
+            pass
+
+    try:
+        removed = page.evaluate("""() => {
+            let count = 0;
+            const selectors = [
+                '.ant-modal-root:not(.comfy-modal)',
+                '.ant-modal-wrap:not(.comfy-modal)',
+                '.ant-modal-mask',
+                '.el-overlay',
+                '.v-modal',
+                '[class*="marketing-modal"]',
+                '[class*="banner-modal"]',
+                '[class*="promotion-modal"]',
+                '[class*="notice-modal"]',
+                '[class*="activity-dialog"]',
+                '[class*="guide-modal"]'
+            ];
+            for (let sel of selectors) {
+                const els = document.querySelectorAll(sel);
+                els.forEach(el => {
+                    if (!el.querySelector('#graph-canvas') && !el.id.includes('canvas')) {
+                        el.style.display = 'none';
+                        el.remove();
+                        count++;
+                    }
+                });
+            }
+            return count;
+        }""")
+        if removed and removed > 0:
+            logger.info(f"🛡️ [Anti-Popup] Removidos {removed} overlays de marketing/bloqueio via DOM.")
+            dismissed = True
+    except Exception:
+        pass
+
+    return dismissed
+
+
 def run_factory_bot(
     account: int = DEFAULT_ACCOUNT,
     output_node_id: Optional[int] = None,
@@ -571,13 +683,22 @@ def run_factory_bot(
                     page.goto(workflow_url, wait_until="domcontentloaded", timeout=60000)
                 except Exception as e:
                     logger.warning(f"Aviso ao abrir RunningHub ({e}). Prosseguindo...")
-                    logger.warning(f"Aviso ao abrir RunningHub ({e}). Prosseguindo...")
 
-            # 1. Aguardar carregamento dos nós no grafo (com detecção de login)
+            # Limpeza preventiva imediata de abas promocionais e popups de marketing
+            time.sleep(1.5)
+            close_unwanted_tabs(browser, workflow_id)
+            dismiss_runninghub_popups(page)
+
+            # 1. Aguardar carregamento dos nós no grafo (com detecção de login e anti-popup ativo)
             logger.info("Aguardando carregamento completo do workflow ComfyUI...")
             comfy_frame = None
             loaded = False
             for step in range(120):
+                # Auto-dismiss de popups promocionais a cada 2 iterações
+                if step % 2 == 0:
+                    dismiss_runninghub_popups(page)
+                    close_unwanted_tabs(browser, workflow_id)
+
                 # Detectar tela de login para orientar o usuário
                 try:
                     is_login = page.evaluate("() => document.body ? (document.body.innerText.includes('Faça login') || document.body.innerText.includes('Entrar') || window.location.href.includes('login')) : false")
@@ -620,15 +741,10 @@ def run_factory_bot(
                 batch_prompts = [p.prompt_text for p in current_pending]
                 expected_images = min(len(batch_prompts), b_size) if account == 1 else expected_images_c2
 
-                # Fechar popups
-                try:
-                    close_btn = page.locator("button:has-text('Close'), button:has-text('Fechar'), [role='button']:has-text('Close')")
-                    if close_btn.count() > 0:
-                        close_btn.first.click(timeout=1000)
-                except Exception:
-                    pass
-                page.keyboard.press("Escape")
-                time.sleep(1.0)
+                # Fechar popups residuais antes da injeção
+                close_unwanted_tabs(browser, workflow_id)
+                dismiss_runninghub_popups(page)
+                time.sleep(0.5)
 
                 # 2. Injeção de Prompts (Conta 1 apenas)
                 if account == 1 and target_nodes:

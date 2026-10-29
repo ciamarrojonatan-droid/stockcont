@@ -48,6 +48,17 @@ DEFAULT_WEEKLY_LIMITS: Dict[str, int] = {
     "alamy": 0,  # 0 because Alamy has strict Anti-AI ban policy (ADR-05)
 }
 
+DEFAULT_WEEKLY_VIDEO_LIMITS: Dict[str, int] = {
+    "adobe": 50,
+    "pond5": 80,
+    "freepik": 30,
+    "dreamstime": 50,
+    "123rf": 50,
+    "vecteezy": 40,
+    "ingram": 40,
+    "alamy": 0,  # Strict Anti-Ban (ADR-05)
+}
+
 
 @dataclass
 class PlatformQuotaReport:
@@ -98,26 +109,28 @@ class QuotaManager:
         self.history_path = history_path or UPLOAD_HISTORY_FILE
         self._custom_limits = custom_limits or {}
 
-    def get_weekly_limit(self, platform: str) -> int:
+    def get_weekly_limit(self, platform: str, asset_type: str = "image") -> int:
         """Fetch configured weekly limit for a platform.
 
         Priority:
           1. Explicit constructor overrides (_custom_limits)
-          2. Environment variable: {PLATFORM}_WEEKLY_LIMIT (e.g., ADOBE_WEEKLY_LIMIT)
-          3. Built-in defaults (DEFAULT_WEEKLY_LIMITS)
+          2. Environment variable: {PLATFORM}_WEEKLY_LIMIT or {PLATFORM}_VIDEO_WEEKLY_LIMIT
+          3. Built-in defaults (DEFAULT_WEEKLY_LIMITS / DEFAULT_WEEKLY_VIDEO_LIMITS)
         """
         norm_key = platform.lower().strip()
         if norm_key in self._custom_limits:
             return self._custom_limits[norm_key]
 
-        env_var_name = f"{norm_key.upper()}_WEEKLY_LIMIT"
-        env_val = os.getenv(env_var_name)
+        prefix = f"{norm_key.upper()}_VIDEO_WEEKLY_LIMIT" if asset_type == "video" else f"{norm_key.upper()}_WEEKLY_LIMIT"
+        env_val = os.getenv(prefix)
         if env_val is not None:
             try:
                 return max(0, int(env_val.strip()))
             except ValueError:
-                logger.warning(f"Invalid integer in {env_var_name}='{env_val}'. Using default.")
+                logger.warning(f"Invalid integer in {prefix}='{env_val}'. Using default.")
 
+        if asset_type == "video":
+            return DEFAULT_WEEKLY_VIDEO_LIMITS.get(norm_key, 50)
         return DEFAULT_WEEKLY_LIMITS.get(norm_key, 100)
 
     def load_upload_history(self) -> Dict[str, Any]:

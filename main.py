@@ -141,6 +141,20 @@ def check_status() -> None:
     cfg_count = sum(1 for a in agencies.values() if a.is_configured)
     print(f"  [5] Phase 5 (Distributor): {cfg_count}/{len(agencies)} agencies configured | {uploaded_files_count} assets logged in upload_history.json")
 
+    # Video Pipeline Status
+    from src.factory.prompt_queue import FINAL_VIDEOS_DIR
+    final_videos = list(FINAL_VIDEOS_DIR.glob("*.mp4")) + list(FINAL_VIDEOS_DIR.glob("*.mov")) if FINAL_VIDEOS_DIR.exists() else []
+    video_prompts_file = PROCESSED_DIR / "video_prompts.json"
+    v_prompts_count = 0
+    if video_prompts_file.exists():
+        try:
+            with open(video_prompts_file, "r", encoding="utf-8") as f:
+                v_data = json.load(f)
+                v_prompts_count = sum(len(p.get("derivative_prompts", [])) for p in v_data)
+        except Exception:
+            pass
+    print(f"  [V] Video Pipeline:      {v_prompts_count} video prompts prontos | {len(final_videos)} vídeos em data/final/videos/")
+
     # Cloud Backup: Google Drive
     from src.backup.gdrive_backup import GoogleDriveBackup
     gdrive = GoogleDriveBackup()
@@ -272,12 +286,28 @@ def run_backup(dry_run: bool = False, force: bool = False) -> None:
     run_gdrive_backup(dry_run=dry_run, force=force)
     logger.info("Google Drive Backup finished.")
 
-def run_phase_5(platform: str = "all", dry_run: bool = False, force: bool = False, images_dir: Path | None = None) -> None:
+def run_video_phase_2(max_items: int | None = None) -> None:
+    """Execute Video Phase 2: Video Director of Photography."""
+    logger.info("--- Starting Video Phase 2: Video Director (Gemini Vision 4D Temporal Prompts) ---")
+    from src.analyzer.video_director import run_video_director
+    run_video_director(max_items=max_items)
+    logger.info("Video Phase 2 finished.")
+
+def run_video_phase_4(videos_dir: Path | None = None, max_items: int | None = None, generate_prores: bool = False) -> None:
+    """Execute Video Phase 4: Video Cataloger with Audio Strip & MP4/MOV Metadata."""
+    logger.info("--- Starting Video Phase 4: Video Cataloger (Audio Strip + MP4/QuickTime Metadata + CSV) ---")
+    from src.cataloger.video_cataloger import run_video_cataloger
+    from src.factory.prompt_queue import FINAL_VIDEOS_DIR
+    target_dir = videos_dir or FINAL_VIDEOS_DIR
+    run_video_cataloger(videos_dir=target_dir, max_items=max_items, generate_prores=generate_prores)
+    logger.info("Video Phase 4 finished.")
+
+def run_phase_5(platform: str = "all", dry_run: bool = False, force: bool = False, images_dir: Path | None = None, asset_type: str = "image") -> None:
     """Execute Phase 5: The Distributor (Multi-Platform SFTP/FTP Mass Upload)."""
     dir_str = f" from '{images_dir}'" if images_dir else ""
-    logger.info(f"--- Starting Phase 5: The Distributor (Target: {platform}, DryRun: {dry_run}, Force: {force}){dir_str} ---")
+    logger.info(f"--- Starting Phase 5: The Distributor (Target: {platform}, DryRun: {dry_run}, Force: {force}, Type: {asset_type}){dir_str} ---")
     from src.uploader.ftp_distributor import run_distributor
-    run_distributor(target_platform=platform, dry_run=dry_run, force=force, images_dir=images_dir)
+    run_distributor(target_platform=platform, dry_run=dry_run, force=force, images_dir=images_dir, asset_type=asset_type)
     logger.info("Phase 5 finished.")
 
 def run_all_pipeline(query: str, max_items: int, node: int = 192, batches: int = 1, all_batches: bool = False) -> None:
@@ -359,7 +389,7 @@ def main() -> None:
     p1_group.add_argument("--mode", default="insights", choices=["insights", "search"], help="Phase 1 mode: 'insights' (Contributor Top Sellers) or 'search' (Public keyword)")
     p1_group.add_argument("--query", "-q", default="trending", help="Niche or search keyword for Phase 1 search mode (e.g., 'minimalist office')")
     p1_group.add_argument("--order", "-o", default="relevance", choices=["relevance", "nb_downloads", "creation"], help="Sorting method (search mode)")
-    p1_group.add_argument("--type", "-t", default="photo", choices=["all", "photo", "illustration", "vector"], help="Asset type")
+    p1_group.add_argument("--type", "-t", default="photo", choices=["all", "photo", "illustration", "vector", "video"], help="Asset type")
     p1_group.add_argument("--max-items", "-m", type=int, default=15, help="Max items to scrape in Phase 1")
     p1_group.add_argument("--min-downloads", type=int, default=0, help="Minimum contributor lifetime downloads threshold")
     p1_group.add_argument("--deep-profile", action="store_true", help="Mine deeper into top contributors' full portfolios")
@@ -391,15 +421,29 @@ def main() -> None:
     daemon_group.add_argument("--min-buffer", type=int, default=50, help="Minimum prompt buffer threshold for daemon (default: 50)")
     daemon_group.add_argument("--quotas", action="store_true", help="Display rolling 7-day weekly quota reports for all platforms")
 
+    # Video Pipeline Specific Options
+    video_group = parser.add_argument_group("Video Pipeline Options")
+    video_group.add_argument("--video", action="store_true", help="Execute video-specific pipeline phase")
+    video_group.add_argument("--asset-type", choices=["image", "video", "all"], default="image", help="Asset type for pipeline processing (default: image)")
+    video_group.add_argument("--prores", action="store_true", help="Generate Apple ProRes 422 HQ MOV for Pond5 in Phase 4")
+    video_group.add_argument("--videos-dir", type=Path, default=None, help="Custom directory containing videos to catalog")
+
     args = parser.parse_args()
 
     # Dashboard mode - launch web UI server
     if args.dashboard:
-        from src.backup.gdrive_backup import GoogleDriveBackup
-        gdrive = GoogleDriveBackup()
-        if gdrive.is_configured:
-            logger.info("☁️ Puxando imagens e histórico do Google Drive antes de abrir o dashboard...")
-            gdrive.restore_assets()
+        # Check if dashboard server is already alive on port
+        import urllib.request
+        try:
+            with urllib.request.urlopen(f"http://127.0.0.1:{args.port}/api/status", timeout=1.0) as resp:
+                if resp.status == 200:
+                    logger.info("⚡ StockCont Dashboard já está ativo em http://localhost:%d!", args.port)
+                    if not args.no_browser:
+                        import webbrowser
+                        webbrowser.open(f"http://localhost:{args.port}")
+                    return
+        except Exception:
+            pass
         from src.dashboard.app import start_dashboard
         start_dashboard(port=args.port, open_browser=not args.no_browser)
         return
@@ -451,24 +495,33 @@ def main() -> None:
         return
 
     if args.phase == 1:
+        c_type = "video" if (args.video or args.asset_type == "video") else args.type
         run_phase_1(
             mode=args.mode,
             query=args.query,
             order=args.order,
-            content_type=args.type,
+            content_type=c_type,
             max_items=args.max_items,
             min_downloads=args.min_downloads,
             deep_profile=args.deep_profile,
             headless=args.headless
         )
     elif args.phase == 2:
-        run_phase_2()
+        if args.video or args.asset_type == "video":
+            run_video_phase_2(max_items=args.max_items)
+        else:
+            run_phase_2()
     elif args.phase == 3:
         run_phase_3(account=args.account, node=args.node, batches=args.batches, all_batches=args.all_batches, batch_size=args.batch_size)
     elif args.phase == 4:
-        run_phase_4(images_dir=args.images_dir, output_dir=args.output_dir)
+        if args.video or args.asset_type == "video":
+            run_video_phase_4(videos_dir=args.videos_dir, max_items=args.max_items, generate_prores=args.prores)
+        else:
+            run_phase_4(images_dir=args.images_dir, output_dir=args.output_dir)
     elif args.phase == 5:
-        run_phase_5(platform=args.platform, dry_run=args.dry_run, force=args.force, images_dir=args.images_dir)
+        asset_t = "video" if args.video else args.asset_type
+        target_dir = args.videos_dir if (args.video or args.asset_type == "video") else args.images_dir
+        run_phase_5(platform=args.platform, dry_run=args.dry_run, force=args.force, images_dir=target_dir, asset_type=asset_t)
 
 if __name__ == "__main__":
     main()
