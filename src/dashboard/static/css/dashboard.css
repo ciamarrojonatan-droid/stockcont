@@ -170,6 +170,23 @@ body {
   color: var(--text-muted);
 }
 
+.btn-warning {
+  background: rgba(245, 158, 11, 0.18);
+  color: var(--status-warn, #f59e0b);
+  border-color: var(--status-warn, #f59e0b);
+  font-weight: 600;
+}
+.btn-warning:hover:not(:disabled) {
+  background: var(--status-warn, #f59e0b);
+  color: var(--bg-primary, #0f172a);
+}
+.btn-warning:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  border-color: var(--border-subtle);
+  color: var(--text-muted);
+}
+
 .btn-outline {
   background: rgba(148, 163, 184, 0.1);
   color: var(--text-secondary);

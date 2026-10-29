@@ -351,6 +351,88 @@ class PromptQueueManager:
         pending = self.get_pending_prompts(batch_size=None)
         return self.mark_prompts_generated(pending)
 
+    def mark_prompts_pending(
+        self,
+        prompts: list,
+    ) -> int:
+        """Mark prompts as pending in both history ledger and prompts.json.
+        
+        Removes the prompt hash from the generation history ledger and
+        reverts its status to 'pending' in prompts.json.
+        
+        Args:
+            prompts: List of PromptItem, strings, or dicts to mark as pending.
+            
+        Returns:
+            Number of prompts successfully reverted to pending.
+        """
+        if not prompts:
+            return 0
+
+        target_hashes = set()
+        for item in prompts:
+            if hasattr(item, "prompt_hash"):
+                target_hashes.add(item.prompt_hash.lower())
+            elif isinstance(item, str):
+                target_hashes.add(item.lower() if len(item) == 64 else self.compute_hash(item).lower())
+            elif isinstance(item, dict):
+                p_text = item.get("prompt_text") or self.extract_prompt_text(item)
+                p_hash = item.get("full_hash") or item.get("prompt_hash") or (self.compute_hash(p_text) if p_text else None)
+                if p_hash:
+                    target_hashes.add(str(p_hash).lower())
+
+        if not target_hashes:
+            return 0
+
+        # 1. Remove from history ledger
+        removed_history = False
+        to_del_keys = [k for k in self._history if k.lower() in target_hashes or any(k.lower().startswith(h) for h in target_hashes)]
+        for k in to_del_keys:
+            del self._history[k]
+            removed_history = True
+
+        if removed_history:
+            self._save_history()
+
+        # 2. Update prompts.json atomically
+        raw_data = self._load_prompts_data()
+        updated_any = False
+
+        for group in raw_data:
+            for p in group.get("generated_prompts", []):
+                p_text = self.extract_prompt_text(p)
+                p_hash = self.compute_hash(p_text).lower()
+                existing_hash = str(p.get("prompt_hash", "")).lower()
+                if (p_hash in target_hashes) or (existing_hash in target_hashes) or any(p_hash.startswith(h) for h in target_hashes):
+                    p["status"] = "pending"
+                    p.pop("generated_at", None)
+                    p.pop("image_file", None)
+                    updated_any = True
+
+        if updated_any:
+            self._save_prompts_data(raw_data)
+
+        logger.info(f"⏳ {len(target_hashes)} prompts revertidos para status pending.")
+        return len(target_hashes)
+
+    def mark_pending_by_hashes(self, hashes: list) -> int:
+        """Mark prompts matching specific hashes (full or prefix) as pending."""
+        if not hashes:
+            return 0
+        hash_set = {str(h).strip().lower() for h in hashes if h and str(h).strip()}
+        all_items = self.get_all_prompts()
+        matching = [
+            p for p in all_items
+            if (p.prompt_hash.lower() in hash_set or p.prompt_hash[:12].lower() in hash_set)
+        ]
+        return self.mark_prompts_pending(matching)
+
+    def mark_all_generated_pending(self) -> int:
+        """Mark all currently generated prompts in the queue back to pending."""
+        all_items = self.get_all_prompts()
+        generated = [p for p in all_items if p.status == "generated"]
+        return self.mark_prompts_pending(generated)
+
 
     def reconcile_existing_images(self) -> int:
         """Bootstrap / sync existing images in data/final/images/ with pending prompts.

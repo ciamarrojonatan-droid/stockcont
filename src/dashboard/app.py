@@ -127,6 +127,34 @@ async def mark_prompts_generated(req: schemas.MarkGeneratedRequest):
         }
 
 
+@app.post("/api/prompts/mark-pending")
+async def mark_prompts_pending(req: schemas.MarkPendingRequest):
+    """Mark specific prompts (by hash) or all generated prompts as pending."""
+    from src.factory.prompt_queue import PromptQueueManager
+    mgr = PromptQueueManager(auto_reconcile=False)
+
+    if req.all_generated:
+        count = mgr.mark_all_generated_pending()
+        return {
+            "success": True,
+            "marked_count": count,
+            "message": f"{count} prompts gerados foram revertidos para pendentes.",
+        }
+    elif req.hashes:
+        count = mgr.mark_pending_by_hashes(req.hashes)
+        return {
+            "success": True,
+            "marked_count": count,
+            "message": f"{count} prompt(s) revertido(s) para pendente(s).",
+        }
+    else:
+        return {
+            "success": False,
+            "marked_count": 0,
+            "message": "Nenhum prompt foi selecionado.",
+        }
+
+
 # ── Image Gallery ────────────────────────────────────
 
 @app.get("/api/images")
@@ -492,20 +520,42 @@ async def batch_set_qc_status(req: schemas.QCBatchStatusRequest):
     return {"success": True, "updated_count": count}
 
 
+@app.post("/api/qc/package-zip")
+async def package_qc_zip(req: Optional[schemas.QCPackageZipRequest] = None):
+    from src.analyzer.qc_inspector import QCInspector
+    inspector = QCInspector()
+    pack_size = req.pack_size if req and req.pack_size else 10
+    only_unproc = req.only_unprocessed if req and req.only_unprocessed is not None else True
+    
+    result = inspector.package_approved_packs(pack_size=pack_size, only_unprocessed=only_unproc)
+    
+    if req and req.auto_run:
+        conta2_res = await runner.run_conta2(mode="window", batch_size=pack_size)
+        result["run_conta2"] = conta2_res
+        
+    return {"success": True, "data": result}
+
+
+@app.post("/api/qc/run-conta2")
+async def trigger_run_conta2(req: Optional[schemas.QCRunConta2Request] = None):
+    mode = req.mode if req and req.mode else "window"
+    batch_size = req.batch_size if req and req.batch_size else 10
+    result = await runner.run_conta2(mode=mode, batch_size=batch_size)
+    return result
+
+
+@app.get("/api/qc/packs")
+async def get_qc_packs():
+    from src.analyzer.qc_inspector import QCInspector
+    inspector = QCInspector()
+    return inspector.get_packs_info()
+
+
 @app.post("/api/qc/upscale")
-async def trigger_qc_upscale(req: schemas.QCUpscaleRequest):
-    from src.factory.upscaler import Upscaler
-    upscaler = Upscaler()
-    if req.filenames:
-        upscaled = []
-        for fn in req.filenames:
-            res = upscaler.upscale_image(fn)
-            if res:
-                upscaled.append(res.name)
-        return {"success": True, "upscaled_count": len(upscaled), "files": upscaled}
-    else:
-        results = upscaler.upscale_all_approved()
-        return {"success": True, "upscaled_count": len(results), "files": [p.name for p in results]}
+async def trigger_qc_upscale(req: Optional[schemas.QCUpscaleRequest] = None):
+    """Redirects upscale requests to RunningHub Conta 2 (SeedVR 8K). Native upscale was removed."""
+    res = await runner.run_conta2(mode="window", batch_size=10)
+    return {"success": True, "message": "Upscale direcionado para RunningHub Conta 2 (SeedVR 8K)", "details": res}
 
 
 @app.get("/api/qc/staging/{filename}")
@@ -552,3 +602,57 @@ def start_dashboard(port: int = 8501, open_browser: bool = True) -> None:
         threading.Thread(target=_open, daemon=True).start()
 
     uvicorn.run(app, host="0.0.0.0", port=port, log_level="info")
+
+
+
+# ── 24/7 Production Daemon & Quotas ──────────────────
+
+@app.get("/api/quotas")
+async def get_quotas():
+    """Return rolling 7-day quota status for all platforms."""
+    from src.uploader.ftp_distributor import get_all_quota_status
+    return get_all_quota_status()
+
+
+@app.get("/api/daemon/status")
+async def get_daemon_status():
+    """Return daemon heartbeat state, active phase and vault stats."""
+    state_file = readers.PROCESSED_DIR / "daemon_state.json"
+    if state_file.exists():
+        try:
+            import json
+            with open(state_file, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            logger.warning("Error reading daemon_state.json: %s", e)
+
+    # Fallback to default stopped state
+    from src.uploader.ftp_distributor import get_all_quota_status
+    return {
+        "status": "stopped",
+        "current_phase": "idle",
+        "current_action": "Daemon 24/7 não iniciado",
+        "cycles_completed": 0,
+        "last_heartbeat": None,
+        "quotas": get_all_quota_status(),
+        "vault": {
+            "total_local_assets": 0,
+            "pending_distribution": 0,
+            "fully_distributed": 0,
+            "gdrive_backed_up": 0,
+            "purged_from_local_ssd": 0,
+        }
+    }
+
+
+@app.post("/api/daemon/start")
+async def start_daemon_endpoint(mode: str = "background", interval: int = 300, min_buffer: int = 50):
+    """Start the 24/7 autonomous production daemon."""
+    return await runner.run_daemon_task(mode=mode, interval=interval, min_buffer=min_buffer)
+
+
+@app.post("/api/daemon/stop")
+async def stop_daemon_endpoint():
+    """Stop the running 24/7 daemon task."""
+    terminated = runner.terminate_task("daemon")
+    return {"success": terminated, "message": "Comando de parada do Daemon enviado"}

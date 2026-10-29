@@ -174,3 +174,48 @@ def test_run_distributor_alamy_anti_ban_block(tmp_path, monkeypatch):
         # Upload function should NEVER be called for Alamy with AI content!
         mock_ftp.assert_not_called()
         assert results.get("alamy", 0) == 0
+
+
+def test_run_distributor_respects_quota_limit(tmp_path, monkeypatch):
+    """Verify run_distributor caps batch size according to remaining quota slots."""
+    from PIL import Image
+    from src.uploader.quota_manager import QuotaManager
+
+    images_dir = tmp_path / "images"
+    images_dir.mkdir(parents=True)
+    for i in range(3):
+        img_p = images_dir / f"test_asset_{i}.jpg"
+        Image.new("RGB", (3840, 2160), color=(10 * i, 20, 30)).save(img_p, "JPEG")
+
+    history_file = tmp_path / "upload_history.json"
+    history_file.write_text("{}", encoding="utf-8")
+    monkeypatch.setattr("src.uploader.ftp_distributor.UPLOAD_HISTORY_FILE", history_file)
+    monkeypatch.setattr("src.uploader.ftp_distributor.PROCESSED_DIR", tmp_path)
+
+    adobe_agency = AgencyConfig(
+        key="adobe",
+        name="Adobe Stock",
+        protocol="sftp",
+        host="sftp.adobe.com",
+        port=22,
+        username="adobe_user",
+        password="secret_password",
+    )
+
+    # Set quota limit for adobe to 1 (even though 3 images are available)
+    qm = QuotaManager(history_path=history_file, custom_limits={"adobe": 1})
+
+    with patch("src.uploader.ftp_distributor.get_available_agencies") as mock_agencies, \
+         patch("src.uploader.ftp_distributor.upload_via_sftp", return_value=True) as mock_sftp:
+        mock_agencies.return_value = {"adobe": adobe_agency}
+
+        results = run_distributor(
+            target_platform="adobe",
+            dry_run=False,
+            images_dir=images_dir,
+            quota_manager=qm,
+        )
+
+        # Only 1 image should have been sent!
+        assert mock_sftp.call_count == 1
+        assert results.get("adobe") == 1

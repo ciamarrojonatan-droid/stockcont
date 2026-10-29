@@ -63,8 +63,8 @@ CONTA_1_CONFIG = {
 CONTA_2_CONFIG = {
     "account": 2,
     "role": "seedvr_8k_upscaler",
-    "workflow_url": "https://www.runninghub.ai/pt-br/workflow/2114903521153097729?source=workspace",
-    "workflow_id": "2114903521153097729",
+    "workflow_url": "https://www.runninghub.ai/pt-br/workflow/2115663736840245249?source=workspace",
+    "workflow_id": "2115663736840245249",
     "input_node": 5,  # Load Images (zip)
     "prompt_nodes": [],
     "output_node": 55,  # Preview Image (SeedVR 8K)
@@ -800,8 +800,9 @@ def run_factory_bot(
 
                 # ── ESTRATÉGIA B: CONTA 2 (Real-Time Single — 1 a 1 antes de sobrescrever) ──
                 else:
-                    logger.info(f"⚡ [Conta 2] Monitoramento instantâneo no Nó #{out_node} (salvando 1 a 1 para evitar overwrite)...")
+                    logger.info(f"⚡ [Conta 2] Monitoramento contínuo no Nó #{out_node} (salvando 1 a 1 em tempo real sem timeout)...")
                     last_save_time = batch_start_time
+                    last_heartbeat_time = batch_start_time
 
                     while images_saved < expected_images:
                         page.keyboard.press("Escape")
@@ -842,10 +843,19 @@ def run_factory_bot(
                         if images_saved >= expected_images:
                             break
 
-                        # Timeout de inatividade (10 min sem novas imagens)
-                        if time.time() - last_save_time > 600:
-                            logger.warning("⚠️ Timeout de inatividade no Nó #55. Encerrando monitoramento...")
-                            break
+                        # Heartbeat a cada 60s (Timeout de inatividade desativado conforme diretiva operacional)
+                        now = time.time()
+                        if now - last_heartbeat_time >= 60:
+                            last_heartbeat_time = now
+                            mins_since_last = int((now - last_save_time) // 60)
+                            secs_since_last = int((now - last_save_time) % 60)
+                            total_mins = int((now - batch_start_time) // 60)
+                            logger.info(
+                                f"⏳ [Conta 2] Monitorando Nó #{out_node}... "
+                                f"({images_saved}/{expected_images} salvas | "
+                                f"{mins_since_last}m{secs_since_last:02d}s aguardando renderização 8K | "
+                                f"{total_mins}m total)"
+                            )
 
                         time.sleep(1.0)  # Polling agressivo a cada 1s para capturar a transição exata
 

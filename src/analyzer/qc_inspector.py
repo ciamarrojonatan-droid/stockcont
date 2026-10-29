@@ -289,17 +289,7 @@ class QCInspector:
             item["status"] = "approved" if (decision == "approve" and score >= min_score) else "rejected"
             logger.info("🤖 [Auto QC] %s evaluated: Score=%.1f/10 -> Status: %s", filename, score, item["status"])
             
-            # If auto_upscale is active and approved, trigger upscale
-            if item["status"] == "approved" and config.get("auto_upscale", False):
-                try:
-                    from src.factory.upscaler import Upscaler
-                    upscaler = Upscaler()
-                    final_path = upscaler.upscale_image(filename)
-                    if final_path:
-                        item["upscaled"] = True
-                        item["final_image"] = final_path.name
-                except Exception as up_err:
-                    logger.error("Auto-upscale failed for %s: %s", filename, up_err)
+
         else:
             # Manual mode: keep pending so user can confirm in Dashboard
             item["status"] = "pending"
@@ -526,6 +516,131 @@ class QCInspector:
             zip_dest.name,
         )
         return zip_dest, valid_files
+
+    def package_approved_packs(
+        self,
+        pack_size: int = 10,
+        only_unprocessed: bool = True,
+    ) -> Dict[str, Any]:
+        """Empacota todas as imagens aprovadas em lotes sequenciais de 10 em 10 imagens (.zip).
+        
+        Salva:
+        - data/staging/approved_batch.zip (Pack 1 ativo para execução imediata no nó #5 do SeedVR)
+        - data/staging/packs/pack_01.zip, pack_02.zip, etc.
+        - data/staging/packs/packs_manifest.json (metadados com lista de packs e imagens)
+        
+        Returns:
+            Dicionário com contagem total de aprovadas, total de packs e detalhes de cada pack.
+        """
+        import zipfile
+        import shutil
+
+        manifest = self.get_manifest()
+        approved_filenames: List[str] = []
+        for fname, data in manifest.items():
+            if data.get("status") == "approved":
+                if only_unprocessed and data.get("upscaled_by_seedvr", False):
+                    continue
+                approved_filenames.append(fname)
+
+        if not approved_filenames:
+            logger.warning("Nenhuma imagem aprovada pendente para empacotar.")
+            return {
+                "total_images": 0,
+                "pack_size": pack_size,
+                "total_packs": 0,
+                "packs": [],
+                "active_pack": None,
+                "message": "Nenhuma imagem aprovada pendente de upscale encontrada.",
+            }
+
+        packs_dir = self.staging_dir / "packs"
+        packs_dir.mkdir(parents=True, exist_ok=True)
+
+        total_images = len(approved_filenames)
+        packs_list = []
+        
+        num_packs = (total_images + pack_size - 1) // pack_size
+        for idx in range(num_packs):
+            pack_num = idx + 1
+            batch_slice = approved_filenames[idx * pack_size : (idx + 1) * pack_size]
+            pack_zip_name = f"pack_{pack_num:02d}.zip"
+            pack_zip_path = packs_dir / pack_zip_name
+            tmp_zip = pack_zip_path.with_suffix(f".tmp.{os.getpid()}.{uuid.uuid4().hex[:8]}")
+
+            valid_files = []
+            with zipfile.ZipFile(tmp_zip, "w", zipfile.ZIP_DEFLATED) as zf:
+                for fname in batch_slice:
+                    fpath = Path(manifest[fname].get("path") or (self.staging_dir / fname))
+                    if fpath.exists():
+                        zf.write(fpath, arcname=fpath.name)
+                        valid_files.append(fname)
+                    else:
+                        logger.warning("Arquivo físico não encontrado para pack: %s", fpath)
+
+            if valid_files:
+                tmp_zip.replace(pack_zip_path)
+                packs_list.append({
+                    "pack_number": pack_num,
+                    "filename": pack_zip_name,
+                    "path": str(pack_zip_path),
+                    "count": len(valid_files),
+                    "images": valid_files,
+                })
+            elif tmp_zip.exists():
+                tmp_zip.unlink()
+
+        # Garantir que data/staging/approved_batch.zip contém o primeiro pack (Pack 1) para ingestão imediata
+        active_zip = self.staging_dir / "approved_batch.zip"
+        if packs_list:
+            first_pack = Path(packs_list[0]["path"])
+            shutil.copy2(first_pack, active_zip)
+            try:
+                alt_dest = (self.staging_dir.parent / "approved_batch.zip") if self.staging_dir.name == "images" else (self.staging_dir / "images" / "approved_batch.zip")
+                alt_dest.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(first_pack, alt_dest)
+            except Exception:
+                pass
+
+        manifest_info = {
+            "total_images": total_images,
+            "pack_size": pack_size,
+            "total_packs": len(packs_list),
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "active_pack": "pack_01.zip" if packs_list else None,
+            "active_zip_path": str(active_zip) if packs_list else None,
+            "packs": packs_list,
+        }
+
+        packs_manifest_file = packs_dir / "packs_manifest.json"
+        with open(packs_manifest_file, "w", encoding="utf-8") as f:
+            json.dump(manifest_info, f, indent=2, ensure_ascii=False)
+
+        logger.info(
+            "📦 Empacotadas %d imagens aprovadas em %d packs de %d (Pack 1 ativo em %s)",
+            total_images,
+            len(packs_list),
+            pack_size,
+            active_zip.name,
+        )
+        return manifest_info
+
+    def get_packs_info(self) -> Dict[str, Any]:
+        """Retorna o status dos packs gerados anteriormente."""
+        packs_manifest_file = self.staging_dir / "packs" / "packs_manifest.json"
+        if packs_manifest_file.exists():
+            try:
+                with open(packs_manifest_file, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except Exception as e:
+                logger.warning("Erro ao ler packs_manifest.json: %s", e)
+        return {
+            "total_images": 0,
+            "pack_size": 10,
+            "total_packs": 0,
+            "active_pack": None,
+            "packs": [],
+        }
 
     def get_stats(self) -> Dict[str, Any]:
         """Return summary counters for the QC pipeline."""

@@ -395,3 +395,50 @@ def test_mark_all_pending_generated(queue_env):
     assert marked == 15
     assert mgr.get_stats()["pending"] == 0
     assert mgr.get_stats()["generated"] == 15
+
+
+def test_mark_by_hashes_pending(queue_env):
+    """Marking generated prompts back to pending works via hashes."""
+    mgr = PromptQueueManager(
+        prompts_file=queue_env["prompts_file"],
+        history_file=queue_env["history_file"],
+        trends_file=queue_env["trends_file"],
+        images_dir=queue_env["images_dir"],
+        auto_reconcile=False,
+    )
+    # First mark all as generated
+    mgr.mark_all_pending_generated()
+    assert mgr.get_stats()["generated"] == 15
+    assert mgr.get_stats()["pending"] == 0
+
+    all_prompts = mgr.get_all_prompts()
+    target_hashes = [all_prompts[0].prompt_hash, all_prompts[1].prompt_hash[:12]]
+    reverted = mgr.mark_pending_by_hashes(target_hashes)
+    assert reverted == 2
+
+    # Verify status changed
+    updated = mgr.get_all_prompts()
+    assert updated[0].status == "pending"
+    assert updated[1].status == "pending"
+    assert updated[2].status == "generated"
+    assert mgr.get_stats()["pending"] == 2
+    assert mgr.get_stats()["generated"] == 13
+
+
+def test_mark_all_generated_pending(queue_env):
+    """Marking all generated prompts back to pending restores entire queue."""
+    mgr = PromptQueueManager(
+        prompts_file=queue_env["prompts_file"],
+        history_file=queue_env["history_file"],
+        trends_file=queue_env["trends_file"],
+        images_dir=queue_env["images_dir"],
+        auto_reconcile=False,
+    )
+    mgr.mark_all_pending_generated()
+    assert mgr.get_stats()["pending"] == 0
+    assert mgr.get_stats()["generated"] == 15
+
+    reverted = mgr.mark_all_generated_pending()
+    assert reverted == 15
+    assert mgr.get_stats()["pending"] == 15
+    assert mgr.get_stats()["generated"] == 0

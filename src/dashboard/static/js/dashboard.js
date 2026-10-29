@@ -100,6 +100,8 @@ async function pollTasksOnly() {
       loadBackup();
     } else if (currentTab === 'seasonal') {
       loadSeasonal();
+    } else if (currentTab === 'daemon') {
+      loadDaemon();
     }
   } catch (e) {
     console.error('Error polling tasks:', e);
@@ -280,6 +282,7 @@ async function loadCurrentTab() {
     case 'timeline': return loadTimeline();
     case 'backup': return loadBackup();
     case 'seasonal': return loadSeasonal();
+    case 'daemon': return loadDaemon();
   }
 }
 
@@ -430,9 +433,11 @@ async function loadQueue() {
     const isChecked = selectedPromptHashes.has(hash);
     const isPending = p.status === 'pending';
 
-    let actionBtn = '<span style="color:var(--text-muted);font-size:0.7rem;">Concluído</span>';
+    let actionBtn = '';
     if (isPending) {
       actionBtn = '<button class="btn btn-sm btn-success" style="padding:2px 8px;font-size:0.68rem;" data-hash="' + esc(hash) + '" onclick="markSinglePromptGenerated(this.dataset.hash)" title="Marcar este prompt individual como gerado">✓ Gerado</button>';
+    } else {
+      actionBtn = '<button class="btn btn-sm btn-warning" style="padding:2px 8px;font-size:0.68rem;" data-hash="' + esc(hash) + '" onclick="markSinglePromptPending(this.dataset.hash)" title="Reverter este prompt para status pendente">⏳ Pendente</button>';
     }
 
     return '' +
@@ -467,19 +472,8 @@ function toggleSelectAll(isChecked) {
   if (isChecked) {
     currentQueueItems.forEach(function(p) {
       const hash = p.full_hash || p.prompt_hash;
-      if (currentQueueFilter === 'all' || currentQueueFilter === 'pending') {
-        if (p.status === 'pending') {
-          selectedPromptHashes.add(hash);
-        }
-      } else {
-        selectedPromptHashes.add(hash);
-      }
+      selectedPromptHashes.add(hash);
     });
-    if (selectedPromptHashes.size === 0 && currentQueueItems.length > 0) {
-      currentQueueItems.forEach(function(p) {
-        selectedPromptHashes.add(p.full_hash || p.prompt_hash);
-      });
-    }
   } else {
     selectedPromptHashes.clear();
   }
@@ -493,22 +487,29 @@ function toggleSelectAll(isChecked) {
 }
 
 function updateSelectedUI() {
+  const count = selectedPromptHashes.size;
   const countEl = document.getElementById('selected-count');
-  if (countEl) countEl.textContent = selectedPromptHashes.size;
+  if (countEl) countEl.textContent = count;
+
+  const countPendingEl = document.getElementById('selected-pending-count');
+  if (countPendingEl) countPendingEl.textContent = count;
 
   const btnMark = document.getElementById('btn-mark-selected');
   if (btnMark) {
-    btnMark.disabled = selectedPromptHashes.size === 0;
+    btnMark.disabled = count === 0;
+  }
+
+  const btnMarkPending = document.getElementById('btn-mark-selected-pending');
+  if (btnMarkPending) {
+    btnMarkPending.disabled = count === 0;
   }
 
   const selectAllCb = document.getElementById('select-all-prompts');
   if (selectAllCb) {
-    const visiblePending = currentQueueItems.filter(function(i) { return i.status === 'pending'; });
-    const checkTarget = visiblePending.length > 0 ? visiblePending : currentQueueItems;
-    if (checkTarget.length > 0 && checkTarget.every(function(p) { return selectedPromptHashes.has(p.full_hash || p.prompt_hash); })) {
+    if (currentQueueItems.length > 0 && currentQueueItems.every(function(p) { return selectedPromptHashes.has(p.full_hash || p.prompt_hash); })) {
       selectAllCb.checked = true;
       selectAllCb.indeterminate = false;
-    } else if (selectedPromptHashes.size > 0) {
+    } else if (count > 0) {
       selectAllCb.checked = false;
       selectAllCb.indeterminate = true;
     } else {
@@ -578,6 +579,72 @@ async function markSinglePromptGenerated(hash) {
       await refreshAll();
     } else {
       showToast('❌ ' + (data.message || 'Erro ao marcar prompt'));
+    }
+  } catch (e) {
+    showToast('❌ Erro: ' + e.message);
+  }
+}
+
+async function markSelectedPending() {
+  if (selectedPromptHashes.size === 0) return;
+  const count = selectedPromptHashes.size;
+  if (!confirm('Deseja marcar os ' + count + ' prompt(s) selecionado(s) como PENDENTE(S)?')) return;
+
+  try {
+    const res = await fetch(API + '/api/prompts/mark-pending', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hashes: Array.from(selectedPromptHashes) }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast('⏳ ' + (data.message || (count + ' prompts marcados como pendentes!')));
+      selectedPromptHashes.clear();
+      await refreshAll();
+    } else {
+      showToast('❌ ' + (data.message || 'Erro ao reverter prompts'));
+    }
+  } catch (e) {
+    showToast('❌ Erro: ' + e.message);
+  }
+}
+
+async function markSinglePromptPending(hash) {
+  try {
+    const res = await fetch(API + '/api/prompts/mark-pending', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hashes: [hash] }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast('⏳ Prompt revertido para pendente!');
+      selectedPromptHashes.delete(hash);
+      await refreshAll();
+    } else {
+      showToast('❌ ' + (data.message || 'Erro ao reverter status'));
+    }
+  } catch (e) {
+    showToast('❌ Erro: ' + e.message);
+  }
+}
+
+async function markAllGeneratedPending() {
+  if (!confirm('Deseja reverter TODOS os prompts gerados da fila para PENDENTE?')) return;
+
+  try {
+    const res = await fetch(API + '/api/prompts/mark-pending', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ all_generated: true }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast('⏳ ' + (data.message || 'Todos os prompts foram revertidos para pendentes!'));
+      selectedPromptHashes.clear();
+      await refreshAll();
+    } else {
+      showToast('❌ ' + (data.message || 'Erro ao reverter prompts'));
     }
   } catch (e) {
     showToast('❌ Erro: ' + e.message);
@@ -1276,6 +1343,7 @@ async function loadQC() {
       const data = await dataRes.json();
       renderQCControls(currentQCConfig, data.stats);
       renderQCCards(data.images, data.stats);
+      loadQCPacks();
     }
   } catch (err) {
     console.error('Error loading QC:', err);
@@ -1396,6 +1464,104 @@ async function runQCEvaluate() {
       btn.disabled = false;
       btn.innerHTML = '⚡ Avaliar com Gemini';
     }
+  }
+}
+
+async function packageQCPacks(autoRun) {
+  const btn = autoRun ? document.getElementById('btn-qc-zip-and-run') : document.getElementById('btn-qc-package-packs');
+  const originalText = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = autoRun ? '⏳ Zipando & Iniciando Conta 2...' : '⏳ Gerando Packs de 10...';
+  }
+
+  try {
+    const res = await fetch(API + '/api/qc/package-zip', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pack_size: 10, only_unprocessed: true, auto_run: autoRun }),
+    });
+    const data = await res.json();
+    if (data.success && data.data) {
+      const d = data.data;
+      if (d.total_packs > 0) {
+        showToast('📦 ' + d.total_images + ' imagens empacotadas em ' + d.total_packs + ' packs de 10!');
+        renderPacksInfo(d);
+        if (autoRun) {
+          showToast('🚀 Conta 2 (SeedVR 8K) disparada com sucesso!');
+        }
+      } else {
+        showToast('⚠️ Nenhuma imagem aprovada pendente para empacotar.');
+      }
+      await loadQC();
+    } else {
+      showToast('❌ Erro ao empacotar zips: ' + (data.message || 'Falha'));
+    }
+  } catch (e) {
+    showToast('❌ Erro: ' + e.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = originalText;
+    }
+  }
+}
+
+async function triggerConta2Bat() {
+  const btn = document.getElementById('btn-qc-run-conta2');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '▶️ Iniciando...';
+  }
+
+  try {
+    const res = await fetch(API + '/api/qc/run-conta2', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode: 'window', batch_size: 10 }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast('🚀 ' + (data.message || 'run_conta2.bat disparado com sucesso!'));
+    } else {
+      showToast('❌ Erro: ' + (data.message || 'Falha ao executar bat'));
+    }
+  } catch (e) {
+    showToast('❌ Erro: ' + e.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '▶️ Rodar run_conta2.bat';
+    }
+  }
+}
+
+function renderPacksInfo(info) {
+  const banner = document.getElementById('qc-packs-banner');
+  const text = document.getElementById('qc-packs-text');
+  if (!banner || !text) return;
+
+  if (info && info.total_packs > 0) {
+    banner.style.display = 'block';
+    const firstCount = (info.packs && info.packs[0]) ? info.packs[0].count : 10;
+    const packNames = (info.packs || []).map(function(p) { return p.filename; }).join(', ');
+    text.innerHTML = '📦 <strong>' + info.total_images + ' imagens aprovadas</strong> divididas em <strong>' + info.total_packs + ' packs</strong> de até 10 imagens.<br>' +
+      '• Pack atual pronto para ingestão no Nó #5: <code>approved_batch.zip</code> (' + firstCount + ' imagens)<br>' +
+      '• Lista de packs em <code>data/staging/packs/</code>: ' + packNames;
+  } else {
+    banner.style.display = 'none';
+  }
+}
+
+async function loadQCPacks() {
+  try {
+    const res = await fetch(API + '/api/qc/packs');
+    if (res.ok) {
+      const data = await res.json();
+      renderPacksInfo(data);
+    }
+  } catch (e) {
+    // silent
   }
 }
 
@@ -1543,11 +1709,11 @@ function renderQCCards(images, stats) {
 
     return '' +
       '<div class="qc-card ' + statusClass + '">' +
-        '<div class="qc-card-img-wrap" onclick="openQCPreview('' + esc(item.filename) + '')">' +
+        '<div class="qc-card-img-wrap" onclick="openQCPreview(\'' + esc(item.filename) + '\')">' +
           '<span class="qc-badge ' + badgeClass + '">' + badgeText + '</span>' +
           upscaledBadge +
           scorePill +
-          '<img src="' + API + '/api/qc/staging/' + encodeURIComponent(item.filename) + '/thumb" alt="' + esc(item.filename) + '" loading="lazy" onerror="this.onerror=null;this.src='/static/img/placeholder.png';">' +
+          '<img src="' + API + '/api/qc/staging/' + encodeURIComponent(item.filename) + '/thumb" alt="' + esc(item.filename) + '" loading="lazy" onerror="this.onerror=null;this.src=\'/static/img/placeholder.png\';">' +
         '</div>' +
         '<div class="qc-card-body">' +
           '<div class="qc-card-header">' +
@@ -1556,12 +1722,217 @@ function renderQCCards(images, stats) {
           '</div>' +
           critiqueBoxHtml +
           '<div class="qc-card-actions">' +
-            '<button class="btn-qc-action btn-qc-approve" onclick="setSingleQCStatus('' + esc(item.filename) + '', 'approved')" title="Aprovar imagem para upscale 4K">✓ Aprovar</button>' +
-            '<button class="btn-qc-action btn-qc-reject" onclick="setSingleQCStatus('' + esc(item.filename) + '', 'rejected')" title="Rejeitar imagem (não fará upscale)">✗ Rejeitar</button>' +
-            '<button class="btn-qc-action btn-qc-eval" onclick="evalSingleQC('' + esc(item.filename) + '')" title="Auditar com Gemini Vision">⚡ IA</button>' +
-            (item.status === 'approved' && !item.upscaled ? ('<button class="btn-qc-action" style="background:var(--accent-purple); color:#fff;" onclick="upscaleSingleQC('' + esc(item.filename) + '')" title="Fazer upscale 8K agora">🚀 8K</button>') : '') +
+            '<button class="btn-qc-action btn-qc-approve" onclick="setSingleQCStatus(\'' + esc(item.filename) + '\', \'approved\')" title="Aprovar imagem para upscale 4K">✓ Aprovar</button>' +
+            '<button class="btn-qc-action btn-qc-reject" onclick="setSingleQCStatus(\'' + esc(item.filename) + '\', \'rejected\')" title="Rejeitar imagem (não fará upscale)">✗ Rejeitar</button>' +
+            '<button class="btn-qc-action btn-qc-eval" onclick="evalSingleQC(\'' + esc(item.filename) + '\')" title="Auditar com Gemini Vision">⚡ IA</button>' +
+
           '</div>' +
         '</div>' +
       '</div>';
   }).join('');
+}
+
+
+// ══════════════════════════════════════════════════════
+// 24/7 Production Daemon & Rolling Weekly Quotas UI
+// ══════════════════════════════════════════════════════
+
+async function loadDaemon() {
+  const container = document.getElementById('daemon-container');
+  if (!container) return;
+
+  try {
+    const res = await fetch(API + '/api/daemon/status');
+    if (!res.ok) throw new Error('Falha ao carregar status do daemon');
+    const data = await res.json();
+    renderDaemon(data);
+  } catch (err) {
+    container.innerHTML = '<div class="card" style="padding:20px; color:#f87171;">Erro ao carregar dados do Daemon: ' + err.message + '</div>';
+  }
+}
+
+function renderDaemon(data) {
+  const container = document.getElementById('daemon-container');
+  if (!container) return;
+
+  const isRunning = data.status === 'running';
+  const isPaused = data.status === 'paused';
+
+  let statusBadge = '<span class="pill" style="background:#334155; color:#94a3b8; font-size:0.85rem; padding:6px 14px;">⏹️ PARADO</span>';
+  if (isRunning) {
+    statusBadge = '<span class="pill pill-ok" style="font-size:0.85rem; padding:6px 14px;">🟢 EM PRODUÇÃO 24/7 (ATIVO)</span>';
+  } else if (isPaused) {
+    statusBadge = '<span class="pill pill-warn" style="font-size:0.85rem; padding:6px 14px;">⏸️ PAUSADO</span>';
+  }
+
+  const heartbeatTime = data.last_heartbeat ? new Date(data.last_heartbeat).toLocaleTimeString('pt-BR') : '—';
+  const cycles = data.cycles_completed || 0;
+  const currentPhase = data.current_phase || 'Aguardando inicialização';
+  const currentAction = data.current_action || 'Nenhuma ação no momento';
+
+  const vault = data.vault || {
+    total_local_assets: 0,
+    pending_distribution: 0,
+    fully_distributed: 0,
+    gdrive_backed_up: 0,
+    purged_from_local_ssd: 0
+  };
+
+  const quotas = data.quotas || {};
+
+  // Build Quota Cards HTML
+  let quotaCardsHtml = '';
+  for (const [key, rep] of Object.entries(quotas)) {
+    const isAlamy = key === 'alamy';
+    const limit = rep.weekly_limit || 0;
+    const used = rep.uploads_last_7_days || 0;
+    const available = rep.slots_available || 0;
+    const isExhausted = rep.is_quota_exhausted;
+
+    let barColor = '#10b981';
+    let percent = 0;
+    if (limit > 0) {
+      percent = Math.min(100, Math.round((used / limit) * 100));
+      if (isExhausted) barColor = '#a855f7';
+      else if (percent >= 70) barColor = '#f59e0b';
+    }
+
+    let statusHtml = '';
+    if (isAlamy || limit === 0) {
+      statusHtml = '<span style="color:#ef4444; font-size:0.75rem; font-weight:600;">⛔ BLOQUEADO (Política Anti-IA)</span>';
+    } else if (isExhausted) {
+      statusHtml = '<span style="color:#c084fc; font-size:0.75rem; font-weight:600;">⏸️ Cota Atingida (' + (rep.countdown_str || 'Aguardando') + ')</span>';
+    } else {
+      statusHtml = '<span style="color:#34d399; font-size:0.75rem; font-weight:600;">🟢 ' + available + ' vagas disponíveis</span>';
+    }
+
+    quotaCardsHtml += `
+      <div class="card" style="background:#131b2e; border:1px solid #1e293b; border-radius:10px; padding:16px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <span style="font-weight:700; font-size:0.9rem; text-transform:uppercase; color:#e2e8f0;">${key}</span>
+          ${statusHtml}
+        </div>
+        <div style="background:#0f172a; border-radius:6px; overflow:hidden; height:10px; margin:10px 0;">
+          <div style="width:${percent}%; background:${barColor}; height:100%; transition:width 0.4s ease;"></div>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:#94a3b8;">
+          <span>Envios (7D): <strong style="color:#f8fafc;">${used}</strong> / ${limit}</span>
+          <span>${percent}%</span>
+        </div>
+      </div>
+    `;
+  }
+
+  container.innerHTML = `
+    <!-- Top Hero Card -->
+    <div class="card" style="background:linear-gradient(135deg, #0d1527 0%, #17223b 100%); border:1px solid #253350; border-radius:12px; padding:22px; margin-bottom:20px;">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:16px;">
+        <div>
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
+            <h2 style="font-size:1.25rem; font-weight:700; color:#38bdf8; margin:0;">🤖 Fábrica Autônoma 24/7 (Supervisor Daemon)</h2>
+            ${statusBadge}
+          </div>
+          <p style="color:#94a3b8; font-size:0.85rem; margin:0 0 8px 0;">
+            Ciclos de produção contínua com gestão inteligente de cotas semanais e cofre em nuvem.
+          </p>
+          <div style="display:flex; gap:20px; font-size:0.8rem; color:#cbd5e1; margin-top:12px;">
+            <span>📍 Fase: <strong style="color:#38bdf8;">${currentPhase}</strong></span>
+            <span>⚡ Ação: <strong style="color:#e2e8f0;">${currentAction}</strong></span>
+            <span>🔄 Ciclos: <strong style="color:#34d399;">#${cycles}</strong></span>
+            <span>💓 Heartbeat: <strong style="color:#94a3b8;">${heartbeatTime}</strong></span>
+          </div>
+        </div>
+
+        <!-- Controls -->
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          ${!isRunning ? `
+            <button class="btn btn-primary" onclick="triggerStartDaemon('background')" style="display:flex; align-items:center; gap:6px;">
+              ▶️ Iniciar 24/7 (Background)
+            </button>
+            <button class="btn btn-outline" onclick="triggerStartDaemon('window')" style="display:flex; align-items:center; gap:6px;">
+              💻 Abrir no Console (run_24_7.bat)
+            </button>
+          ` : `
+            <button class="btn btn-danger" onclick="triggerStopDaemon()" style="display:flex; align-items:center; gap:6px;">
+              ⏹️ Parar Daemon 24/7
+            </button>
+          `}
+          <button class="btn btn-secondary" onclick="loadDaemon()" title="Recarregar status">🔄 Atualizar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Vault & Cloud Storage Metrics -->
+    <h3 style="font-size:1rem; font-weight:700; color:#f8fafc; margin-bottom:12px;">
+      🏦 O Cofre & Armazenamento Seguro
+    </h3>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:14px; margin-bottom:24px;">
+      <div class="card" style="background:#131b2e; border:1px solid #1e293b; border-radius:10px; padding:14px;">
+        <div style="font-size:0.75rem; color:#94a3b8; margin-bottom:4px;">📁 Assets no Disco Local</div>
+        <div style="font-size:1.4rem; font-weight:800; color:#38bdf8;">${vault.total_local_assets}</div>
+        <div style="font-size:0.7rem; color:#64748b; margin-top:2px;">data/final/images/</div>
+      </div>
+
+      <div class="card" style="background:#131b2e; border:1px solid #1e293b; border-radius:10px; padding:14px;">
+        <div style="font-size:0.75rem; color:#94a3b8; margin-bottom:4px;">⏳ Engatilhados (Aguardando Cotas)</div>
+        <div style="font-size:1.4rem; font-weight:800; color:#fbbf24;">${vault.pending_distribution}</div>
+        <div style="font-size:0.7rem; color:#64748b; margin-top:2px;">Prontos para envio futuro</div>
+      </div>
+
+      <div class="card" style="background:#131b2e; border:1px solid #1e293b; border-radius:10px; padding:14px;">
+        <div style="font-size:0.75rem; color:#94a3b8; margin-bottom:4px;">🎉 100% Distribuídos</div>
+        <div style="font-size:1.4rem; font-weight:800; color:#34d399;">${vault.fully_distributed}</div>
+        <div style="font-size:0.7rem; color:#64748b; margin-top:2px;">Enviados a todas agências ativas</div>
+      </div>
+
+      <div class="card" style="background:#131b2e; border:1px solid #1e293b; border-radius:10px; padding:14px;">
+        <div style="font-size:0.75rem; color:#94a3b8; margin-bottom:4px;">☁️ No Cofre (Google Drive)</div>
+        <div style="font-size:1.4rem; font-weight:800; color:#818cf8;">${vault.gdrive_backed_up}</div>
+        <div style="font-size:0.7rem; color:#64748b; margin-top:2px;">100% seguros na nuvem</div>
+      </div>
+
+      <div class="card" style="background:#131b2e; border:1px solid #1e293b; border-radius:10px; padding:14px;">
+        <div style="font-size:0.75rem; color:#94a3b8; margin-bottom:4px;">🧹 Liberados do SSD (Auto-Purga)</div>
+        <div style="font-size:1.4rem; font-weight:800; color:#ec4899;">${vault.purged_from_local_ssd}</div>
+        <div style="font-size:0.7rem; color:#64748b; margin-top:2px;">Espaço em disco poupado</div>
+      </div>
+    </div>
+
+    <!-- Weekly Quotas (Rolling 7 Days) Grid -->
+    <h3 style="font-size:1rem; font-weight:700; color:#f8fafc; margin-bottom:12px;">
+      📊 Cotas Semanais por Agência (Janela Deslizante de 7 Dias)
+    </h3>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:14px;">
+      ${quotaCardsHtml}
+    </div>
+  `;
+}
+
+async function triggerStartDaemon(mode = 'background') {
+  try {
+    const res = await fetch(API + '/api/daemon/start?mode=' + encodeURIComponent(mode), {
+      method: 'POST'
+    });
+    const result = await res.json();
+    if (result.success) {
+      alert('🚀 ' + result.message);
+      setTimeout(loadDaemon, 1000);
+    } else {
+      alert('⚠️ ' + result.message);
+    }
+  } catch (err) {
+    alert('Erro ao iniciar Daemon: ' + err.message);
+  }
+}
+
+async function triggerStopDaemon() {
+  if (!confirm('Deseja realmente parar o Daemon 24/7?')) return;
+  try {
+    const res = await fetch(API + '/api/daemon/stop', { method: 'POST' });
+    const result = await res.json();
+    alert('🛑 ' + result.message);
+    setTimeout(loadDaemon, 1000);
+  } catch (err) {
+    alert('Erro ao parar Daemon: ' + err.message);
+  }
 }

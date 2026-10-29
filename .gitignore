@@ -10,6 +10,7 @@ credentials*.json
 *secret*.json
 data/processed/*history.json
 data/processed/qc_manifest.json
+data/processed/daemon_state.json
 
 # Image data, staging & sessions
 data/raw/images/

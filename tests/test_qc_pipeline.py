@@ -11,7 +11,6 @@ from PIL import Image
 
 from src.analyzer.qc_inspector import QCInspector
 from src.dashboard.app import app
-from src.factory.upscaler import Upscaler
 
 
 @pytest.fixture
@@ -37,12 +36,6 @@ def temp_qc_env(tmp_path):
         config_file=config_file,
         manifest_file=manifest_file,
     )
-    upscaler = Upscaler(
-        staging_dir=staging_dir,
-        final_dir=final_dir,
-        target_min_dim=7680,
-    )
-
     return {
         "staging_dir": staging_dir,
         "processed_dir": processed_dir,
@@ -51,7 +44,6 @@ def temp_qc_env(tmp_path):
         "manifest_file": manifest_file,
         "dummy_img_path": dummy_img_path,
         "inspector": inspector,
-        "upscaler": upscaler,
     }
 
 
@@ -131,13 +123,11 @@ def test_evaluate_image_auto_mode_approved(temp_qc_env):
     }
 
     with patch.object(inspector, "_call_gemini_vision_audit", return_value=mock_gemini_response):
-        with patch("src.factory.upscaler.Upscaler.upscale_image", return_value=Path("dummy_final.jpg")):
-            result = inspector.evaluate_image("raw_test_01.png")
+        result = inspector.evaluate_image("raw_test_01.png")
 
     assert result["score"] == 9.0
     assert result["decision"] == "approve"
     assert result["status"] == "approved"
-    assert result["upscaled"] is True
 
 
 def test_evaluate_image_auto_mode_rejected(temp_qc_env):
@@ -186,17 +176,7 @@ def test_evaluate_image_manual_mode_remains_pending(temp_qc_env):
     assert result["status"] == "pending"
 
 
-def test_upscaler_execution(temp_qc_env):
-    upscaler = temp_qc_env["upscaler"]
-    out_path = upscaler.upscale_image("raw_test_01.png")
 
-    assert out_path is not None
-    assert out_path.exists()
-
-    with Image.open(out_path) as upscaled_img:
-        w, h = upscaled_img.size
-        assert max(w, h) >= 7680
-        assert upscaled_img.format == "JPEG"
 
 
 def test_dashboard_qc_api():
@@ -249,3 +229,24 @@ def test_package_approved_images_zip(temp_qc_env):
     import zipfile
     with zipfile.ZipFile(zip_path, 'r') as zf:
         assert "raw_test_01.png" in zf.namelist()
+
+
+def test_package_approved_packs_batch_10(temp_qc_env):
+    inspector = temp_qc_env["inspector"]
+    # Register 15 images
+    for i in range(1, 16):
+        fname = f"raw_batch_{i:02d}.png"
+        img_path = temp_qc_env["staging_dir"] / fname
+        img_path.write_bytes(b"dummy image data")
+        inspector.register_staging_image(fname)
+        inspector.set_status(fname, "approved")
+
+    res = inspector.package_approved_packs(pack_size=10, only_unprocessed=True)
+    assert res["total_images"] == 15
+    assert res["total_packs"] == 2
+    assert res["packs"][0]["count"] == 10
+    assert res["packs"][1]["count"] == 5
+
+    info = inspector.get_packs_info()
+    assert info["total_packs"] == 2
+    assert info["total_images"] == 15

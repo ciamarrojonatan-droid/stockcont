@@ -141,6 +141,35 @@ async def run_phase(phase: int, extra_args: Optional[List[str]] = None) -> Dict[
         return {"success": False, "message": str(e), "task_id": None}
 
 
+async def run_conta2(mode: str = "window", batch_size: int = 10) -> Dict[str, Any]:
+    """Launch Conta 2 (SeedVR 8K Upscaler).
+
+    If mode == 'window' on Windows: opens run_conta2.bat in a separate console window.
+    If mode == 'background': runs Phase 3 with --account 2 --batch-size {batch_size}.
+    """
+    bat_file = BASE_DIR / "run_conta2.bat"
+    if mode == "window" and sys.platform.startswith("win") and bat_file.exists():
+        import subprocess
+
+        try:
+            subprocess.Popen(
+                ["cmd.exe", "/c", "start", "StockCont Conta 2 - SeedVR 8K", str(bat_file)],
+                cwd=str(BASE_DIR),
+                shell=False,
+            )
+            return {
+                "success": True,
+                "message": "run_conta2.bat disparado em uma nova janela de terminal!",
+                "mode": "window",
+                "task_id": None,
+            }
+        except Exception as e:
+            logger.warning("Falha ao abrir janela para run_conta2.bat: %s, usando background", e)
+
+    extra_args = ["--account", "2", "--batch-size", str(batch_size)]
+    return await run_phase(3, extra_args=extra_args)
+
+
 async def run_backup(dry_run: bool = False, force: bool = False) -> Dict[str, Any]:
     """Start a Google Drive backup in background."""
     task_key = "backup"
@@ -301,3 +330,66 @@ def cleanup_orphan_processes() -> int:
             logger.warning("Error checking for orphan processes (unix): %s", e)
 
     return count
+
+
+
+async def run_daemon_task(mode: str = "background", interval: int = 300, min_buffer: int = 50) -> Dict[str, Any]:
+    """Launch 24/7 Production Daemon."""
+    task_key = "daemon"
+    if task_key in _running_tasks and _running_tasks[task_key].returncode is None:
+        return {"success": False, "message": "Daemon 24/7 já está em execução", "task_id": task_key}
+
+    bat_file = BASE_DIR / "run_24_7.bat"
+    if mode == "window" and sys.platform.startswith("win") and bat_file.exists():
+        import subprocess
+        try:
+            subprocess.Popen(
+                ["cmd.exe", "/c", "start", "StockCont Daemon 24/7", str(bat_file)],
+                cwd=str(BASE_DIR),
+                shell=False,
+            )
+            return {
+                "success": True,
+                "message": "Daemon 24/7 iniciado em janela de terminal dedicada (run_24_7.bat).",
+                "task_id": "daemon_window",
+            }
+        except Exception as e:
+            return {"success": False, "message": f"Falha ao iniciar run_24_7.bat: {e}", "task_id": None}
+
+    cmd = [PYTHON, "-u", str(MAIN_PY), "--daemon", "--daemon-interval", str(interval), "--min-buffer", str(min_buffer)]
+    logger.info("Iniciando Daemon 24/7 em background: %s", " ".join(cmd))
+
+    _task_records[task_key] = {
+        "task_id": task_key,
+        "phase": "daemon",
+        "status": "running",
+        "returncode": None,
+        "started_at": datetime.now(timezone.utc).isoformat(),
+        "completed_at": None,
+        "logs": deque(maxlen=100),
+        "last_log": "Iniciando Daemon 24/7...",
+    }
+
+    env = os.environ.copy()
+    env["PYTHONUNBUFFERED"] = "1"
+    env["PYTHONIOENCODING"] = "utf-8"
+    env["PYTHONUTF8"] = "1"
+
+    try:
+        process = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            cwd=str(BASE_DIR),
+            env=env,
+        )
+        _running_tasks[task_key] = process
+        asyncio.create_task(_monitor_task(task_key, process))
+        return {"success": True, "message": "Daemon 24/7 iniciado em background com sucesso", "task_id": task_key}
+    except Exception as e:
+        logger.error("Falha ao iniciar Daemon 24/7: %s", e)
+        if task_key in _task_records:
+            _task_records[task_key]["status"] = "failed"
+            _task_records[task_key]["completed_at"] = datetime.now(timezone.utc).isoformat()
+            _task_records[task_key]["last_log"] = f"Failed to start: {e}"
+        return {"success": False, "message": str(e), "task_id": None}

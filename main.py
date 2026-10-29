@@ -148,6 +148,28 @@ def check_status() -> None:
     gdrive_history_count = len(gdrive._history)
     print(f"  [☁️] Google Drive Backup:  {gdrive_status} | {gdrive_history_count} assets backed up in history")
 
+    # 24/7 Production Daemon Status & Quotas
+    daemon_state_file = PROCESSED_DIR / "daemon_state.json"
+    if daemon_state_file.exists():
+        try:
+            with open(daemon_state_file, "r", encoding="utf-8") as df:
+                d_data = json.load(df)
+                status_icon = "🟢" if d_data.get("status") == "running" else ("⏸️" if d_data.get("status") == "paused" else "⏹️")
+                print(f"  [🤖] Daemon 24/7:        {status_icon} {d_data.get('status', 'unknown').upper()} | Ciclos: {d_data.get('cycles_completed', 0)} | Ação: {d_data.get('current_action', 'N/A')}")
+        except Exception:
+            pass
+
+    try:
+        from src.uploader.quota_manager import QuotaManager
+        qm = QuotaManager()
+        q_reports = qm.get_all_reports()
+        exhausted = [p.upper() for p, r in q_reports.items() if r.is_quota_exhausted and r.weekly_limit > 0]
+        active_slots = sum(r.slots_available for r in q_reports.values() if r.weekly_limit > 0)
+        ex_str = f" | Esgotados: {', '.join(exhausted)}" if exhausted else " | 100% livre"
+        print(f"  [⚖️] Weekly Quotas (7D):  {active_slots} slots livres disponíveis{ex_str}")
+    except Exception:
+        pass
+
     print("\n" + "-" * 65)
     uncataloged = max(0, len(final_images) - cataloged_count)
     # Quick action recommendation
@@ -290,12 +312,9 @@ def run_qc(mode: str | None = None) -> None:
     logger.info("Quality Control execution finished.")
 
 def run_upscale() -> None:
-    """Upscale all approved staging images to 8K."""
-    logger.info("--- Starting 8K Upscale for Approved Images ---")
-    from src.factory.upscaler import Upscaler
-    upscaler = Upscaler()
-    results = upscaler.upscale_all_approved()
-    logger.info(f"8K Upscale finished. Processed {len(results)} approved image(s).")
+    """Upscale approved staging images to 8K via RunningHub Conta 2 (SeedVR) in packs of 10."""
+    logger.info("--- Starting 8K Upscale via RunningHub Conta 2 (SeedVR 8K) in packs of 10 ---")
+    run_phase_3(account=2, batch_size=10)
 
 
 def show_seasonal_radar() -> None:
@@ -365,6 +384,13 @@ def main() -> None:
     p5_group.add_argument("--dry-run", action="store_true", help="Test credentials and simulate upload/backup without transferring files")
     p5_group.add_argument("--force", action="store_true", help="Re-upload or re-backup files even if already recorded in history")
 
+    # Options for 24/7 Production Daemon & Quotas
+    daemon_group = parser.add_argument_group("24/7 Production Daemon & Quota Options")
+    daemon_group.add_argument("--daemon", action="store_true", help="Launch the 24/7 autonomous production pipeline daemon")
+    daemon_group.add_argument("--daemon-interval", type=int, default=300, help="Pacing interval in seconds between daemon cycles (default: 300)")
+    daemon_group.add_argument("--min-buffer", type=int, default=50, help="Minimum prompt buffer threshold for daemon (default: 50)")
+    daemon_group.add_argument("--quotas", action="store_true", help="Display rolling 7-day weekly quota reports for all platforms")
+
     args = parser.parse_args()
 
     # Dashboard mode - launch web UI server
@@ -408,6 +434,16 @@ def main() -> None:
 
     if args.backup:
         run_backup(dry_run=args.dry_run, force=args.force)
+        return
+
+    if args.quotas:
+        from src.uploader.quota_manager import print_quotas_summary
+        print_quotas_summary()
+        return
+
+    if args.daemon:
+        from src.orchestrator.daemon import start_daemon
+        start_daemon(interval=args.daemon_interval, min_buffer=args.min_buffer, dry_run=args.dry_run)
         return
 
     if args.all:

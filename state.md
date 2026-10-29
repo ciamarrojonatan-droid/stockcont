@@ -1,9 +1,9 @@
 # StockCont Pipeline State
 > Sincronizado automaticamente por hooks e comandos do ecossistema.
 
-## 🎯 Sprint Atual: Arquitetura Dual-Account Producer-Consumer (Conta 1 Raw Batch + Conta 2 SeedVR 8K Real-Time)
-- **Status da Sprint**: ✅ **Conta 1 Calibrada (42 Nós / 210 Prompts por Execução de 40 Min)**
-- **Última Atualização**: 2026-10-27 03:25
+## 🎯 Sprint Atual: Produção Autônoma 24/7 (Supervisor Daemon) + Gestor de Cotas Semanais (Rolling 7D) & Cofre de Backup
+- **Status da Sprint**: ✅ **Concluída com Sucesso: Esteira Contínua 24/7 com Pacing, Janela Deslizante de 7 Dias e Auto-Purga de SSD**
+- **Última Atualização**: 2026-10-29 02:40
 - **Modo Operacional**: Dual-Mode (Antigravity & Claude Code via SSOT `PROJECT_CONTEXT.md`)
 
 ---
@@ -12,76 +12,61 @@
 
 | Fase / Módulo | Status | Contagem / Métricas | Próxima Ação Recomendada |
 | :--- | :--- | :--- | :--- |
-| **Fase 1: Olheiro (Scout)** | 🟢 Concluído | **59 tendências mineradas** \| **59/59 referências sincronizadas** em `data/raw/images/` | Minerar novo nicho via `/mine` ou `--phase 1` |
-| **Fase 2: Diretor de Arte** | 🟢 Pronto | **Pré-flight auto-hydration + fallback textual gracioso** \| Suporte completo a Sandbox | Executar `python main.py --phase 2` |
-| **Conta 1: Raw Producer** | 🟢 Calibrada (210 Prompts) | **Workflow 2113606426114670593** \| 42 nós PromptList (5 prompts/nó) ➔ Capacidade: até 210 prompts/execução em 40 min | Fila abastecida \| `python main.py --phase 3 --account 1` |
-| **Conta 2: SeedVR 8K Upscaler** | 🟢 Calibrada & Pronta | **Workflow 2114903521153097729** \| Ingestão ZIP Nó #5 ➔ Preview Nó #55 (1 a 1 Real-Time) ➔ Auto-cancel | `python main.py --phase 3 --account 2` |
-| **Módulo QC: Curadoria & Quality Control** | 🟢 Auto-Upscale Desativado | **22 aprovadas em approved_batch.zip** \| Triagem Gemini Vision pura (sem upscale local) | `python main.py --qc` |
-| **Módulo Upscaler: 8K Commercial Grade** | 🟢 Pipeline Híbrida | **Conta 2 SeedVR 2.5 (Nuvem)** ou Local Lanczos HQ (300 DPI) | Executar Conta 2 para upscale IA |
-| **Fase 4: O Catalogador** | 🟢 Concluído | **157 assets catalogados** em `adobe_stock_upload.csv` \| Injeção obrigatória de 300 DPI | Catalogar novos renders 8K |
-| **Fase 5: O Distribuidor** | 🟢 Protegido | **Anti-Ban Safety Barrier Ativo** \| Bloqueio automático de IA para Alamy | Envio seguro para Adobe, Freepik, 123RF, Dreamstime, etc. |
-| **Nuvem: Google Drive Backup & Restore** | 🟢 Concluído | **Restauração automática ativada no startup** \| 61 imagens sincronizadas e marcadas | Sincronização contínua via `--backup` e auto-pull no Dashboard |
-| **Dashboard Web SPA** | 🟢 Operacional | Servidor FastAPI ativo em `http://localhost:8501` com nova aba **Curadoria & QC 8K** | `python main.py --dashboard` |
-| **Suíte de Testes (Pytest)** | 🟢 100% Verde | **104 testes passando (100% verde)** | Manter regressão zero |
+| **Daemon 24/7 Supervisor** | 🟢 Operacional | **Motor Contínuo Pipelined (`src/orchestrator/daemon.py`)** \| Heartbeat atômico em `daemon_state.json` \| Watchdog Windows `run_24_7.bat` | `python main.py --daemon` ou `run_24_7.bat` |
+| **Gestor de Cotas (Rolling 7D)** | 🟢 Ativo | **Janela deslizante de 7 dias (`src/uploader/quota_manager.py`)** \| 395 vagas semanais livres \| Proteção anti-burst e anti-penalização algorítmica | `python main.py --quotas` |
+| **O Cofre (Google Drive + Purga SSD)** | 🟢 Protegido | **Cofre Híbrido com Auto-Purga Inteligente**: Arquivo no SSD é liberado apenas após envio a TODAS as agências ativas e confirmação no Google Drive | Operação contínua 24/7 |
+| **Fase 1: Olheiro (Scout)** | 🟢 Concluído | **59 tendências mineradas** \| **59/59 referências sincronizadas** em `data/raw/images/` | Disparado pelo Daemon sob demanda (< 50 prompts) |
+| **Fase 2: Diretor de Arte** | 🟢 Pronto | **Pré-flight auto-hydration + fallback textual gracioso** \| Suporte completo a Sandbox | Disparado pelo Daemon sob demanda |
+| **Conta 1: Raw Producer** | 🟢 Calibrada (210 Prompts) | **Workflow 2113606426114670593** \| 42 nós PromptList (5 prompts/nó) ➔ Capacidade: até 210 prompts/execução em 40 min | Integrado no Daemon |
+| **Módulo QC: Curadoria & Quality Control** | 🟢 70 Aprovadas (7 Packs) | **Gemini Vision auto-audit ativo** \| Empacotamento em zips de 10 (`approved_batch.zip`) para prevenir OOM na GPU | Integrado no Daemon |
+| **Conta 2: SeedVR 8K Upscaler** | 🟢 Calibrada & Pronta | **Workflow SeedVR 8K** \| Ingestão ZIP Nó #5 ➔ Preview Nó #55 (1 a 1 Real-Time) ➔ Auto-cancel na última imagem | Integrado no Daemon |
+| **Fase 4: O Catalogador** | 🟢 Concluído | **157 assets catalogados** em `adobe_stock_upload.csv` \| Injeção obrigatória de 300 DPI + IPTC/EXIF | Integrado no Daemon |
+| **Fase 5: O Distribuidor com Cotas** | 🟢 Protegido | **Despacho seletivo por plataforma**: Pausa agências com cotas esgotadas e prossegue nas demais \| Anti-Ban Alamy ativo | Integrado no Daemon |
+| **Dashboard Web SPA** | 🟢 Operacional | Servidor FastAPI ativo em `http://localhost:8501` com **Nova Aba "🤖 Produção 24/7"** (Controles, Medidores de Cotas e Status do Cofre) | `python main.py --dashboard` |
+| **Suíte de Testes (Pytest)** | 🟢 100% Verde | **118 testes passando (100% verde)** \| Regressão zero | Manter integridade contínua |
 
 ---
 
-## 🧭 Inventário Completo da Calibração
+## 🧭 Inventário Completo da Implementação 24/7
 
-### Fase 1: Fundação (Contexto, Regras e Hooks) ✅
-- [x] **SSOT**: `PROJECT_CONTEXT.md` (300+ linhas, arquitetura, ADR-01 a ADR-05, contratos v3.0).
-- [x] **Orquestrador Mestre**: `AGENTS.md` (Autonomia total, includes e matriz de roteamento).
-- [x] **Dual-Mode Mirror**: `CLAUDE.md` (Compatibilidade total com Claude Code).
-- [x] **Rules por Módulo**: `src/{scraper,analyzer,factory,cataloger,uploader}/AGENTS.md`.
-- [x] **Lifecycle Hooks**: `.agents/hooks.json` com 4 handlers resilientes (`post_command_check.py`, `inject_state.py`, `session_start.py`, `stop_gate.py`).
-- [x] **Estado Vivo**: `state.md`.
-- [x] **Skill**: `/status` (`.agents/skills/stockcont-status/`).
+### 1. Motor de Cotas Semanais Deslizantes (`src/uploader/quota_manager.py`) ✅
+- [x] **Cálculo da Janela Deslizante de 7 Dias**: Conta uploads onde `timestamp >= (now - 7 days)` a partir do livro-razão `upload_history.json`.
+- [x] **Controle Granular por Agência**: Suporta limites individuais (`ADOBE_WEEKLY_LIMIT`, `FREEPIK_WEEKLY_LIMIT`, etc.) via `.env` ou defaults.
+- [x] **Countdown para Próxima Vaga**: Calcula a projeção exata em dias, horas e minutos para quando o upload mais antigo da janela completar 7 dias.
+- [x] **CLI de Consulta Rápida**: `python main.py --quotas` exibe barras de progresso visuais e status detalhado no terminal.
 
-### Fase 2: Workflows & Slash Commands ✅
-- [x] **Skill**: `/pipeline` (`.agents/skills/stockcont-pipeline/`) — Execução granular ou end-to-end com auto-recovery.
-- [x] **Skill**: `/mine` (`.agents/skills/stockcont-mine/`) — One-shot de nicho (Scout + Diretor de Arte 700-1000w).
-- [x] **Skill**: `/review` (`.agents/skills/stockcont-review/`) — Multi-layer quality gate (Pytest + Python + Security + Ledgers).
-- [x] **Skill**: `/deploy` (`.agents/skills/stockcont-deploy/`) — Test gate + inicialização do FastAPI Web SPA com health check.
-- [x] **Auto-Recuperação Windows Sandbox**: Módulo de hidratação concorrente (`src/scraper/hydrator.py`), CLI `--sync-raw` / `--hydrate` e fallback textual gracioso no Diretor v3.0 (`reference_available: false`).
+### 2. O Distribuidor com Quotas (`src/uploader/ftp_distributor.py`) ✅
+- [x] **Despacho Seletivo**: Verifica vagas livres antes de enviar; se a agência atingir a cota, pausa o envio para aquela agência e prossegue nas demais.
+- [x] **Capping Dinâmico**: Limita o lote de submissão ao número exato de slots restantes na semana.
+- [x] **Preservação de Fila**: Assets excedentes permanecem no Cofre engatilhados para os próximos ciclos.
+- [x] **Anti-Ban Alamy Preservado**: Bloqueio irrestrito de qualquer asset gerado por IA para Alamy (ADR-05).
 
-### Fase 3: Arquitetura Dual-Account RunningHub (Conta 1 Raw + Conta 2 SeedVR 8K) ✅
-- [x] **Conta 1 (Raw Producer)**:
-  - Workflow: `https://www.runninghub.ai/pt-br/workflow/2113606426114670593?source=workspace`
-  - Injeção: 42 nós PromptList (`#128`, `#129`, `#130`, `#131`, `#204`, `#218`, `#224`, `#223`, `#222`, `#221`, `#219`, `#220`, `#230`, `#229`, `#228`, `#227`, `#225`, `#226`, `#236`, `#235`, `#234`, `#233`, `#231`, `#232`, `#242`, `#241`, `#240`, `#239`, `#237`, `#238`, `#254`, `#253`, `#252`, `#251`, `#249`, `#250`, `#248`, `#247`, `#246`, `#245`, `#243`, `#244`).
-  - Capacidade por Lote: 5 prompts por nó = até 210 prompts por lote na janela de 40 minutos do RunningHub.
-  - Nó de saída: `#121` (Preview Image).
-  - Estratégia de Salvamento: **Batch All** — monitora a renderização de até 210 imagens raw com timeout de inatividade autorrefrescante (15 min sem novas imagens) e teto máximo de 45 min, salvando todas em disco em `data/staging/images/`.
-  - Sessão isolada: `playwright_session_raw/` (com fallback gracioso para `playwright_session/`).
-  - **Stealth Fingerprint Conta 1**: Chrome 128, Windows 11 Enterprise, RTX 3080, 16 Cores, 16GB RAM, 1080p, ruído de canvas e spoofing de WebGL.
-- [x] **Conta 2 (SeedVR 2.5 8K Upscaler Consumer)**:
-  - Workflow: `https://www.runninghub.ai/pt-br/workflow/2114903521153097729?source=workspace`
-  - Ingestão Anti-OOM: Empacotamento calibrado para **até 10 imagens por zip** (`approved_batch.zip`) para evitar estouro de VRAM no KSampler #23.
-  - Rotação Incremental: Roda em blocos sucessivos (`only_unprocessed=True`), processando 10 imagens por rodada de 40 min até cobrir todas as 22 aprovadas.
-  - Nó de entrada: `#5` (Load Images (zip)) — upload automatizado via Playwright / LiteGraph API.
-  - Execução: Disparo do botão central `Lite/Plus Executar`.
-  - Nó de saída: `#55` (Preview Image do SeedVR).
-  - Estratégia de Salvamento: **Real-Time 1 a 1 Instantâneo** — polling a cada 1.0s com captura imediata antes que a próxima imagem sobrescreva o nó `#55`!
-  - Auto-Cancel na última imagem: Acionamento imediato de `cancel_runninghub_task` assim que `images_saved >= expected_images` (10 imagens) para poupar GPU.
-  - Sessão isolada: `playwright_session_upscale/` (zero conflito de cookies entre contas).
-  - Destino: `data/final/images/`.
-  - **Stealth Fingerprint Conta 2**: Chrome 129, Windows 11 Pro, RTX 4070, 12 Cores, 32GB RAM, 1440p, ruído de canvas e spoofing de WebGL.
-- [x] **Injeção de Stealth Profile no RPA**: Integrado diretamente em `src/factory/runninghub_bot.py` via `launch_persistent_context` e injeção de script de spoofing (`add_init_script` e `evaluate`).
+### 3. O Daemon 24/7 & Auto-Purga Inteligente (`src/orchestrator/daemon.py`) ✅
+- [x] **Loop Pipelined Contínuo**:
+  - Buffer de Prompts: Abastece fila (Fase 1 + 2) se pendentes < `min_prompt_buffer` (padrão 50).
+  - Conta 1 (Raw Producer): Processa lotes de até 210 prompts no RunningHub.
+  - QC Automático: Curadoria multimodal via Gemini Vision e empacotamento em zips de 10.
+  - Conta 2 (SeedVR 8K): Processa pacotes aprovados de 10 em 10.
+  - Fase 4: Cataloga IPTC/EXIF 300 DPI e salva no Google Drive ("Cofre Cloud").
+  - Fase 5: Despacha assets respeitando as cotas semanais deslizantes.
+- [x] **Auto-Purga Inteligente de SSD**: Remove o JPG 8K do disco local apenas quando confirmado o upload em TODAS as agências ativas e confirmado o backup no Google Drive.
+- [x] **Heartbeat Atômico**: Salva o estado vivo em `data/processed/daemon_state.json` via `.tmp` e `os.replace` (ADR-02).
+- [x] **Pacing Sleep Responsivo**: Intervalo de descanso (padrão 300s = 5 min) com polling rápido para resposta imediata a sinais de pausa ou interrupção.
 
-### Fase 4: Quality Control (QC) & Curadoria Híbrida com Gemini Vision + 8K Upscale ✅
-- [x] **Motor de QC (`src/analyzer/qc_inspector.py`)**:
-  - Auditoria multimodal automatizada via Gemini Vision (`gemini-3.5-flash-lite` / `gemini-3.8-flash`).
-  - Rubrica técnica de microstock: detecção anatômica, copy-space (35-50% livre) e viabilidade comercial B2B.
-  - Dual-Mode: `auto` (padrão, com nota mínima 7.5) vs `manual` (triagem visual no dashboard).
-- [x] **Motor de Upscaling 8K (`src/factory/upscaler.py`)**:
-  - Target 8K (7680px na borda longa, 300 DPI, JPG 98% qualidade).
-  - Atualização automática em `generation_history.json` e `qc_manifest.json`.
-- [x] **Dashboard Web SPA (Aba "Curadoria & QC")**:
-  - Toggle Switch interativo `[🤖 Automático (Gemini Vision) | 👁️ Manual (Visual)]` com `Automático` como padrão.
-  - Galeria de cards com previews, pílulas de score, badges 8K e botões de ação instantânea.
-  - Disparo de lote: `⚡ Avaliar com Gemini` e `🚀 Upscale 8K Aprovadas`.
-- [x] **Integração CLI (`main.py`)**:
-  - `python main.py --phase 3 --account 1`: executa lote de até 210 imagens na Conta 1 (Raw Producer).
-  - `python main.py --phase 3 --account 2`: executa upscale na Conta 2 (SeedVR 8K com captura 1 a 1).
-  - `python main.py --qc`: executa QC nas imagens de staging.
-  - `python main.py --upscale`: executa upscale 8K de imagens aprovadas.
-- [x] **Garantia de Qualidade**: 104 testes automatizados passando 100% verde (regressão zero).
+### 4. Scripts de Inicialização e Supervisão Windows ✅
+- [x] **`run_24_7.bat`**: Script com loop supervisor watchdog que captura códigos de saída/crashes e reinicia a esteira automaticamente em 30 segundos.
+- [x] **`scripts/setup_windows_task.ps1`**: Script PowerShell para registro automático no Agendador de Tarefas do Windows (Task Scheduler) no logon do sistema.
+
+### 5. Dashboard Web SPA Integrado ✅
+- [x] **Aba "🤖 Produção 24/7"**:
+  - Hero card com badge interativo de status (🟢 Rodando 24/7 / ⏹️ Parado).
+  - Métricas do Cofre: Assets no disco local, engatilhados, 100% distribuídos, no Google Drive e liberados do SSD.
+  - Grid de Cotas Semanais: Cards com barras de progresso coloridas (Verde / Laranja / Roxo) e contagem regressiva para a próxima vaga.
+  - Botões de Ação: Iniciar em Background, Iniciar em Janela de Console (`run_24_7.bat`) e Parar.
+- [x] **Endpoints REST**: `/api/quotas`, `/api/daemon/status`, `/api/daemon/start`, `/api/daemon/stop`.
+
+---
+
+## 🧪 Qualidade de Código & Testes
+- **Total de Testes**: **118 testes automatizados** passando 100% verde.
+- **Regressão Zero**: Todos os testes legados, novos testes de cotas (`test_quota_manager.py`), daemon (`test_daemon.py`), distribuidor e dashboard continuam verdes.

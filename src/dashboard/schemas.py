@@ -96,6 +96,11 @@ class MarkGeneratedRequest(BaseModel):
     all_pending: Optional[bool] = False
 
 
+class MarkPendingRequest(BaseModel):
+    hashes: Optional[List[str]] = None
+    all_generated: Optional[bool] = False
+
+
 class MatrixToggleRequest(BaseModel):
     filename: str
     agency: str
@@ -134,3 +139,14 @@ class QCEvaluateRequest(BaseModel):
 
 class QCUpscaleRequest(BaseModel):
     filenames: Optional[List[str]] = None
+
+
+class QCPackageZipRequest(BaseModel):
+    pack_size: Optional[int] = 10
+    only_unprocessed: Optional[bool] = True
+    auto_run: Optional[bool] = False
+
+
+class QCRunConta2Request(BaseModel):
+    batch_size: Optional[int] = 10
+    mode: Optional[Literal['window', 'background']] = 'window'

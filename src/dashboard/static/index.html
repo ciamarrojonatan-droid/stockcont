@@ -90,6 +90,7 @@
     <button class="tab" data-tab="timeline" onclick="switchTab('timeline')">📜 Timeline</button>
     <button class="tab" data-tab="seasonal" onclick="switchTab('seasonal')">🔮 Radar Sazonal</button>
     <button class="tab" data-tab="backup" onclick="switchTab('backup')">☁️ Backup</button>
+    <button class="tab" data-tab="daemon" onclick="switchTab('daemon')">🤖 Produção 24/7</button>
   </nav>
 
   <!-- ── Tab Content: Gallery ────────────────────── -->
@@ -117,10 +118,16 @@
       </div>
       <div class="queue-actions-group">
         <button id="btn-mark-selected" class="btn btn-sm btn-success" onclick="markSelectedGenerated()" disabled title="Marcar os prompts selecionados como gerados">
-          ✓ Marcar Selecionados (<span id="selected-count">0</span>)
+          ✓ Marcar Gerado (<span id="selected-count">0</span>)
+        </button>
+        <button id="btn-mark-selected-pending" class="btn btn-sm btn-warning" onclick="markSelectedPending()" disabled title="Marcar os prompts selecionados como pendentes">
+          ⏳ Marcar Pendente (<span id="selected-pending-count">0</span>)
         </button>
         <button id="btn-mark-all-pending" class="btn btn-sm btn-outline" onclick="markAllPendingGenerated()" title="Marcar todos os prompts pendentes da fila inteira como gerados">
-          ⚡ Marcar Todos Pendentes
+          ⚡ Marcar Todos Gerados
+        </button>
+        <button id="btn-reset-all-pending" class="btn btn-sm btn-outline" onclick="markAllGeneratedPending()" title="Reverter todos os prompts gerados de volta para pendente">
+          🔄 Reverter Todos para Pendente
         </button>
       </div>
       <span class="tab-stat" id="queue-stat">—</span>
@@ -170,12 +177,22 @@
         <button id="btn-qc-eval-all" class="btn btn-sm btn-primary" onclick="runQCEvaluate()" title="Dispara auditoria visual do Gemini Vision para imagens pendentes">
           ⚡ Avaliar com Gemini
         </button>
-        <button id="btn-qc-upscale-all" class="btn btn-sm btn-success" onclick="runQCUpscale()" title="Upscala para 8K todas as imagens aprovadas">
-          🚀 Upscale 8K Aprovadas (<span id="qc-approved-count">0</span>)
+        <button id="btn-qc-package-packs" class="btn btn-sm btn-warning" onclick="packageQCPacks(false)" title="Empacota todas as imagens aprovadas em packs de 10 em 10 (.zip) para o SeedVR">
+          📦 Zipar Packs (10 em 10)
         </button>
+        <button id="btn-qc-zip-and-run" class="btn btn-sm btn-success" onclick="packageQCPacks(true)" title="Empacota as imagens de 10 em 10 e executa a Conta 2 (SeedVR 8K)">
+          ⚡ Zipar (10) & Rodar Conta 2
+        </button>
+        <button id="btn-qc-run-conta2" class="btn btn-sm btn-outline" onclick="triggerConta2Bat()" title="Executa diretamente o arquivo run_conta2.bat">
+          ▶️ Rodar run_conta2.bat
+        </button>
+
         <button class="btn btn-sm btn-outline" onclick="loadQC()" title="Recarregar imagens de staging">
           ⟳ Atualizar
         </button>
+      </div>
+      <div id="qc-packs-banner" class="qc-packs-banner" style="display:none; margin-top:12px; padding:10px 14px; background:rgba(6,182,212,0.1); border:1px solid rgba(6,182,212,0.3); border-radius:6px; font-size:0.8rem; color:var(--text-secondary); line-height:1.5;">
+        <span id="qc-packs-text">📦 Nenhum pack gerado ainda</span>
       </div>
     </div>
 
@@ -271,6 +288,13 @@
       <div class="loading">Carregando oportunidades sazonais…</div>
     </div>
   </section>
+
+  <!-- ── Tab Content: Produção 24/7 & Cotas ──────── -->
+  <section class="tab-content" id="tab-daemon">
+    <div class="daemon-container" id="daemon-container">
+      <div class="loading">Carregando status do Daemon 24/7 e Cotas...</div>
+    </div>
+  </section>
 <!-- ── Image Detail Modal ──────────────────────── -->
   <div class="modal-overlay" id="modal-overlay" onclick="closeModal()">
     <div class="modal" onclick="event.stopPropagation()">
@@ -290,6 +314,6 @@
     <span>StockCont Dashboard v1.0 • Auto-refresh: <strong>15s</strong></span>
   </footer>
 
-  <script src="/static/js/dashboard.js"></script>
+  <script src="/static/js/dashboard.js?v=2.3.0"></script>
 </body>
 </html>
