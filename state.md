@@ -1,9 +1,9 @@
 # StockCont Pipeline State
 > Sincronizado automaticamente por hooks e comandos do ecossistema.
 
-## 🎯 Sprint Atual: Expansão do Pipeline de Vídeos Industriais + Anti-Popup RunningHub + Git Push Mandatório nos Hooks
-- **Status da Sprint**: ✅ **Concluída com Sucesso: Pipeline Completo de Vídeo (Fases 1-5), Blindagem Anti-Popup RunningHub, Priorização de Staging no Daemon e Hook Gate de Git Push**
-- **Última Atualização**: 2026-10-29 20:56
+## 🎯 Sprint Atual: Redesign UI/UX StockCont Dashboard no Estilo iOS 27 Liquid Glass com REA
+- **Status da Sprint**: ✅ **Concluída com Sucesso: Interface Completa no Estilo iOS 27 Liquid Glass, Tokens Semânticos HIG, Controles Segmentados e Toasts Dinâmicos**
+- **Última Atualização**: 2026-10-29 22:45
 - **Modo Operacional**: Dual-Mode (Antigravity & Claude Code via SSOT `PROJECT_CONTEXT.md`)
 
 ---
@@ -12,6 +12,7 @@
 
 | Fase / Módulo | Status | Contagem / Métricas | Próxima Ação Recomendada |
 | :--- | :--- | :--- | :--- |
+| **Dashboard Web SPA (iOS 27)** | 🟢 Ativo | **Design System iOS 27 Liquid Glass**: Tokens HIG (`#2A2A2C`, `#007AFF`, `#0088FF`), Translucent Glass, Segmented Capsules (`.pickerStyle(.tabs)`), KPI Cards Inset Grouped | `python main.py --dashboard` |
 | **Pipeline de Vídeo (Fases 1-5)** | 🟢 Operacional | **Motor I2V Multiplier (`src/video/`)** \| Probing FFmpeg, áudio mudo mandatória (`-an`), Seamless Loop Engine e injeção QuickTime/MP4 | `python main.py --video --status` |
 | **Diretor de Arte de Vídeo** | 🟢 Pronto | **Síntese 4D Temporal (`src/analyzer/video_director.py`)** \| Prompts cinemáticos 500-800 palavras para 16:9 Landscape e 9:16 Vertical (Reels) | `python main.py --video --phase 2` |
 | **Catalogador de Vídeo** | 🟢 Pronto | **Mastering & CSVs (`src/cataloger/video_cataloger.py`)** \| Injeção de metadados binários nos átomos MP4 + exportação para Adobe Stock Video e Pond5 | `python main.py --video --phase 4` |
@@ -26,8 +27,7 @@
 | **Conta 2: SeedVR 8K Upscaler** | 🟢 Calibrada & Pronta | **Workflow SeedVR 8K** \| Ingestão ZIP Nó #5 ➔ Preview Nó #55 (1 a 1 Real-Time) ➔ Auto-cancel na última imagem | Integrado no Daemon |
 | **Fase 4: O Catalogador** | 🟢 Concluído | **190 assets catalogados** em `adobe_stock_upload.csv` \| Injeção obrigatória de 300 DPI + IPTC/EXIF | Integrado no Daemon |
 | **Fase 5: O Distribuidor com Cotas** | 🟢 Protegido | **Despacho seletivo por plataforma**: Pausa agências com cotas esgotadas e prossegue nas demais \| Anti-Ban Alamy ativo | Integrado no Daemon |
-| **Dashboard Web SPA** | 🟢 Operacional | Servidor FastAPI ativo em `http://localhost:8501` com Aba "🤖 Produção 24/7" (Controles, Medidores de Cotas e Status do Cofre) | `python main.py --dashboard` |
-| **Suíte de Testes (Pytest)** | 🟢 100% Verde | **131 testes passando (100% verde)** \| Regressão zero (118 testes existentes + 13 novos de vídeo) | `pytest tests/` |
+| **Suíte de Testes (Pytest)** | 🟢 100% Verde | **131 testes passando (100% verde)** \| Regressão zero | `pytest tests/` |
 
 ---
 

@@ -1301,11 +1301,12 @@ function showToast(msg) {
     toast = document.createElement('div');
     toast.id = 'toast';
     toast.style.cssText = '' +
-      'position: fixed; bottom: 24px; right: 24px; z-index: 9999;' +
-      'padding: 12px 20px; border-radius: 10px; font-size: 0.82rem;' +
-      'background: #1e293b; color: #f1f5f9; border: 1px solid #334155;' +
-      'box-shadow: 0 10px 15px rgba(0,0,0,0.4);' +
-      'opacity: 0; transition: opacity 0.3s ease; pointer-events: none;';
+      'position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%); z-index: 9999;' +
+      'padding: 10px 24px; border-radius: 9999px; font-size: 0.82rem; font-weight: 600;' +
+      'background: rgba(28, 28, 36, 0.90); backdrop-filter: blur(32px) saturate(190%); -webkit-backdrop-filter: blur(32px);' +
+      'color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.18);' +
+      'box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.3);' +
+      'opacity: 0; transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1); pointer-events: none;';
     document.body.appendChild(toast);
   }
   toast.textContent = msg;
@@ -1807,16 +1808,16 @@ function renderDaemon(data) {
     }
 
     quotaCardsHtml += `
-      <div class="card" style="background:#131b2e; border:1px solid #1e293b; border-radius:10px; padding:16px;">
+      <div class="card liquid-glass" style="border-radius:var(--radius-lg); padding:16px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-          <span style="font-weight:700; font-size:0.9rem; text-transform:uppercase; color:#e2e8f0;">${key}</span>
+          <span style="font-weight:700; font-size:0.9rem; text-transform:uppercase; color:var(--label-primary);">${key}</span>
           ${statusHtml}
         </div>
-        <div style="background:#0f172a; border-radius:6px; overflow:hidden; height:10px; margin:10px 0;">
-          <div style="width:${percent}%; background:${barColor}; height:100%; transition:width 0.4s ease;"></div>
+        <div style="background:rgba(120, 120, 128, 0.22); border-radius:var(--radius-pill); overflow:hidden; height:8px; margin:10px 0; border:1px solid rgba(255,255,255,0.06);">
+          <div style="width:${percent}%; background:${barColor}; height:100%; transition:width 0.4s var(--spring-smooth);"></div>
         </div>
-        <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:#94a3b8;">
-          <span>Envios (7D): <strong style="color:#f8fafc;">${used}</strong> / ${limit}</span>
+        <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--label-secondary);">
+          <span>Envios (7D): <strong style="color:var(--label-primary);">${used}</strong> / ${limit}</span>
           <span>${percent}%</span>
         </div>
       </div>
@@ -1825,21 +1826,21 @@ function renderDaemon(data) {
 
   container.innerHTML = `
     <!-- Top Hero Card -->
-    <div class="card" style="background:linear-gradient(135deg, #0d1527 0%, #17223b 100%); border:1px solid #253350; border-radius:12px; padding:22px; margin-bottom:20px;">
+    <div class="card liquid-glass" style="border-radius:var(--radius-xl); padding:24px; margin-bottom:20px; background:linear-gradient(135deg, rgba(20, 24, 38, 0.75) 0%, rgba(10, 14, 24, 0.65) 100%);">
       <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:16px;">
         <div>
           <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
-            <h2 style="font-size:1.25rem; font-weight:700; color:#38bdf8; margin:0;">🤖 Fábrica Autônoma 24/7 (Supervisor Daemon)</h2>
+            <h2 style="font-size:1.25rem; font-weight:700; color:var(--color-system-cyan); margin:0;">🤖 Fábrica Autônoma 24/7 (Supervisor Daemon)</h2>
             ${statusBadge}
           </div>
-          <p style="color:#94a3b8; font-size:0.85rem; margin:0 0 8px 0;">
+          <p style="color:var(--label-secondary); font-size:0.85rem; margin:0 0 8px 0;">
             Ciclos de produção contínua com gestão inteligente de cotas semanais e cofre em nuvem.
           </p>
-          <div style="display:flex; gap:20px; font-size:0.8rem; color:#cbd5e1; margin-top:12px;">
-            <span>📍 Fase: <strong style="color:#38bdf8;">${currentPhase}</strong></span>
-            <span>⚡ Ação: <strong style="color:#e2e8f0;">${currentAction}</strong></span>
-            <span>🔄 Ciclos: <strong style="color:#34d399;">#${cycles}</strong></span>
-            <span>💓 Heartbeat: <strong style="color:#94a3b8;">${heartbeatTime}</strong></span>
+          <div style="display:flex; gap:20px; font-size:0.8rem; color:var(--label-secondary); margin-top:12px;">
+            <span>📍 Fase: <strong style="color:var(--color-system-blue);">${currentPhase}</strong></span>
+            <span>⚡ Ação: <strong style="color:var(--label-primary);">${currentAction}</strong></span>
+            <span>🔄 Ciclos: <strong style="color:var(--color-system-green);">#${cycles}</strong></span>
+            <span>💓 Heartbeat: <strong style="color:var(--label-tertiary);">${heartbeatTime}</strong></span>
           </div>
         </div>
 
@@ -1857,49 +1858,49 @@ function renderDaemon(data) {
               ⏹️ Parar Daemon 24/7
             </button>
           `}
-          <button class="btn btn-secondary" onclick="loadDaemon()" title="Recarregar status">🔄 Atualizar</button>
+          <button class="btn btn-outline" onclick="loadDaemon()" title="Recarregar status">🔄 Atualizar</button>
         </div>
       </div>
     </div>
 
     <!-- Vault & Cloud Storage Metrics -->
-    <h3 style="font-size:1rem; font-weight:700; color:#f8fafc; margin-bottom:12px;">
+    <h3 style="font-size:0.92rem; font-weight:600; color:var(--label-secondary); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:12px;">
       🏦 O Cofre & Armazenamento Seguro
     </h3>
     <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:14px; margin-bottom:24px;">
-      <div class="card" style="background:#131b2e; border:1px solid #1e293b; border-radius:10px; padding:14px;">
-        <div style="font-size:0.75rem; color:#94a3b8; margin-bottom:4px;">📁 Assets no Disco Local</div>
-        <div style="font-size:1.4rem; font-weight:800; color:#38bdf8;">${vault.total_local_assets}</div>
-        <div style="font-size:0.7rem; color:#64748b; margin-top:2px;">data/final/images/</div>
+      <div class="card liquid-glass" style="border-radius:var(--radius-lg); padding:16px;">
+        <div style="font-size:0.75rem; color:var(--label-secondary); margin-bottom:4px;">📁 Assets no Disco Local</div>
+        <div style="font-size:1.4rem; font-weight:800; color:var(--color-system-cyan);">${vault.total_local_assets}</div>
+        <div style="font-size:0.7rem; color:var(--label-tertiary); margin-top:2px;">data/final/images/</div>
       </div>
 
-      <div class="card" style="background:#131b2e; border:1px solid #1e293b; border-radius:10px; padding:14px;">
-        <div style="font-size:0.75rem; color:#94a3b8; margin-bottom:4px;">⏳ Engatilhados (Aguardando Cotas)</div>
-        <div style="font-size:1.4rem; font-weight:800; color:#fbbf24;">${vault.pending_distribution}</div>
-        <div style="font-size:0.7rem; color:#64748b; margin-top:2px;">Prontos para envio futuro</div>
+      <div class="card liquid-glass" style="border-radius:var(--radius-lg); padding:16px;">
+        <div style="font-size:0.75rem; color:var(--label-secondary); margin-bottom:4px;">⏳ Engatilhados (Aguardando Cotas)</div>
+        <div style="font-size:1.4rem; font-weight:800; color:var(--color-system-orange);">${vault.pending_distribution}</div>
+        <div style="font-size:0.7rem; color:var(--label-tertiary); margin-top:2px;">Prontos para envio futuro</div>
       </div>
 
-      <div class="card" style="background:#131b2e; border:1px solid #1e293b; border-radius:10px; padding:14px;">
-        <div style="font-size:0.75rem; color:#94a3b8; margin-bottom:4px;">🎉 100% Distribuídos</div>
-        <div style="font-size:1.4rem; font-weight:800; color:#34d399;">${vault.fully_distributed}</div>
-        <div style="font-size:0.7rem; color:#64748b; margin-top:2px;">Enviados a todas agências ativas</div>
+      <div class="card liquid-glass" style="border-radius:var(--radius-lg); padding:16px;">
+        <div style="font-size:0.75rem; color:var(--label-secondary); margin-bottom:4px;">🎉 100% Distribuídos</div>
+        <div style="font-size:1.4rem; font-weight:800; color:var(--color-system-green);">${vault.fully_distributed}</div>
+        <div style="font-size:0.7rem; color:var(--label-tertiary); margin-top:2px;">Enviados a todas agências ativas</div>
       </div>
 
-      <div class="card" style="background:#131b2e; border:1px solid #1e293b; border-radius:10px; padding:14px;">
-        <div style="font-size:0.75rem; color:#94a3b8; margin-bottom:4px;">☁️ No Cofre (Google Drive)</div>
-        <div style="font-size:1.4rem; font-weight:800; color:#818cf8;">${vault.gdrive_backed_up}</div>
-        <div style="font-size:0.7rem; color:#64748b; margin-top:2px;">100% seguros na nuvem</div>
+      <div class="card liquid-glass" style="border-radius:var(--radius-lg); padding:16px;">
+        <div style="font-size:0.75rem; color:var(--label-secondary); margin-bottom:4px;">☁️ No Cofre (Google Drive)</div>
+        <div style="font-size:1.4rem; font-weight:800; color:var(--color-system-indigo);">${vault.gdrive_backed_up}</div>
+        <div style="font-size:0.7rem; color:var(--label-tertiary); margin-top:2px;">100% seguros na nuvem</div>
       </div>
 
-      <div class="card" style="background:#131b2e; border:1px solid #1e293b; border-radius:10px; padding:14px;">
-        <div style="font-size:0.75rem; color:#94a3b8; margin-bottom:4px;">🧹 Liberados do SSD (Auto-Purga)</div>
-        <div style="font-size:1.4rem; font-weight:800; color:#ec4899;">${vault.purged_from_local_ssd}</div>
-        <div style="font-size:0.7rem; color:#64748b; margin-top:2px;">Espaço em disco poupado</div>
+      <div class="card liquid-glass" style="border-radius:var(--radius-lg); padding:16px;">
+        <div style="font-size:0.75rem; color:var(--label-secondary); margin-bottom:4px;">🧹 Liberados do SSD (Auto-Purga)</div>
+        <div style="font-size:1.4rem; font-weight:800; color:var(--color-system-pink);">${vault.purged_from_local_ssd}</div>
+        <div style="font-size:0.7rem; color:var(--label-tertiary); margin-top:2px;">Espaço em disco poupado</div>
       </div>
     </div>
 
     <!-- Weekly Quotas (Rolling 7 Days) Grid -->
-    <h3 style="font-size:1rem; font-weight:700; color:#f8fafc; margin-bottom:12px;">
+    <h3 style="font-size:0.92rem; font-weight:600; color:var(--label-secondary); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:12px;">
       📊 Cotas Semanais por Agência (Janela Deslizante de 7 Dias)
     </h3>
     <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:14px;">
