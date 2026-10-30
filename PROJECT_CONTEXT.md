@@ -20,17 +20,31 @@ O **StockCont** é um ecossistema autônomo industrial de inteligência preditiv
 
 Diferente de fluxos manuais de geração com IA generativa, o StockCont opera como uma esteira quantitativa com 5 fases orquestradas:
 
-1. **Fase 1: O Olheiro (Trend & Contributor Scout)** — Mineração de tendências, Top Sellers mundiais e nichos com Playwright headless/headed.
+1. **Fase 1: O Olheiro (Trend & Contributor Scout)** — Mineração de tendências, Top Sellers mundiais e nichos com Playwright headless/headed e hydrator concorrente.
 
-2. **Fase 2: O Diretor de Arte v3.0 (Prompt Architect)** — Análise visual multimodal via Gemini Vision e síntese de prompts de 700 a 1.000 palavras com Copy-Space adaptativo.
+2. **Fase 2: O Diretor de Arte v3.0 (Prompt Architect)** — Análise visual multimodal via Gemini Vision e síntese de prompts de 700 a 1.000 palavras com Copy-Space adaptativo (além de Diretor 4D Temporal de Vídeo de 500 a 800 palavras).
 
-3. **Fase 3: A Fábrica (RunningHub ComfyUI RPA)** — Injeção de prompts no canvas LiteGraph do RunningHub, renderização 4K e fila idempotente com SHA-256.
+3. **Fase 3: A Fábrica (RunningHub ComfyUI RPA Dual-Account)** — Topologia segregada: Conta 1 (Raw Producer com 42 nós PromptList, até 210 prompts por lote na janela de 40 min), curadoria QC multimodal Gemini (zips de 10) e Conta 2 (SeedVR 8K Upscaler com nó #5 e #55).
 
-4. **Fase 4: O Catalogador (Metadata & Injeção Binária)** — Auditoria visual de IA, conversão JPG 98%, gravação física de metadados binários IPTC/EXIF e atualização incremental de CSV.
+4. **Fase 4: O Catalogador (Metadata, 300 DPI & Átomos de Vídeo)** — Auditoria visual de IA, conversão JPG 98% a 300 DPI, gravação física de metadados binários IPTC/EXIF, stripping obrigatório de áudio em vídeo (`-an`), injeção de átomos QuickTime/MP4 e atualização incremental de CSV.
 
-5. **Fase 5: O Distribuidor (SFTP/FTP Mass Upload)** — Distribuição automatizada multi-agência com livro-razão criptográfico e backup em nuvem no Google Drive.
+5. **Fase 5: O Distribuidor com Cotas Semanais (Rolling 7D)** — Distribuição automatizada multi-agência com livro-razão criptográfico, proteção anti-ban Alamy (ADR-05), despacho seletivo por limites de cota e backup em nuvem no Google Drive com auto-purga de SSD.
 
-6. **Módulo Transversal: Dashboard Web SPA Local** — Servidor FastAPI (`http://localhost:8501`) com Dark Theme, streaming de logs e controle reativo de processos.
+6. **Módulo Transversal: Dashboard Web SPA Local (iOS 27 Liquid Glass)** — Servidor FastAPI (`http://localhost:8501`) com design system Apple HIG, abas segmentadas, monitor de cotas, galeria IPTC/EXIF e controle do Daemon 24/7.
+
+7. **Módulo Supervisor: Daemon 24/7 Autônomo** — Motor de produção contínua (`src/orchestrator/daemon.py`) com heartbeat atômico, watchdog Windows (`run_24_7.bat`) e auto-purga de SSD.
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -280,6 +294,14 @@ Diferente de fluxos manuais de geração com IA generativa, o StockCont opera co
 
 - **Decisão**: Implementação de um motor de conformidade (`src/cataloger/platform_compliance.py`) que valida especificações técnicas (resolução, formato, tamanho, metadados) por agência e bloqueia automaticamente qualquer tentativa de upload de assets gerados por IA para a Alamy, exibindo advertências explícitas e preservando a integridade da conta do contribuinte.
 
+### ADR-06: Segregação Dual-Account RPA & Prevenção OOM
+- **Contexto**: Executar pipelines combinados de geração bruta e upscale 8K na mesma conta/sessão causa colisão de nós, estresse de VRAM e esgotamento rápido de janelas de GPU.
+- **Decisão**: Topologia física segregada: Conta 1 (Raw Producer com 42 nós PromptList, até 210 prompts por lote na janela de 40 min), curadoria QC multimodal Gemini empacotando em zips de 10 (`approved_batch.zip`) para evitar estouro de memória (OOM), e Conta 2 (SeedVR 8K Upscaler com nó #5 e #55 e auto-cancelamento atômico pós-última imagem).
+
+### ADR-07: Auto-Purga Segura de SSD com Cofre Híbrido
+- **Contexto**: A produção industrial contínua de renders 8K e arquivos de vídeo consome dezenas de gigabytes de SSD local em poucos dias.
+- **Decisão**: Implementação de política transacional estrita em `src/orchestrator/daemon.py`: a purga física do ativo no disco local ocorre EXCLUSIVAMENTE após a confirmação simultânea de: (1) backup completo no Google Drive e (2) upload com sucesso em TODAS as agências configuradas e ativas.
+
 
 
 ---
@@ -493,6 +515,8 @@ Quando interagir com o código ou executar tarefas no StockCont, utilize este ma
 | Upload SFTP/FTP | `src/uploader/`, `src/backup/` | `security-reviewer` | `python-patterns` |
 
 | Dashboard Web SPA | `src/dashboard/` | `architect` | `frontend-patterns`, `api-design` |
+| Pipeline de Vídeo Cinematográfico | `src/video/`, `video_director.py`, `video_cataloger.py` | `architect` | `python-patterns`, `error-handling` |
+| Daemon 24/7 & Cotas Semanais | `src/orchestrator/`, `src/uploader/quota_manager.py` | `e2e-runner` | `error-handling`, `orchestrator` |
 
 | Testes Automatizados | `tests/` | `tdd-guide` | `python-testing`, `tdd-workflow` |
 

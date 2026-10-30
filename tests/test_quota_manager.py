@@ -86,7 +86,7 @@ def test_quota_exhausted_and_countdown(tmp_path: Path):
     rep = qm.check_platform_quota("adobe", reference_time=now_utc)
     assert rep.is_quota_exhausted is True
     assert rep.slots_available == 0
-    assert qm.is_quota_available("adobe") is False
+    assert qm.is_quota_available("adobe", reference_time=now_utc) is False
 
     # Oldest was 6 days ago, so in 1 day (86400 seconds) a slot opens
     assert rep.seconds_until_next_slot is not None

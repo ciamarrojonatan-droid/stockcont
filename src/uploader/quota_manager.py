@@ -224,9 +224,9 @@ class QuotaManager:
             seconds_until_next_slot=secs_until_next,
         )
 
-    def is_quota_available(self, platform: str) -> bool:
+    def is_quota_available(self, platform: str, reference_time: Optional[datetime] = None) -> bool:
         """Check whether at least 1 upload slot is currently available."""
-        report = self.check_platform_quota(platform)
+        report = self.check_platform_quota(platform, reference_time=reference_time)
         return report.slots_available > 0
 
     def get_available_slots(self, platform: str) -> int:
