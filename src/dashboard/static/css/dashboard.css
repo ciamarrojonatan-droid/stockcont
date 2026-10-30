@@ -74,8 +74,9 @@
   --status-idle: var(--label-tertiary);
 
   /* ── Typography & Apple Dynamic Type Ramp ──────────────────────────────── */
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Helvetica Neue", sans-serif;
-  --font-mono: "SF Mono", "JetBrains Mono", "Cascadia Code", monospace;
+  --font-display: 'Space Grotesk', -apple-system, sans-serif;
+  --font-sans: 'Instrument Sans', -apple-system, sans-serif;
+  --font-mono: 'Fira Code', 'SF Mono', monospace;
 
   /* ── Sizing & Continuous Curvature (Squircle) ──────────────────────────── */
   --radius-xs: 8px;
@@ -1821,4 +1822,299 @@ body {
   .gallery-grid {
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   }
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   StockCont Studio — High-Frequency Terminal Cockpit Architecture
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.brand-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-cube-3d {
+  filter: drop-shadow(0 4px 12px rgba(0, 122, 255, 0.4));
+  transition: transform 0.4s var(--spring-bounce);
+  flex-shrink: 0;
+}
+.brand-container:hover .brand-cube-3d {
+  transform: rotate(12deg) scale(1.08);
+}
+
+.logo {
+  font-family: var(--font-display) !important;
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--label-primary);
+  background: linear-gradient(135deg, #ffffff 0%, rgba(255, 255, 255, 0.85) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.section-title {
+  font-family: var(--font-display) !important;
+  font-size: 1.15rem;
+  letter-spacing: -0.3px;
+}
+
+.section-sub {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--label-tertiary);
+  letter-spacing: 0.8px;
+}
+
+/* ── Hardware-Accelerated LED Pulses ────────────────────────────────────── */
+.pulse-led {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.pulse-led-ok {
+  background: #30D158;
+  box-shadow: 0 0 8px #30D158;
+  animation: pulseGlowOk 2s infinite ease-in-out;
+}
+.pulse-led-error {
+  background: #FF453A;
+  box-shadow: 0 0 8px #FF453A;
+  animation: pulseGlowErr 1.5s infinite ease-in-out;
+}
+.pulse-led-warn {
+  background: #FF9F0A;
+  box-shadow: 0 0 8px #FF9F0A;
+  animation: pulseGlowWarn 1.8s infinite ease-in-out;
+}
+
+@keyframes pulseGlowOk {
+  0%, 100% { opacity: 0.9; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(0.8); }
+}
+@keyframes pulseGlowErr {
+  0%, 100% { opacity: 0.95; transform: scale(1); }
+  50% { opacity: 0.3; transform: scale(0.8); }
+}
+@keyframes pulseGlowWarn {
+  0%, 100% { opacity: 0.9; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+/* ── Refresh Button with Orbital Rotation ────────────────────────────────── */
+.btn-refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+.btn-icon-refresh {
+  transition: transform 0.5s var(--spring-smooth);
+}
+.btn-refresh:hover .btn-icon-refresh {
+  transform: rotate(180deg);
+}
+
+/* ── High-Frequency Cockpit KPI Cards ────────────────────────────────────── */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  padding: 0 20px;
+  margin-bottom: 24px;
+}
+
+.kpi-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 16px 18px 12px;
+  background: var(--bg-card);
+  backdrop-filter: var(--liquid-glass-blur);
+  -webkit-backdrop-filter: var(--liquid-glass-blur);
+  border: 1px solid var(--liquid-glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--liquid-glass-shadow), var(--liquid-glass-specular);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.25s var(--spring-smooth);
+}
+
+.kpi-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.6s var(--spring-smooth);
+}
+.kpi-card:hover::after {
+  transform: translateX(100%);
+}
+
+.kpi-card:hover {
+  background: var(--bg-card-hover);
+  border-color: rgba(255, 255, 255, 0.24);
+  box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  transform: translateY(-2px);
+}
+
+.kpi-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.kpi-icon-wrapper {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  flex-shrink: 0;
+  transition: transform 0.25s var(--spring-bounce);
+}
+.kpi-card:hover .kpi-icon-wrapper {
+  transform: scale(1.08) translateY(-1px);
+}
+
+.kpi-icon-cyan {
+  background: rgba(0, 199, 190, 0.12);
+  border-color: rgba(0, 199, 190, 0.35);
+  box-shadow: 0 0 16px rgba(0, 199, 190, 0.2);
+}
+.kpi-icon-purple {
+  background: rgba(191, 90, 242, 0.12);
+  border-color: rgba(191, 90, 242, 0.35);
+  box-shadow: 0 0 16px rgba(191, 90, 242, 0.2);
+}
+.kpi-icon-amber {
+  background: rgba(255, 159, 10, 0.12);
+  border-color: rgba(255, 159, 10, 0.35);
+  box-shadow: 0 0 16px rgba(255, 159, 10, 0.2);
+}
+.kpi-icon-blue {
+  background: rgba(0, 122, 255, 0.12);
+  border-color: rgba(0, 122, 255, 0.35);
+  box-shadow: 0 0 16px rgba(0, 122, 255, 0.2);
+}
+.kpi-icon-indigo {
+  background: rgba(94, 92, 230, 0.12);
+  border-color: rgba(94, 92, 230, 0.35);
+  box-shadow: 0 0 16px rgba(94, 92, 230, 0.2);
+}
+.kpi-icon-green {
+  background: rgba(48, 209, 88, 0.12);
+  border-color: rgba(48, 209, 88, 0.35);
+  box-shadow: 0 0 16px rgba(48, 209, 88, 0.2);
+}
+
+.kpi-meta-badge {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--label-secondary);
+}
+
+.kpi-value {
+  font-family: var(--font-mono) !important;
+  font-size: 1.55rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--label-primary);
+  line-height: 1.15;
+}
+
+.kpi-label {
+  font-family: var(--font-sans) !important;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--label-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-top: 4px;
+}
+
+.kpi-sparkline {
+  height: 22px;
+  margin-top: 10px;
+  width: 100%;
+  border-radius: var(--radius-xs);
+  overflow: hidden;
+  opacity: 0.85;
+}
+.sparkline-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* ── Tab Bar Enhancement with Vector Icons ──────────────────────────────── */
+.tab {
+  font-family: var(--font-display) !important;
+  letter-spacing: 0.2px;
+}
+.tab-icon {
+  flex-shrink: 0;
+  opacity: 0.75;
+  transition: opacity 0.2s var(--spring-smooth), transform 0.2s var(--spring-smooth);
+}
+.tab:hover .tab-icon,
+.tab.active .tab-icon {
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
+/* ── Zero-Emoji Technical Badges ─────────────────────────────────────────── */
+.tech-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.tech-badge-ok {
+  background: rgba(48, 209, 88, 0.15);
+  color: #30D158;
+  border: 1px solid rgba(48, 209, 88, 0.35);
+}
+.tech-badge-warn {
+  background: rgba(255, 159, 10, 0.15);
+  color: #FF9F0A;
+  border: 1px solid rgba(255, 159, 10, 0.35);
+}
+.tech-badge-error {
+  background: rgba(255, 69, 58, 0.15);
+  color: #FF453A;
+  border: 1px solid rgba(255, 69, 58, 0.35);
+}
+.tech-badge-idle {
+  background: rgba(120, 120, 128, 0.18);
+  color: var(--label-secondary);
+  border: 1px solid var(--liquid-glass-border-subtle);
 }

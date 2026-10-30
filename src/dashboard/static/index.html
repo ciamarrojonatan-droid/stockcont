@@ -3,97 +3,353 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>📈 StockCont Studio — iOS 27 Liquid Glass</title>
+  <title>StockCont Studio — Industrial Command Center</title>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#000000">
-  <link rel="stylesheet" href="/static/css/dashboard.css?v=2.7.0">
+  <link rel="stylesheet" href="/static/css/dashboard.css?v=3.0.0">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
+
+  <!-- ── Global SVG Defs & Filters (3D Glassmorphic Lighting Engine) ── -->
+  <svg style="display:none;" aria-hidden="true">
+    <defs>
+      <!-- Glassmorphic Drop Shadow -->
+      <filter id="glass-glow-blue" x="-20%" y="-20%" width="140%" height="140%">
+        <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#007AFF" flood-opacity="0.45" />
+      </filter>
+      <filter id="glass-glow-cyan" x="-20%" y="-20%" width="140%" height="140%">
+        <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#00C7BE" flood-opacity="0.45" />
+      </filter>
+      <filter id="glass-glow-green" x="-20%" y="-20%" width="140%" height="140%">
+        <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#30D158" flood-opacity="0.45" />
+      </filter>
+      <filter id="glass-glow-amber" x="-20%" y="-20%" width="140%" height="140%">
+        <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#FF9F0A" flood-opacity="0.45" />
+      </filter>
+      <filter id="glass-glow-purple" x="-20%" y="-20%" width="140%" height="140%">
+        <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#AF52DE" flood-opacity="0.45" />
+      </filter>
+
+      <!-- 3D Volumetric Gradients -->
+      <linearGradient id="grad-cube-top" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#00C7BE" stop-opacity="0.95" />
+        <stop offset="100%" stop-color="#007AFF" stop-opacity="0.75" />
+      </linearGradient>
+      <linearGradient id="grad-cube-left" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="#007AFF" stop-opacity="0.85" />
+        <stop offset="100%" stop-color="#0040A8" stop-opacity="0.95" />
+      </linearGradient>
+      <linearGradient id="grad-cube-right" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#38BDF8" stop-opacity="0.9" />
+        <stop offset="100%" stop-color="#0284C7" stop-opacity="0.6" />
+      </linearGradient>
+
+      <!-- Glass Prism Linear Gradients -->
+      <linearGradient id="grad-prism-amber" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#FFD60A" />
+        <stop offset="100%" stop-color="#FF9F0A" />
+      </linearGradient>
+      <linearGradient id="grad-prism-purple" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#BF5AF2" />
+        <stop offset="100%" stop-color="#5E5CE6" />
+      </linearGradient>
+      <linearGradient id="grad-prism-green" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#30D158" />
+        <stop offset="100%" stop-color="#00A844" />
+      </linearGradient>
+      <linearGradient id="grad-sparkline" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="rgba(0,122,255,0.35)" />
+        <stop offset="100%" stop-color="rgba(0,122,255,0.0)" />
+      </linearGradient>
+    </defs>
+  </svg>
 
   <!-- ── Header ─────────────────────────────────── -->
   <header class="header">
     <div class="header-left">
-      <h1 class="logo">📈 StockCont</h1>
-      <span class="tagline">Autonomous Microstock Pipeline</span>
+      <div class="brand-container">
+        <svg class="brand-cube-3d" viewBox="0 0 36 36" width="34" height="34">
+          <!-- Isometric 3D Reactor Cube -->
+          <polygon points="18,3 33,11 18,19 3,11" fill="url(#grad-cube-top)" />
+          <polygon points="3,11 18,19 18,33 3,25" fill="url(#grad-cube-left)" />
+          <polygon points="33,11 18,19 18,33 33,25" fill="url(#grad-cube-right)" />
+          <polyline points="18,19 18,33" stroke="rgba(255,255,255,0.4)" stroke-width="0.8" />
+          <polyline points="3,11 18,19 33,11" stroke="rgba(255,255,255,0.6)" stroke-width="0.8" />
+          <circle cx="18" cy="11" r="2.2" fill="#FFFFFF" opacity="0.9" filter="url(#glass-glow-cyan)" />
+        </svg>
+        <div>
+          <h1 class="logo">StockCont</h1>
+          <span class="tagline">Autonomous Industrial Microstock Architecture</span>
+        </div>
+      </div>
     </div>
+
     <div class="header-right">
-      <span id="status-pill" class="pill pill-ok">🟢 Online</span>
-      <span id="gemini-pill" class="pill pill-idle" title="Gemini API Key">🔑 Gemini</span>
-      <span id="last-refresh" class="meta-text">—</span>
-      <button id="btn-refresh" class="btn btn-sm" onclick="refreshAll()">⟳ Refresh</button>
+      <span id="status-pill" class="pill pill-ok">
+        <span class="pulse-led pulse-led-ok"></span>
+        <span class="pill-label">ONLINE</span>
+      </span>
+      <span id="gemini-pill" class="pill pill-idle" title="Gemini 2.5/3.0 Vision Engine">
+        <svg class="pill-icon" viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6">
+          <circle cx="8" cy="8" r="3" />
+          <path d="M8 1v3M8 12v3M1 8h3M12 8h3" stroke-linecap="round" />
+        </svg>
+        <span class="pill-label">GEMINI CORE</span>
+      </span>
+      <span id="last-refresh" class="meta-text mono">—</span>
+      <button id="btn-refresh" class="btn btn-sm btn-refresh" onclick="refreshAll()" title="Sincronizar telemetria">
+        <svg class="btn-icon-refresh" viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M14 8A6 6 0 1 1 12.2 3.8L14 2v4h-4" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <span>SYNC</span>
+      </button>
     </div>
   </header>
 
-  <!-- ── KPI Cards ──────────────────────────────── -->
+  <!-- ── KPI Cards (High-Frequency Cockpit) ──────── -->
   <section class="kpi-row">
+    <!-- KPI 1: Trends -->
     <div class="kpi-card" id="kpi-trends">
-      <div class="kpi-icon">🔍</div>
+      <div class="kpi-top">
+        <div class="kpi-icon-wrapper kpi-icon-cyan">
+          <svg viewBox="0 0 28 28" width="24" height="24" class="svg-3d-glass">
+            <circle cx="14" cy="14" r="11" fill="none" stroke="url(#grad-cube-top)" stroke-width="1.6" opacity="0.8" />
+            <circle cx="14" cy="14" r="5" fill="rgba(0,199,190,0.2)" stroke="#00C7BE" stroke-width="1.4" />
+            <line x1="14" y1="2" x2="14" y2="7" stroke="#00C7BE" stroke-width="1.5" stroke-linecap="round" />
+            <line x1="14" y1="21" x2="14" y2="26" stroke="#00C7BE" stroke-width="1.5" stroke-linecap="round" />
+            <line x1="2" y1="14" x2="7" y2="14" stroke="#00C7BE" stroke-width="1.5" stroke-linecap="round" />
+            <line x1="21" y1="14" x2="26" y2="14" stroke="#00C7BE" stroke-width="1.5" stroke-linecap="round" />
+            <circle cx="14" cy="14" r="1.5" fill="#FFFFFF" />
+          </svg>
+        </div>
+        <div class="kpi-meta-badge">STAGE 1</div>
+      </div>
       <div class="kpi-body">
-        <div class="kpi-value" id="kpi-val-trends">—</div>
-        <div class="kpi-label">Tendências</div>
+        <div class="kpi-value mono" id="kpi-val-trends">—</div>
+        <div class="kpi-label">Tendências Mineradas</div>
+      </div>
+      <div class="kpi-sparkline" id="sparkline-trends">
+        <svg viewBox="0 0 100 24" preserveAspectRatio="none" class="sparkline-svg">
+          <polygon points="0,24 0,18 20,14 40,16 60,9 80,11 100,4 100,24" fill="url(#grad-sparkline)" />
+          <polyline points="0,18 20,14 40,16 60,9 80,11 100,4" fill="none" stroke="#00C7BE" stroke-width="1.5" stroke-linecap="round" />
+        </svg>
       </div>
     </div>
+
+    <!-- KPI 2: Prompts -->
     <div class="kpi-card" id="kpi-prompts">
-      <div class="kpi-icon">🎨</div>
+      <div class="kpi-top">
+        <div class="kpi-icon-wrapper kpi-icon-purple">
+          <svg viewBox="0 0 28 28" width="24" height="24" class="svg-3d-glass">
+            <polygon points="14,3 25,9 25,21 14,27 3,21 3,9" fill="none" stroke="url(#grad-prism-purple)" stroke-width="1.6" opacity="0.8" />
+            <polygon points="14,7 21,11 21,19 14,23 7,19 7,11" fill="rgba(191,90,242,0.18)" stroke="#BF5AF2" stroke-width="1.2" />
+            <circle cx="14" cy="15" r="3" fill="#FFFFFF" opacity="0.9" />
+          </svg>
+        </div>
+        <div class="kpi-meta-badge">STAGE 2</div>
+      </div>
       <div class="kpi-body">
-        <div class="kpi-value" id="kpi-val-prompts">—</div>
-        <div class="kpi-label">Prompts Gerados</div>
+        <div class="kpi-value mono" id="kpi-val-prompts">—</div>
+        <div class="kpi-label">Prompts Sintetizados</div>
+      </div>
+      <div class="kpi-sparkline" id="sparkline-prompts">
+        <svg viewBox="0 0 100 24" preserveAspectRatio="none" class="sparkline-svg">
+          <polygon points="0,24 0,20 20,18 40,10 60,12 80,6 100,3 100,24" fill="url(#grad-sparkline)" />
+          <polyline points="0,20 20,18 40,10 60,12 80,6 100,3" fill="none" stroke="#BF5AF2" stroke-width="1.5" stroke-linecap="round" />
+        </svg>
       </div>
     </div>
+
+    <!-- KPI 3: Queue -->
     <div class="kpi-card" id="kpi-queue">
-      <div class="kpi-icon">⏳</div>
+      <div class="kpi-top">
+        <div class="kpi-icon-wrapper kpi-icon-amber">
+          <svg viewBox="0 0 28 28" width="24" height="24" class="svg-3d-glass">
+            <path d="M5,4 L23,4 L16,14 L23,24 L5,24 L12,14 Z" fill="rgba(255,159,10,0.15)" stroke="url(#grad-prism-amber)" stroke-width="1.6" stroke-linejoin="round" />
+            <line x1="8" y1="21" x2="20" y2="21" stroke="#FFD60A" stroke-width="1.4" />
+            <circle cx="14" cy="14" r="1.5" fill="#FFFFFF" />
+          </svg>
+        </div>
+        <div class="kpi-meta-badge">STAGE 3</div>
+      </div>
       <div class="kpi-body">
-        <div class="kpi-value" id="kpi-val-queue">—</div>
-        <div class="kpi-label">Fila (Queue)</div>
+        <div class="kpi-value mono" id="kpi-val-queue">—</div>
+        <div class="kpi-label">Fila ComfyUI Dual-RPA</div>
         <div class="progress-bar"><div class="progress-fill" id="queue-progress"></div></div>
       </div>
     </div>
+
+    <!-- KPI 4: 4K/8K Images -->
     <div class="kpi-card" id="kpi-images">
-      <div class="kpi-icon">🖼️</div>
+      <div class="kpi-top">
+        <div class="kpi-icon-wrapper kpi-icon-blue">
+          <svg viewBox="0 0 28 28" width="24" height="24" class="svg-3d-glass">
+            <rect x="4" y="5" width="20" height="18" rx="3" fill="rgba(0,122,255,0.18)" stroke="#007AFF" stroke-width="1.6" />
+            <polygon points="6,19 11,13 16,18 20,14 23,19" fill="#007AFF" opacity="0.6" />
+            <circle cx="10" cy="10" r="2" fill="#FFFFFF" />
+          </svg>
+        </div>
+        <div class="kpi-meta-badge">4K / 8K</div>
+      </div>
       <div class="kpi-body">
-        <div class="kpi-value" id="kpi-val-images">—</div>
-        <div class="kpi-label">Imagens 4K</div>
+        <div class="kpi-value mono" id="kpi-val-images">—</div>
+        <div class="kpi-label">Renders Master em Disco</div>
+      </div>
+      <div class="kpi-sparkline" id="sparkline-images">
+        <svg viewBox="0 0 100 24" preserveAspectRatio="none" class="sparkline-svg">
+          <polygon points="0,24 0,16 25,14 50,8 75,9 100,2 100,24" fill="url(#grad-sparkline)" />
+          <polyline points="0,16 25,14 50,8 75,9 100,2" fill="none" stroke="#007AFF" stroke-width="1.5" stroke-linecap="round" />
+        </svg>
       </div>
     </div>
+
+    <!-- KPI 5: Cataloged -->
     <div class="kpi-card" id="kpi-cataloged">
-      <div class="kpi-icon">📋</div>
+      <div class="kpi-top">
+        <div class="kpi-icon-wrapper kpi-icon-indigo">
+          <svg viewBox="0 0 28 28" width="24" height="24" class="svg-3d-glass">
+            <rect x="5" y="4" width="18" height="20" rx="3" fill="rgba(94,92,230,0.18)" stroke="#5E5CE6" stroke-width="1.6" />
+            <line x1="9" y1="9" x2="19" y2="9" stroke="#5E5CE6" stroke-width="1.6" stroke-linecap="round" />
+            <line x1="9" y1="14" x2="19" y2="14" stroke="#5E5CE6" stroke-width="1.6" stroke-linecap="round" />
+            <line x1="9" y1="19" x2="15" y2="19" stroke="#5E5CE6" stroke-width="1.6" stroke-linecap="round" />
+          </svg>
+        </div>
+        <div class="kpi-meta-badge">STAGE 4</div>
+      </div>
       <div class="kpi-body">
-        <div class="kpi-value" id="kpi-val-cataloged">—</div>
-        <div class="kpi-label">Catalogados</div>
+        <div class="kpi-value mono" id="kpi-val-cataloged">—</div>
+        <div class="kpi-label">Ativos IPTC / 300 DPI</div>
+      </div>
+      <div class="kpi-sparkline" id="sparkline-cataloged">
+        <svg viewBox="0 0 100 24" preserveAspectRatio="none" class="sparkline-svg">
+          <polygon points="0,24 0,17 30,15 60,9 80,10 100,3 100,24" fill="url(#grad-sparkline)" />
+          <polyline points="0,17 30,15 60,9 80,10 100,3" fill="none" stroke="#5E5CE6" stroke-width="1.5" stroke-linecap="round" />
+        </svg>
       </div>
     </div>
+
+    <!-- KPI 6: Distributed -->
     <div class="kpi-card" id="kpi-distributed">
-      <div class="kpi-icon">🚀</div>
+      <div class="kpi-top">
+        <div class="kpi-icon-wrapper kpi-icon-green">
+          <svg viewBox="0 0 28 28" width="24" height="24" class="svg-3d-glass">
+            <circle cx="14" cy="18" r="4" fill="none" stroke="#30D158" stroke-width="1.6" />
+            <line x1="14" y1="14" x2="14" y2="4" stroke="#30D158" stroke-width="1.8" stroke-linecap="round" />
+            <path d="M8,9 C11,6 17,6 20,9" fill="none" stroke="#30D158" stroke-width="1.4" stroke-linecap="round" />
+            <path d="M5,6 C10,1 18,1 23,6" fill="none" stroke="#30D158" stroke-width="1.4" stroke-linecap="round" opacity="0.6" />
+          </svg>
+        </div>
+        <div class="kpi-meta-badge">STAGE 5</div>
+      </div>
       <div class="kpi-body">
-        <div class="kpi-value" id="kpi-val-distributed">—</div>
-        <div class="kpi-label">Distribuídos</div>
+        <div class="kpi-value mono" id="kpi-val-distributed">—</div>
+        <div class="kpi-label">Uplinks Multi-Agência</div>
+      </div>
+      <div class="kpi-sparkline" id="sparkline-distributed">
+        <svg viewBox="0 0 100 24" preserveAspectRatio="none" class="sparkline-svg">
+          <polygon points="0,24 0,22 25,18 50,14 75,10 100,4 100,24" fill="url(#grad-sparkline)" />
+          <polyline points="0,22 25,18 50,14 75,10 100,4" fill="none" stroke="#30D158" stroke-width="1.5" stroke-linecap="round" />
+        </svg>
       </div>
     </div>
   </section>
 
   <!-- ── Pipeline Tracker ───────────────────────── -->
   <section class="pipeline-section">
-    <h2 class="section-title">Pipeline Tracker</h2>
+    <div class="section-header">
+      <h2 class="section-title">Pipeline Orchestration Tracker</h2>
+      <span class="section-sub mono">AUTONOMOUS STREAM 100% IDEMPOTENT</span>
+    </div>
     <div class="pipeline-track" id="pipeline-track">
-      <!-- Rendered by JS -->
+      <!-- Rendered dynamically by JS with 3D Glass nodes -->
     </div>
   </section>
 
-  <!-- ── Tab Navigation ─────────────────────────── -->
+  <!-- ── Tab Navigation (Tactile Capsule Switcher) ─ -->
   <nav class="tabs">
-    <button class="tab active" data-tab="gallery" onclick="switchTab('gallery')">🖼️ Galeria</button>
-    <button class="tab" data-tab="queue" onclick="switchTab('queue')">⏳ Fila de Prompts</button>
+    <button class="tab active" data-tab="gallery" onclick="switchTab('gallery')">
+      <svg class="tab-icon" viewBox="0 0 18 18" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6">
+        <rect x="2" y="2" width="14" height="14" rx="2.5" />
+        <circle cx="6" cy="6" r="1.5" />
+        <path d="M3 14l4-4 3 3 4-5 2 2" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+      <span>Galeria</span>
+    </button>
 
-    <button class="tab" data-tab="qc" onclick="switchTab('qc')">🔍 Curadoria & QC</button>
-    <button class="tab" data-tab="matrix" onclick="switchTab('matrix')">🌐 Matriz de Distribuição</button>
-    <button class="tab" data-tab="agencies" onclick="switchTab('agencies')">🏢 Agências</button>
-    <button class="tab" data-tab="timeline" onclick="switchTab('timeline')">📜 Timeline</button>
-    <button class="tab" data-tab="seasonal" onclick="switchTab('seasonal')">🔮 Radar Sazonal</button>
-    <button class="tab" data-tab="backup" onclick="switchTab('backup')">☁️ Backup</button>
-    <button class="tab" data-tab="daemon" onclick="switchTab('daemon')">🤖 Produção 24/7</button>
+    <button class="tab" data-tab="queue" onclick="switchTab('queue')">
+      <svg class="tab-icon" viewBox="0 0 18 18" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6">
+        <path d="M3 4h12M3 9h12M3 14h7" stroke-linecap="round" />
+        <circle cx="14" cy="14" r="2" fill="currentColor" stroke="none" />
+      </svg>
+      <span>Fila de Prompts</span>
+    </button>
+
+    <button class="tab" data-tab="qc" onclick="switchTab('qc')">
+      <svg class="tab-icon" viewBox="0 0 18 18" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6">
+        <circle cx="8" cy="8" r="5" />
+        <path d="M12 12l4 4" stroke-linecap="round" />
+        <path d="M6 8l1.5 1.5L10 6" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+      <span>Curadoria & QC</span>
+    </button>
+
+    <button class="tab" data-tab="matrix" onclick="switchTab('matrix')">
+      <svg class="tab-icon" viewBox="0 0 18 18" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6">
+        <rect x="2" y="2" width="6" height="6" rx="1.5" />
+        <rect x="10" y="2" width="6" height="6" rx="1.5" />
+        <rect x="2" y="10" width="6" height="6" rx="1.5" />
+        <rect x="10" y="10" width="6" height="6" rx="1.5" />
+      </svg>
+      <span>Matriz de Distribuição</span>
+    </button>
+
+    <button class="tab" data-tab="agencies" onclick="switchTab('agencies')">
+      <svg class="tab-icon" viewBox="0 0 18 18" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6">
+        <path d="M3 16V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v11" />
+        <path d="M7 7h1M10 7h1M7 10h1M10 10h1M7 13h1M10 13h1" stroke-linecap="round" />
+      </svg>
+      <span>Agências</span>
+    </button>
+
+    <button class="tab" data-tab="timeline" onclick="switchTab('timeline')">
+      <svg class="tab-icon" viewBox="0 0 18 18" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6">
+        <circle cx="9" cy="9" r="7" />
+        <polyline points="9,5 9,9 12,11" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+      <span>Timeline</span>
+    </button>
+
+    <button class="tab" data-tab="seasonal" onclick="switchTab('seasonal')">
+      <svg class="tab-icon" viewBox="0 0 18 18" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6">
+        <circle cx="9" cy="9" r="7" />
+        <polygon points="9,4 11,8 14,9 11,10 9,14 7,10 4,9 7,8" fill="currentColor" opacity="0.7" />
+      </svg>
+      <span>Radar Sazonal</span>
+    </button>
+
+    <button class="tab" data-tab="backup" onclick="switchTab('backup')">
+      <svg class="tab-icon" viewBox="0 0 18 18" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6">
+        <path d="M4 12a4 4 0 0 1-.5-7.9A5.5 5.5 0 0 1 14 6a3.5 3.5 0 0 1 0 7H4z" />
+        <polyline points="7,10 9,8 11,10" stroke-linecap="round" stroke-linejoin="round" />
+        <line x1="9" y1="8" x2="9" y2="14" stroke-linecap="round" />
+      </svg>
+      <span>Cofre Cloud</span>
+    </button>
+
+    <button class="tab" data-tab="daemon" onclick="switchTab('daemon')">
+      <svg class="tab-icon" viewBox="0 0 18 18" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6">
+        <rect x="3" y="5" width="12" height="10" rx="3" />
+        <circle cx="7" cy="10" r="1.2" fill="currentColor" />
+        <circle cx="11" cy="10" r="1.2" fill="currentColor" />
+        <line x1="9" y1="2" x2="9" y2="5" stroke-linecap="round" />
+        <circle cx="9" cy="2" r="1" fill="currentColor" />
+      </svg>
+      <span>Produção 24/7</span>
+    </button>
   </nav>
 
   <!-- ── Tab Content: Gallery ────────────────────── -->
@@ -102,12 +358,12 @@
       <div class="filter-group">
         <button class="filter-btn active" onclick="filterImages('all')">Todos</button>
         <button class="filter-btn" onclick="filterImages('cataloged')">Catalogados</button>
-        <button class="filter-btn" onclick="filterImages('uncataloged')">Não catalogados</button>
+        <button class="filter-btn" onclick="filterImages('uncataloged')">Não Catalogados</button>
       </div>
-      <span class="tab-stat" id="gallery-stat">—</span>
+      <span class="tab-stat mono" id="gallery-stat">—</span>
     </div>
     <div class="gallery-grid" id="gallery-grid">
-      <div class="loading">Carregando galeria…</div>
+      <div class="loading">Carregando galeria master…</div>
     </div>
   </section>
 
@@ -121,19 +377,19 @@
       </div>
       <div class="queue-actions-group">
         <button id="btn-mark-selected" class="btn btn-sm btn-success" onclick="markSelectedGenerated()" disabled title="Marcar os prompts selecionados como gerados">
-          ✓ Marcar Gerado (<span id="selected-count">0</span>)
+          <span>Marcar Gerado (<span id="selected-count" class="mono">0</span>)</span>
         </button>
         <button id="btn-mark-selected-pending" class="btn btn-sm btn-warning" onclick="markSelectedPending()" disabled title="Marcar os prompts selecionados como pendentes">
-          ⏳ Marcar Pendente (<span id="selected-pending-count">0</span>)
+          <span>Marcar Pendente (<span id="selected-pending-count" class="mono">0</span>)</span>
         </button>
-        <button id="btn-mark-all-pending" class="btn btn-sm btn-outline" onclick="markAllPendingGenerated()" title="Marcar todos os prompts pendentes da fila inteira como gerados">
-          ⚡ Marcar Todos Gerados
+        <button id="btn-mark-all-pending" class="btn btn-sm btn-outline" onclick="markAllPendingGenerated()" title="Marcar todos os prompts pendentes como gerados">
+          <span>Marcar Todos Gerados</span>
         </button>
-        <button id="btn-reset-all-pending" class="btn btn-sm btn-outline" onclick="markAllGeneratedPending()" title="Reverter todos os prompts gerados de volta para pendente">
-          🔄 Reverter Todos para Pendente
+        <button id="btn-reset-all-pending" class="btn btn-sm btn-outline" onclick="markAllGeneratedPending()" title="Reverter todos os prompts gerados para pendente">
+          <span>Reverter para Pendente</span>
         </button>
       </div>
-      <span class="tab-stat" id="queue-stat">—</span>
+      <span class="tab-stat mono" id="queue-stat">—</span>
     </div>
     <div class="queue-table-wrapper">
       <table class="data-table" id="queue-table">
@@ -142,16 +398,16 @@
             <th style="width:40px; text-align:center;">
               <input type="checkbox" id="select-all-prompts" class="prompt-select-checkbox" onchange="toggleSelectAll(this.checked)" title="Selecionar todos os pendentes visíveis">
             </th>
-            <th>Hash</th>
-            <th>Conceito</th>
-            <th>Source</th>
+            <th>Hash SHA-256</th>
+            <th>Conceito Comercial</th>
+            <th>Fonte</th>
             <th>Status</th>
-            <th>Data</th>
+            <th>Data de Registro</th>
             <th style="text-align:center; width:90px;">Ação</th>
           </tr>
         </thead>
         <tbody id="queue-tbody">
-          <tr><td colspan="7" class="loading">Carregando fila…</td></tr>
+          <tr><td colspan="7" class="loading">Carregando livro-razão de prompts…</td></tr>
         </tbody>
       </table>
     </div>
@@ -164,54 +420,54 @@
         <span class="qc-mode-label">Modo QC:</span>
         <div class="qc-toggle-group">
           <button id="qc-mode-auto-btn" class="qc-toggle-btn active" onclick="setQCMode('auto')">
-            🤖 Automático (Gemini Vision)
+            Automático (Gemini Vision)
           </button>
           <button id="qc-mode-manual-btn" class="qc-toggle-btn" onclick="setQCMode('manual')">
-            👁️ Manual (Visual)
+            Manual (Operador)
           </button>
         </div>
         <div class="qc-threshold-wrapper">
           <label for="qc-min-score">Nota Mínima:</label>
-          <input type="number" id="qc-min-score" min="1.0" max="10.0" step="0.5" value="7.5" onchange="updateQCMinScore(this.value)">
+          <input type="number" id="qc-min-score" class="mono" min="1.0" max="10.0" step="0.5" value="7.5" onchange="updateQCMinScore(this.value)">
         </div>
       </div>
 
       <div class="qc-actions-group">
-        <button id="btn-qc-eval-all" class="btn btn-sm btn-primary" onclick="runQCEvaluate()" title="Dispara auditoria visual do Gemini Vision para imagens pendentes">
-          ⚡ Avaliar com Gemini
+        <button id="btn-qc-eval-all" class="btn btn-sm btn-primary" onclick="runQCEvaluate()" title="Dispara auditoria visual do Gemini Vision">
+          <span>Auditar via Gemini</span>
         </button>
-        <button id="btn-qc-package-packs" class="btn btn-sm btn-warning" onclick="packageQCPacks(false)" title="Empacota todas as imagens aprovadas em packs de 10 em 10 (.zip) para o SeedVR">
-          📦 Zipar Packs (10 em 10)
+        <button id="btn-qc-package-packs" class="btn btn-sm btn-warning" onclick="packageQCPacks(false)" title="Empacota aprovadas em zips de 10 para o SeedVR">
+          <span>Zipar Packs (10 em 10)</span>
         </button>
-        <button id="btn-qc-zip-and-run" class="btn btn-sm btn-success" onclick="packageQCPacks(true)" title="Empacota as imagens de 10 em 10 e executa a Conta 2 (SeedVR 8K)">
-          ⚡ Zipar (10) & Rodar Conta 2
+        <button id="btn-qc-zip-and-run" class="btn btn-sm btn-success" onclick="packageQCPacks(true)" title="Empacota e dispara upscale 8K na Conta 2">
+          <span>Zipar (10) & Rodar Conta 2</span>
         </button>
         <button id="btn-qc-run-conta2" class="btn btn-sm btn-outline" onclick="triggerConta2Bat()" title="Executa diretamente o arquivo run_conta2.bat">
-          ▶️ Rodar run_conta2.bat
+          <span>Executar run_conta2.bat</span>
         </button>
-
         <button class="btn btn-sm btn-outline" onclick="loadQC()" title="Recarregar imagens de staging">
-          ⟳ Atualizar
+          <span>Recarregar</span>
         </button>
       </div>
-      <div id="qc-packs-banner" class="qc-packs-banner" style="display:none; margin-top:12px; padding:10px 14px; background:rgba(6,182,212,0.1); border:1px solid rgba(6,182,212,0.3); border-radius:6px; font-size:0.8rem; color:var(--text-secondary); line-height:1.5;">
-        <span id="qc-packs-text">📦 Nenhum pack gerado ainda</span>
+
+      <div id="qc-packs-banner" class="qc-packs-banner" style="display:none;">
+        <span id="qc-packs-text" class="mono">Nenhum pack gerado</span>
       </div>
     </div>
 
     <div class="tab-toolbar" style="margin-top: 15px;">
       <div class="filter-group">
-        <button class="filter-btn active" id="qc-filter-all" onclick="filterQC('all')">Todos (<span id="qc-count-all">0</span>)</button>
-        <button class="filter-btn" id="qc-filter-pending" onclick="filterQC('pending')">Pendentes (<span id="qc-count-pending">0</span>)</button>
-        <button class="filter-btn" id="qc-filter-approved" onclick="filterQC('approved')">Aprovadas (<span id="qc-count-approved">0</span>)</button>
-        <button class="filter-btn" id="qc-filter-rejected" onclick="filterQC('rejected')">Rejeitadas (<span id="qc-count-rejected">0</span>)</button>
-        <button class="filter-btn" id="qc-filter-upscaled" onclick="filterQC('upscaled')">8K Prontas (<span id="qc-count-upscaled">0</span>)</button>
+        <button class="filter-btn active" id="qc-filter-all" onclick="filterQC('all')">Todos (<span id="qc-count-all" class="mono">0</span>)</button>
+        <button class="filter-btn" id="qc-filter-pending" onclick="filterQC('pending')">Pendentes (<span id="qc-count-pending" class="mono">0</span>)</button>
+        <button class="filter-btn" id="qc-filter-approved" onclick="filterQC('approved')">Aprovadas (<span id="qc-count-approved" class="mono">0</span>)</button>
+        <button class="filter-btn" id="qc-filter-rejected" onclick="filterQC('rejected')">Rejeitadas (<span id="qc-count-rejected" class="mono">0</span>)</button>
+        <button class="filter-btn" id="qc-filter-upscaled" onclick="filterQC('upscaled')">8K Prontas (<span id="qc-count-upscaled" class="mono">0</span>)</button>
       </div>
-      <span class="tab-stat" id="qc-stat">—</span>
+      <span class="tab-stat mono" id="qc-stat">—</span>
     </div>
 
     <div class="qc-grid" id="qc-grid">
-      <div class="loading">Carregando imagens para curadoria…</div>
+      <div class="loading">Carregando painel de curadoria…</div>
     </div>
   </section>
 
@@ -223,21 +479,19 @@
         <button class="filter-btn" id="matrix-filter-pending" onclick="filterMatrix('pending')">Com Pendências</button>
         <button class="filter-btn" id="matrix-filter-done" onclick="filterMatrix('done')">100% Enviadas</button>
       </div>
-      <div class="search-group" style="display:inline-flex; align-items:center; gap:8px;">
-        <input type="text" id="matrix-search" class="input-sm" placeholder="🔍 Filtrar por nome ou título..." oninput="onMatrixSearch(this.value)" style="width:240px;">
+      <div class="search-group">
+        <input type="text" id="matrix-search" class="input-sm" placeholder="Filtrar por identificador..." oninput="onMatrixSearch(this.value)" style="width:240px;">
       </div>
       <div class="queue-actions-group">
-        <button id="btn-matrix-upload-pending" class="btn btn-sm btn-primary" onclick="triggerMatrixUpload()" title="Disparar upload para Dreamstime e 123RF das imagens pendentes">
-          🚀 Disparar Upload dos Pendentes
+        <button id="btn-matrix-upload-pending" class="btn btn-sm btn-primary" onclick="triggerMatrixUpload()" title="Disparar upload para agências configuradas">
+          <span>Disparar Upload dos Pendentes</span>
         </button>
       </div>
-      <span class="tab-stat" id="matrix-stat">—</span>
+      <span class="tab-stat mono" id="matrix-stat">—</span>
     </div>
     <div class="matrix-table-wrapper">
       <table class="data-table matrix-table" id="matrix-table">
-        <thead id="matrix-thead">
-          <!-- Rendered by JS with agency columns and quick action buttons -->
-        </thead>
+        <thead id="matrix-thead"></thead>
         <tbody id="matrix-tbody">
           <tr><td colspan="10" class="loading">Carregando matriz de distribuição…</td></tr>
         </tbody>
@@ -250,17 +504,17 @@
     <table class="data-table" id="agencies-table">
       <thead>
         <tr>
-          <th>Agência</th>
+          <th>Agência Parceira</th>
           <th>Protocolo</th>
-          <th>Status</th>
-          <th>Enviados</th>
-          <th>Último Envio</th>
+          <th>Status de Autenticação</th>
+          <th>Assets Enviados</th>
+          <th>Último Despacho</th>
           <th>Portal Contributor</th>
           <th>Ação</th>
         </tr>
       </thead>
       <tbody id="agencies-tbody">
-        <tr><td colspan="7" class="loading">Carregando agências…</td></tr>
+        <tr><td colspan="7" class="loading">Carregando integradores de agências…</td></tr>
       </tbody>
     </table>
   </section>
@@ -268,40 +522,48 @@
   <!-- ── Tab Content: Timeline ───────────────────── -->
   <section class="tab-content" id="tab-timeline">
     <div class="timeline-feed" id="timeline-feed">
-      <div class="loading">Carregando timeline…</div>
+      <div class="loading">Carregando fluxo de eventos…</div>
     </div>
   </section>
 
   <!-- ── Tab Content: Backup ─────────────────────── -->
   <section class="tab-content" id="tab-backup">
     <div class="backup-card" id="backup-card">
-      <div class="loading">Carregando status do backup…</div>
+      <div class="loading">Carregando status do cofre cloud…</div>
     </div>
   </section>
 
-    <!-- ── Tab Content: Seasonal Radar ────────────── -->
+  <!-- ── Tab Content: Seasonal Radar ────────────── -->
   <section class="tab-content" id="tab-seasonal">
     <div class="tab-toolbar">
       <div>
-        <h2 style="font-size: 1rem; color: var(--accent-cyan);">🔮 Previsão de Demanda & Blue Ocean Radar</h2>
-        <p style="font-size: 0.75rem; color: var(--text-muted);" id="seasonal-meta-sub">Calculando janela comercial D+75 dias…</p>
+        <h2 style="font-size: 1.05rem; font-family: var(--font-display); color: var(--color-system-cyan); margin-bottom: 2px;">
+          Previsão de Demanda & Blue Ocean Radar (D+75 Dias)
+        </h2>
+        <p style="font-size: 0.8rem; color: var(--label-secondary);" id="seasonal-meta-sub">Calculando janela de compras corporativas…</p>
       </div>
     </div>
     <div class="seasonal-grid" id="seasonal-grid">
-      <div class="loading">Carregando oportunidades sazonais…</div>
+      <div class="loading">Carregando oportunidades sazonais de alto retorno…</div>
     </div>
   </section>
 
   <!-- ── Tab Content: Produção 24/7 & Cotas ──────── -->
   <section class="tab-content" id="tab-daemon">
     <div class="daemon-container" id="daemon-container">
-      <div class="loading">Carregando status do Daemon 24/7 e Cotas...</div>
+      <div class="loading">Carregando telemetria do Daemon 24/7 e Gestor de Cotas...</div>
     </div>
   </section>
-<!-- ── Image Detail Modal ──────────────────────── -->
+
+  <!-- ── Image Detail Modal ──────────────────────── -->
   <div class="modal-overlay" id="modal-overlay" onclick="closeModal()">
     <div class="modal" onclick="event.stopPropagation()">
-      <button class="modal-close" onclick="closeModal()">✕</button>
+      <button class="modal-close" onclick="closeModal()">
+        <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="3" y1="3" x2="13" y2="13" stroke-linecap="round" />
+          <line x1="13" y1="3" x2="3" y2="13" stroke-linecap="round" />
+        </svg>
+      </button>
       <div class="modal-body">
         <img id="modal-img" src="" alt="Preview">
         <div class="modal-info" id="modal-info">
@@ -314,9 +576,9 @@
 
   <!-- ── Footer ──────────────────────────────────── -->
   <footer class="footer">
-    <span>StockCont Dashboard v1.0 • Auto-refresh: <strong>15s</strong></span>
+    <span class="mono">StockCont Command Center v3.0 • Hardware-Accelerated • Auto-sync: <strong>15s</strong></span>
   </footer>
 
-  <script src="/static/js/dashboard.js?v=2.3.0"></script>
+  <script src="/static/js/dashboard.js?v=3.0.0"></script>
 </body>
 </html>

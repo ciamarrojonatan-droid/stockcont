@@ -30,12 +30,12 @@ async function refreshAll() {
       loadCurrentTab(),
     ]);
     document.getElementById('status-pill').className = 'pill pill-ok';
-    document.getElementById('status-pill').textContent = '🟢 Online';
+    document.getElementById('status-pill').innerHTML = '<span class="pulse-led pulse-led-ok"></span><span class="pill-label">ONLINE</span>';
     document.getElementById('last-refresh').textContent = new Date().toLocaleTimeString('pt-BR');
   } catch (err) {
     console.error('Refresh error:', err);
     document.getElementById('status-pill').className = 'pill pill-error';
-    document.getElementById('status-pill').textContent = '🔴 Offline';
+    document.getElementById('status-pill').innerHTML = '<span class="pulse-led pulse-led-error"></span><span class="pill-label">OFFLINE</span>';
   }
 }
 
@@ -62,10 +62,10 @@ async function loadStatus() {
   const gPill = document.getElementById('gemini-pill');
   if (data.kpis.gemini_configured) {
     gPill.className = 'pill pill-ok';
-    gPill.textContent = '🔑 Gemini ✓';
+    gPill.innerHTML = '<svg class="pill-icon" viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="3"/><path d="M8 1v3M8 12v3M1 8h3M12 8h3" stroke-linecap="round"/></svg><span class="pill-label">GEMINI CORE</span>';
   } else {
     gPill.className = 'pill pill-error';
-    gPill.textContent = '🔑 Gemini ✗';
+    gPill.innerHTML = '<svg class="pill-icon" viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="3"/><path d="M8 1v3M8 12v3M1 8h3M12 8h3" stroke-linecap="round"/></svg><span class="pill-label">GEMINI UNSET</span>';
   }
 }
 
@@ -136,29 +136,29 @@ function handleTaskStateChanges(newTasks) {
       if (currStatus === 'completed') {
         if (phaseNum === '2') {
           if (logsStr.includes('GEMINI_API_KEY')) {
-            showToast('⚠️ Fase 2: GEMINI_API_KEY não configurada no arquivo .env!');
+            showToast('AVISO: Fase 2: GEMINI_API_KEY não configurada no arquivo .env!');
           } else if (logsStr.includes('No trends to process') || logsStr.includes('Nenhuma tendência')) {
-            showToast('ℹ️ Fase 2: Nenhuma tendência encontrada. Execute a Fase 1 (Olheiro) primeiro!');
+            showToast('INFO: Fase 2: Nenhuma tendência encontrada. Execute a Fase 1 (Olheiro) primeiro!');
           } else if (logsStr.includes('0 new items') || logsStr.includes('0 items') || lastLog.includes('0 items')) {
-            showToast('ℹ️ Fase 2: Todos os prompts já estavam gerados. Fila 100% atualizada!');
+            showToast('INFO: Fase 2: Todos os prompts já estavam gerados. Fila 100% atualizada!');
           } else {
-            showToast('✅ Fase 2 (Diretor de Arte) concluída com sucesso!');
+            showToast('SUCESSO: Fase 2 (Diretor de Arte) concluída com sucesso!');
           }
         } else if (phaseNum === '3') {
           if (logsStr.includes('Todos os prompts pendentes foram processados') || logsStr.includes('0 pendentes')) {
-            showToast('ℹ️ Fase 3: Todos os prompts já foram gerados. Fila 100% concluída!');
+            showToast('INFO: Fase 3: Todos os prompts já foram gerados. Fila 100% concluída!');
           } else {
-            showToast('✅ ' + taskLabel + ' concluída com sucesso!');
+            showToast('SUCESSO: ' + taskLabel + ' concluída com sucesso!');
           }
         } else {
-          showToast('✅ ' + taskLabel + ' concluída com sucesso!');
+          showToast('SUCESSO: ' + taskLabel + ' concluída com sucesso!');
         }
       } else if (currStatus === 'failed') {
         const rc = (typeof task === 'object' && task.returncode !== null && task.returncode !== undefined) ? task.returncode : '';
         if (lastLog === 'Process terminated by user') {
-          showToast('🛑 ' + taskLabel + ' interrompida pelo usuário.');
+          showToast('CANCELADO: ' + taskLabel + ' interrompida pelo usuário.');
         } else {
-          showToast('❌ ' + taskLabel + ' falhou' + (rc !== '' ? (' (rc=' + rc + ')') : '') + '. ' + (lastLog ? ('Detalhe: ' + lastLog) : ''));
+          showToast('ERRO: ' + taskLabel + ' falhou' + (rc !== '' ? (' (rc=' + rc + ')') : '') + '. ' + (lastLog ? ('Detalhe: ' + lastLog) : ''));
         }
       }
 
@@ -187,20 +187,31 @@ async function stopTask(taskKey) {
   const phaseMatch = taskKey.match(/phase-(\d+)/);
   const label = phaseMatch ? ('Fase ' + phaseMatch[1]) : taskKey;
   if (!confirm('Deseja interromper a execução de ' + label + '?')) return;
-  showToast('🛑 Interrompendo ' + label + '…');
+  showToast('CANCELADO: Interrompendo ' + label + '…');
   try {
     const res = await fetch(API + '/api/tasks/' + encodeURIComponent(taskKey) + '/stop', { method: 'POST' });
     const data = await res.json();
     if (data.success) {
-      showToast('🛑 ' + label + ' interrompida.');
+      showToast('CANCELADO: ' + label + ' interrompida.');
       pollTasksOnly();
     } else {
-      showToast('⚠️ O processo já havia finalizado.');
+      showToast('AVISO: O processo já havia finalizado.');
       pollTasksOnly();
     }
   } catch (e) {
-    showToast('❌ Erro: ' + e.message);
+    showToast('ERRO: Erro: ' + e.message);
   }
+}
+
+function getPhaseIconSvg(iconKey) {
+  const icons = {
+    scout: '<svg viewBox="0 0 28 28" width="22" height="22" class="svg-3d-glass"><circle cx="14" cy="14" r="11" fill="none" stroke="url(#grad-cube-top)" stroke-width="1.6"/><circle cx="14" cy="14" r="5" fill="rgba(0,199,190,0.2)" stroke="#00C7BE" stroke-width="1.4"/><line x1="14" y1="2" x2="14" y2="7" stroke="#00C7BE" stroke-width="1.5" stroke-linecap="round"/><line x1="14" y1="21" x2="14" y2="26" stroke="#00C7BE" stroke-width="1.5" stroke-linecap="round"/><line x1="2" y1="14" x2="7" y2="14" stroke="#00C7BE" stroke-width="1.5" stroke-linecap="round"/><line x1="21" y1="14" x2="26" y2="14" stroke="#00C7BE" stroke-width="1.5" stroke-linecap="round"/></svg>',
+    director: '<svg viewBox="0 0 28 28" width="22" height="22" class="svg-3d-glass"><polygon points="14,3 25,9 25,21 14,27 3,21 3,9" fill="none" stroke="url(#grad-prism-purple)" stroke-width="1.6"/><polygon points="14,7 21,11 21,19 14,23 7,19 7,11" fill="rgba(191,90,242,0.18)" stroke="#BF5AF2" stroke-width="1.2"/><circle cx="14" cy="15" r="2.5" fill="#FFFFFF"/></svg>',
+    factory: '<svg viewBox="0 0 28 28" width="22" height="22" class="svg-3d-glass"><path d="M5,4 L23,4 L16,14 L23,24 L5,24 L12,14 Z" fill="rgba(255,159,10,0.15)" stroke="url(#grad-prism-amber)" stroke-width="1.6" stroke-linejoin="round"/><circle cx="14" cy="14" r="1.5" fill="#FFFFFF"/></svg>',
+    cataloger: '<svg viewBox="0 0 28 28" width="22" height="22" class="svg-3d-glass"><rect x="5" y="4" width="18" height="20" rx="3" fill="rgba(94,92,230,0.18)" stroke="#5E5CE6" stroke-width="1.6"/><line x1="9" y1="9" x2="19" y2="9" stroke="#5E5CE6" stroke-width="1.6" stroke-linecap="round"/><line x1="9" y1="14" x2="19" y2="14" stroke="#5E5CE6" stroke-width="1.6" stroke-linecap="round"/></svg>',
+    distributor: '<svg viewBox="0 0 28 28" width="22" height="22" class="svg-3d-glass"><circle cx="14" cy="18" r="4" fill="none" stroke="#30D158" stroke-width="1.6"/><line x1="14" y1="14" x2="14" y2="4" stroke="#30D158" stroke-width="1.8" stroke-linecap="round"/><path d="M8,9 C11,6 17,6 20,9" fill="none" stroke="#30D158" stroke-width="1.4" stroke-linecap="round"/></svg>'
+  };
+  return icons[iconKey] || ('<span class="mono" style="font-size:0.75rem;">' + iconKey + '</span>');
 }
 
 function renderPipeline(phases, tasks) {
@@ -229,11 +240,11 @@ function renderPipeline(phases, tasks) {
     let actionBtnHtml = '';
     if (isRunning) {
       actionBtnHtml = '<div style="display:flex;gap:6px;align-items:center;justify-content:center;">' +
-        '<button class="btn btn-running" disabled title="Executando em segundo plano"><span class="spinner-dot"></span> ⏳ Executando...</button>' +
-        '<button class="btn btn-stop" onclick="stopTask(\'' + taskKey + '\')" title="Parar processo imediatamente">⏹</button>' +
+        '<button class="btn btn-running" disabled title="Executando em segundo plano"><span class="spinner-dot"></span> PROCESSANDO...</button>' +
+        '<button class="btn btn-stop" onclick="stopTask(\'' + taskKey + '\')" title="Parar processo imediatamente"><svg viewBox="0 0 16 16" width="10" height="10" fill="currentColor"><rect width="16" height="16" rx="2"/></svg></button>' +
         '</div>';
     } else {
-      actionBtnHtml = '<button class="btn btn-run" onclick="runPhase(' + p.phase + ')">▶ Run</button>';
+      actionBtnHtml = '<button class="btn btn-run" onclick="runPhase(' + p.phase + ')"><svg viewBox="0 0 16 16" width="10" height="10" fill="currentColor" style="margin-right:4px;"><polygon points="3,2 14,8 3,14"/></svg> RUN</button>';
     }
 
     let detailText = p.detail;
@@ -244,7 +255,7 @@ function renderPipeline(phases, tasks) {
 
     return '' +
       '<div class="phase-node' + (isRunning ? ' phase-node-running' : '') + '">' +
-        '<div class="phase-icon">' + p.icon + '</div>' +
+        '<div class="phase-icon">' + getPhaseIconSvg(p.icon) + '</div>' +
         '<div class="phase-name">' + p.name + '</div>' +
         '<div class="phase-count">' + countText + '</div>' +
         '<div class="phase-detail">' + detailText + '</div>' +
@@ -305,7 +316,7 @@ async function loadGallery() {
       ? '<span class="gallery-item-badge badge-cataloged">✓ IPTC</span>'
       : '<span class="gallery-item-badge badge-uncataloged">⏳</span>';
     const uploadBadge = (img.uploaded_agencies && img.uploaded_agencies.length > 0)
-      ? '<span class="gallery-item-badge" style="right:auto; left:8px; background:var(--color-system-teal); color:#ffffff; font-size:0.65rem; padding:2px 8px; border-radius:var(--radius-pill); font-weight:600;">🚀 ' + img.uploaded_agencies.length + ' enviada' + (img.uploaded_agencies.length > 1 ? 's' : '') + '</span>'
+      ? '<span class="gallery-item-badge" style="right:auto; left:8px; background:var(--color-system-teal); color:#ffffff; font-size:0.65rem; padding:2px 8px; border-radius:var(--radius-pill); font-weight:600;">DISPARADO: ' + img.uploaded_agencies.length + ' enviada' + (img.uploaded_agencies.length > 1 ? 's' : '') + '</span>'
       : '';
     const title = img.title || img.filename;
     return '' +
@@ -437,7 +448,7 @@ async function loadQueue() {
     if (isPending) {
       actionBtn = '<button class="btn btn-sm btn-success" style="padding:2px 8px;font-size:0.68rem;" data-hash="' + esc(hash) + '" onclick="markSinglePromptGenerated(this.dataset.hash)" title="Marcar este prompt individual como gerado">✓ Gerado</button>';
     } else {
-      actionBtn = '<button class="btn btn-sm btn-warning" style="padding:2px 8px;font-size:0.68rem;" data-hash="' + esc(hash) + '" onclick="markSinglePromptPending(this.dataset.hash)" title="Reverter este prompt para status pendente">⏳ Pendente</button>';
+      actionBtn = '<button class="btn btn-sm btn-warning" style="padding:2px 8px;font-size:0.68rem;" data-hash="' + esc(hash) + '" onclick="markSinglePromptPending(this.dataset.hash)" title="Reverter este prompt para status pendente">PENDENTE</button>';
     }
 
     return '' +
@@ -532,14 +543,14 @@ async function markSelectedGenerated() {
     });
     const data = await res.json();
     if (data.success) {
-      showToast('✅ ' + (data.message || (count + ' prompts marcados como gerados!')));
+      showToast('SUCESSO: ' + (data.message || (count + ' prompts marcados como gerados!')));
       selectedPromptHashes.clear();
       await refreshAll();
     } else {
-      showToast('❌ ' + (data.message || 'Erro ao marcar prompts'));
+      showToast('ERRO: ' + (data.message || 'Erro ao marcar prompts'));
     }
   } catch (e) {
-    showToast('❌ Erro: ' + e.message);
+    showToast('ERRO: Erro: ' + e.message);
   }
 }
 
@@ -554,14 +565,14 @@ async function markAllPendingGenerated() {
     });
     const data = await res.json();
     if (data.success) {
-      showToast('✅ ' + (data.message || 'Todos os prompts pendentes foram marcados como gerados!'));
+      showToast('SUCESSO: ' + (data.message || 'Todos os prompts pendentes foram marcados como gerados!'));
       selectedPromptHashes.clear();
       await refreshAll();
     } else {
-      showToast('❌ ' + (data.message || 'Erro ao marcar prompts'));
+      showToast('ERRO: ' + (data.message || 'Erro ao marcar prompts'));
     }
   } catch (e) {
-    showToast('❌ Erro: ' + e.message);
+    showToast('ERRO: Erro: ' + e.message);
   }
 }
 
@@ -574,14 +585,14 @@ async function markSinglePromptGenerated(hash) {
     });
     const data = await res.json();
     if (data.success) {
-      showToast('✅ Prompt marcado como gerado!');
+      showToast('SUCESSO: Prompt marcado como gerado!');
       selectedPromptHashes.delete(hash);
       await refreshAll();
     } else {
-      showToast('❌ ' + (data.message || 'Erro ao marcar prompt'));
+      showToast('ERRO: ' + (data.message || 'Erro ao marcar prompt'));
     }
   } catch (e) {
-    showToast('❌ Erro: ' + e.message);
+    showToast('ERRO: Erro: ' + e.message);
   }
 }
 
@@ -602,10 +613,10 @@ async function markSelectedPending() {
       selectedPromptHashes.clear();
       await refreshAll();
     } else {
-      showToast('❌ ' + (data.message || 'Erro ao reverter prompts'));
+      showToast('ERRO: ' + (data.message || 'Erro ao reverter prompts'));
     }
   } catch (e) {
-    showToast('❌ Erro: ' + e.message);
+    showToast('ERRO: Erro: ' + e.message);
   }
 }
 
@@ -622,10 +633,10 @@ async function markSinglePromptPending(hash) {
       selectedPromptHashes.delete(hash);
       await refreshAll();
     } else {
-      showToast('❌ ' + (data.message || 'Erro ao reverter status'));
+      showToast('ERRO: ' + (data.message || 'Erro ao reverter status'));
     }
   } catch (e) {
-    showToast('❌ Erro: ' + e.message);
+    showToast('ERRO: Erro: ' + e.message);
   }
 }
 
@@ -644,10 +655,10 @@ async function markAllGeneratedPending() {
       selectedPromptHashes.clear();
       await refreshAll();
     } else {
-      showToast('❌ ' + (data.message || 'Erro ao reverter prompts'));
+      showToast('ERRO: ' + (data.message || 'Erro ao reverter prompts'));
     }
   } catch (e) {
-    showToast('❌ Erro: ' + e.message);
+    showToast('ERRO: Erro: ' + e.message);
   }
 }
 
@@ -673,7 +684,7 @@ async function loadMatrix() {
   } catch (err) {
     console.error('Matrix error:', err);
     if (tbody) {
-      tbody.innerHTML = '<tr><td colspan="10" class="loading">❌ Erro ao carregar matriz: ' + esc(err.message) + '</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="10" class="loading">ERRO: Erro ao carregar matriz: ' + esc(err.message) + '</td></tr>';
     }
   }
 }
@@ -814,10 +825,10 @@ async function toggleMatrixCell(filename, agency, uploaded) {
     });
     const data = await res.json();
     if (!data.success) {
-      showToast('❌ Erro ao atualizar status');
+      showToast('ERRO: Erro ao atualizar status');
       await loadMatrix();
     } else {
-      showToast((uploaded ? '✅ Marcado como enviado' : '⚪ Marcado como pendente') + ': ' + agency);
+      showToast((uploaded ? 'SUCESSO: Marcado como enviado' : '⚪ Marcado como pendente') + ': ' + agency);
       if (matrixData && matrixData.items) {
         const item = matrixData.items.find(function(i) { return i.filename === filename; });
         if (item) {
@@ -831,7 +842,7 @@ async function toggleMatrixCell(filename, agency, uploaded) {
       }
     }
   } catch (err) {
-    showToast('❌ Erro de conexão: ' + err.message);
+    showToast('ERRO: Erro de conexão: ' + err.message);
     await loadMatrix();
   }
 }
@@ -853,13 +864,13 @@ async function batchSetMatrixAgency(agency, action) {
     });
     const data = await res.json();
     if (data.success) {
-      showToast('✅ ' + data.updated_count + ' fotos atualizadas para ' + agency);
+      showToast('SUCESSO: ' + data.updated_count + ' fotos atualizadas para ' + agency);
       await loadMatrix();
     } else {
-      showToast('❌ Falha ao atualizar em lote');
+      showToast('ERRO: Falha ao atualizar em lote');
     }
   } catch (err) {
-    showToast('❌ Erro: ' + err.message);
+    showToast('ERRO: Erro: ' + err.message);
   }
 }
 
@@ -868,7 +879,7 @@ async function triggerMatrixUpload() {
   const currentTask = currentTasks[taskKey];
   const isRunning = currentTask && ((typeof currentTask === 'object' && currentTask !== null) ? currentTask.status === 'running' : currentTask === 'running');
   if (isRunning) {
-    showToast('⚠️ Distribuição já está em execução.');
+    showToast('AVISO: Distribuição já está em execução.');
     return;
   }
 
@@ -876,18 +887,18 @@ async function triggerMatrixUpload() {
     return;
   }
 
-  showToast('🚀 Disparando upload dos pendentes...');
+  showToast('DISPARADO: Disparando upload dos pendentes...');
   try {
     const res = await fetch(API + '/api/matrix/upload-pending', { method: 'POST' });
     const data = await res.json();
     if (data.success) {
-      showToast('✅ Upload iniciado em segundo plano!');
+      showToast('SUCESSO: Upload iniciado em segundo plano!');
       pollTasksOnly();
     } else {
-      showToast('❌ ' + (data.message || 'Falha ao iniciar upload'));
+      showToast('ERRO: ' + (data.message || 'Falha ao iniciar upload'));
     }
   } catch (err) {
-    showToast('❌ Erro: ' + err.message);
+    showToast('ERRO: Erro: ' + err.message);
   }
 }
 
@@ -901,8 +912,8 @@ async function loadAgencies() {
   const tbody = document.getElementById('agencies-tbody');
   tbody.innerHTML = agencies.map(function(a) {
     const statusChip = a.configured
-      ? '<span class="status-chip chip-configured">🟢 Configurado</span>'
-      : '<span class="status-chip chip-not-configured">⚪ Não configurado</span>';
+      ? '<span class="status-chip chip-configured">CONFIGURADO</span>'
+      : '<span class="status-chip chip-not-configured">NÃO CONFIGURADO</span>';
     const lastUpload = a.last_upload ? new Date(a.last_upload).toLocaleString('pt-BR', {dateStyle:'short',timeStyle:'short'}) : '—';
     let actions = '<span style="color:var(--text-muted);font-size:0.7rem">Configure no .env</span>';
     if (a.configured) {
@@ -913,7 +924,7 @@ async function loadAgencies() {
       }
     }
     const portalLink = a.portal_url
-      ? '<a href="' + a.portal_url + '" target="_blank" rel="noopener noreferrer" class="btn btn-sm" style="text-decoration:none; display:inline-flex; align-items:center; gap:4px; font-size:0.75rem; padding:4px 9px; background:rgba(6,182,212,0.12); color:var(--accent-cyan); border:1px solid rgba(6,182,212,0.3); border-radius:4px;">🔗 Acessar Portal ↗</a>'
+      ? '<a href="' + a.portal_url + '" target="_blank" rel="noopener noreferrer" class="btn btn-sm" style="text-decoration:none; display:inline-flex; align-items:center; gap:4px; font-size:0.75rem; padding:4px 9px; background:rgba(6,182,212,0.12); color:var(--accent-cyan); border:1px solid rgba(6,182,212,0.3); border-radius:4px;">Acessar Portal ↗</a>'
       : '<span style="color:var(--text-muted); font-size:0.75rem;">—</span>';
 
     return '' +
@@ -961,14 +972,14 @@ async function loadBackup() {
   const isBackupRunning = backupTask && ((typeof backupTask === 'object' && backupTask !== null) ? backupTask.status === 'running' : backupTask === 'running');
 
   const card = document.getElementById('backup-card');
-  const statusText = b.configured ? ('🟢 Ativo (' + (b.mode || 'unknown') + ')') : '🔴 Não configurado';
+  const statusText = b.configured ? ('ATIVO (' + (b.mode || 'unknown') + ')') : 'NÃO CONFIGURADO';
   const lastSyncText = b.last_sync ? new Date(b.last_sync).toLocaleString('pt-BR') : '—';
 
   let actionBtnHtml = '';
   if (isBackupRunning) {
-    actionBtnHtml = '<button class="btn btn-running" disabled><span class="spinner-dot"></span> ⏳ Sincronizando...</button>';
+    actionBtnHtml = '<button class="btn btn-running" disabled><span class="spinner-dot"></span> SINCRONIZANDO...</button>';
   } else {
-    actionBtnHtml = '<button class="btn btn-run ' + (b.configured ? '' : 'btn-disabled') + '" onclick="runBackupSync()">☁️ Sync Now</button>';
+    actionBtnHtml = '<button class="btn btn-run ' + (b.configured ? '' : 'btn-disabled') + '" onclick="runBackupSync()">SYNC NOW</button>';
   }
 
   card.innerHTML = '' +
@@ -1009,15 +1020,15 @@ async function loadSeasonal() {
 
   grid.innerHTML = data.recommended_niches.map(function(n) {
     const mineBtnHtml = isPhase1Running
-      ? '<button class="seasonal-btn-mine btn-running" disabled><span class="spinner-dot"></span> ⏳ Mineração em andamento...</button>'
-      : '<button class="seasonal-btn-mine" onclick="mineNiche(\'' + esc(n.query) + '\')">🚀 Minerar este Nicho (Fase 1)</button>';
+      ? '<button class="seasonal-btn-mine btn-running" disabled><span class="spinner-dot"></span> MINERAÇÃO EM ANDAMENTO...</button>'
+      : '<button class="seasonal-btn-mine" onclick="mineNiche(\'' + esc(n.query) + '\')">MINERAR NICHO (FASE 1)</button>';
 
     return '' +
       '<div class="seasonal-card">' +
         '<div>' +
           '<div class="seasonal-card-header">' +
             '<h3 class="seasonal-card-title">' + esc(n.name) + '</h3>' +
-            '<span class="badge-blue-ocean">🟢 Blue Ocean</span>' +
+            '<span class="badge-blue-ocean">BLUE OCEAN</span>' +
           '</div>' +
           '<p class="seasonal-card-rationale">' + esc(n.rationale) + '</p>' +
           '<div class="seasonal-meta-block">' +
@@ -1045,7 +1056,7 @@ async function mineNiche(query) {
   const currentTask = currentTasks[taskKey];
   const isRunning = currentTask && ((typeof currentTask === 'object' && currentTask !== null) ? currentTask.status === 'running' : currentTask === 'running');
   if (isRunning) {
-    showToast('⚠️ Fase 1 (Olheiro) já está em execução.');
+    showToast('AVISO: Fase 1 (Olheiro) já está em execução.');
     return;
   }
 
@@ -1064,7 +1075,7 @@ async function mineNiche(query) {
   }
   if (currentTab === 'seasonal') loadSeasonal();
   updateTaskPolling();
-  showToast('🚀 Mineração iniciada para: ' + query);
+  showToast('DISPARADO: Mineração iniciada para: ' + query);
 
   try {
     const res = await fetch(API + '/api/run-phase/1?query=' + encodeURIComponent(query) + '&mode=search', { method: 'POST' });
@@ -1072,7 +1083,7 @@ async function mineNiche(query) {
     if (data.success) {
       showToast('⏳ Mineração da Fase 1 em andamento…');
     } else {
-      showToast('❌ ' + (data.message || 'Falha ao iniciar'));
+      showToast('ERRO: ' + (data.message || 'Falha ao iniciar'));
       if (!data.message || !data.message.includes('already running')) {
         delete currentTasks[taskKey];
         delete previousTasks[taskKey];
@@ -1084,7 +1095,7 @@ async function mineNiche(query) {
       pollTasksOnly();
     }
   } catch (e) {
-    showToast('❌ Erro: ' + e.message);
+    showToast('ERRO: Erro: ' + e.message);
     delete currentTasks[taskKey];
     delete previousTasks[taskKey];
     if (currentPhases.length > 0) {
@@ -1101,7 +1112,7 @@ async function runPhase(n) {
   const currentTask = currentTasks[taskKey];
   const isRunning = currentTask && ((typeof currentTask === 'object' && currentTask !== null) ? currentTask.status === 'running' : currentTask === 'running');
   if (isRunning) {
-    showToast('⚠️ Fase ' + n + ' já está em execução.');
+    showToast('AVISO: Fase ' + n + ' já está em execução.');
     return;
   }
 
@@ -1109,14 +1120,14 @@ async function runPhase(n) {
   if (n === 2 && currentKpis) {
     if (currentKpis.trends === 0) {
       const proceed = confirm(
-        '⚠️ Nenhuma tendência minerada encontrada (0 trends).\n\n' +
+        'AVISO: Nenhuma tendência minerada encontrada (0 trends).\n\n' +
         'Recomenda-se executar a Fase 1 (Olheiro) antes de gerar prompts.\n\n' +
         'Deseja executar a Fase 2 mesmo assim?'
       );
       if (!proceed) return;
     } else if (currentKpis.trends > 0 && currentKpis.prompts_analyzed >= currentKpis.trends) {
       const proceed = confirm(
-        'ℹ️ Todos os ' + currentKpis.prompts_total + ' prompts já foram gerados (' + currentKpis.prompts_analyzed + ' tendências analisadas).\n\n' +
+        'INFO: Todos os ' + currentKpis.prompts_total + ' prompts já foram gerados (' + currentKpis.prompts_analyzed + ' tendências analisadas).\n\n' +
         'Deseja re-executar a verificação da Fase 2?'
       );
       if (!proceed) return;
@@ -1126,7 +1137,7 @@ async function runPhase(n) {
   } else if (n === 3 && currentKpis) {
     if (currentKpis.queue_pending === 0 && currentKpis.queue_total > 0) {
       const proceed = confirm(
-        'ℹ️ Todos os ' + currentKpis.queue_total + ' prompts da fila já foram gerados em imagens 4K (0 pendentes).\n\n' +
+        'INFO: Todos os ' + currentKpis.queue_total + ' prompts da fila já foram gerados em imagens 4K (0 pendentes).\n\n' +
         'Deseja executar a Fase 3 mesmo assim?'
       );
       if (!proceed) return;
@@ -1152,7 +1163,7 @@ async function runPhase(n) {
   }
   updateTaskPolling();
 
-  showToast('🚀 Iniciando Fase ' + n + '…');
+  showToast('DISPARADO: Iniciando Fase ' + n + '…');
 
   try {
     const res = await fetch(API + '/api/run-phase/' + n, { method: 'POST' });
@@ -1160,7 +1171,7 @@ async function runPhase(n) {
     if (data.success) {
       showToast('⏳ Fase ' + n + ' em execução em segundo plano…');
     } else {
-      showToast('❌ ' + (data.message || 'Falha ao iniciar'));
+      showToast('ERRO: ' + (data.message || 'Falha ao iniciar'));
       if (!data.message || !data.message.includes('already running')) {
         delete currentTasks[taskKey];
         delete previousTasks[taskKey];
@@ -1171,7 +1182,7 @@ async function runPhase(n) {
       pollTasksOnly();
     }
   } catch (e) {
-    showToast('❌ Erro: ' + e.message);
+    showToast('ERRO: Erro: ' + e.message);
     delete currentTasks[taskKey];
     delete previousTasks[taskKey];
     if (currentPhases.length > 0) {
@@ -1186,12 +1197,12 @@ async function runUpload(agency) {
   const currentTask = currentTasks[taskKey];
   const isRunning = currentTask && ((typeof currentTask === 'object' && currentTask !== null) ? currentTask.status === 'running' : currentTask === 'running');
   if (isRunning) {
-    showToast('⚠️ Upload para agências (Fase 5) já está em execução.');
+    showToast('AVISO: Upload para agências (Fase 5) já está em execução.');
     return;
   }
 
   if (!confirm('Enviar assets para ' + agency + '?')) return;
-  showToast('🚀 Upload para ' + agency + ' iniciado… (via Phase 5)');
+  showToast('DISPARADO: Upload para ' + agency + ' iniciado… (via Phase 5)');
 
   currentTasks[taskKey] = {
     task_id: taskKey,
@@ -1214,7 +1225,7 @@ async function runUpload(agency) {
     if (data.success) {
       showToast('⏳ Upload da Fase 5 (' + agency + ') em execução…');
     } else {
-      showToast('❌ ' + (data.message || 'Falha no upload'));
+      showToast('ERRO: ' + (data.message || 'Falha no upload'));
       if (!data.message || !data.message.includes('already running')) {
         delete currentTasks[taskKey];
         delete previousTasks[taskKey];
@@ -1226,7 +1237,7 @@ async function runUpload(agency) {
       pollTasksOnly();
     }
   } catch (e) {
-    showToast('❌ Erro: ' + e.message);
+    showToast('ERRO: Erro: ' + e.message);
     delete currentTasks[taskKey];
     delete previousTasks[taskKey];
     if (currentPhases.length > 0) {
@@ -1242,7 +1253,7 @@ async function runBackupSync() {
   const currentTask = currentTasks[taskKey];
   const isRunning = currentTask && ((typeof currentTask === 'object' && currentTask !== null) ? currentTask.status === 'running' : currentTask === 'running');
   if (isRunning) {
-    showToast('⚠️ Backup já está em execução.');
+    showToast('AVISO: Backup já está em execução.');
     return;
   }
 
@@ -1257,15 +1268,15 @@ async function runBackupSync() {
   previousTasks[taskKey] = { status: 'running' };
   if (currentTab === 'backup') loadBackup();
   updateTaskPolling();
-  showToast('☁️ Iniciando sincronização com Google Drive…');
+  showToast('Iniciando sincronização com Google Drive…');
 
   try {
     const res = await fetch(API + '/api/backup/sync', { method: 'POST' });
     const data = await res.json();
     if (data.success) {
-      showToast('✅ Backup iniciado em segundo plano');
+      showToast('SUCESSO: Backup iniciado em segundo plano');
     } else {
-      showToast('❌ ' + (data.message || 'Falha ao iniciar backup'));
+      showToast('ERRO: ' + (data.message || 'Falha ao iniciar backup'));
       if (!data.message || !data.message.includes('already running')) {
         delete currentTasks[taskKey];
         delete previousTasks[taskKey];
@@ -1274,7 +1285,7 @@ async function runBackupSync() {
       pollTasksOnly();
     }
   } catch (e) {
-    showToast('❌ Erro: ' + e.message);
+    showToast('ERRO: Erro: ' + e.message);
     delete currentTasks[taskKey];
     delete previousTasks[taskKey];
     if (currentTab === 'backup') loadBackup();
@@ -1302,14 +1313,20 @@ function showToast(msg) {
     toast.id = 'toast';
     toast.style.cssText = '' +
       'position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%); z-index: 9999;' +
-      'padding: 10px 24px; border-radius: 9999px; font-size: 0.82rem; font-weight: 600;' +
-      'background: rgba(28, 28, 36, 0.90); backdrop-filter: blur(32px) saturate(190%); -webkit-backdrop-filter: blur(32px);' +
-      'color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.18);' +
-      'box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.3);' +
-      'opacity: 0; transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1); pointer-events: none;';
+      'padding: 10px 24px; border-radius: 9999px; font-family: var(--font-sans); font-size: 0.82rem; font-weight: 600;' +
+      'background: rgba(20, 22, 30, 0.92); backdrop-filter: blur(32px) saturate(190%); -webkit-backdrop-filter: blur(32px);' +
+      'color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.2);' +
+      'box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.35);' +
+      'opacity: 0; transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1); pointer-events: none;' +
+      'display: flex; align-items: center; gap: 10px;';
     document.body.appendChild(toast);
   }
-  toast.textContent = msg;
+  // Strip any accidental emojis
+  const clean = String(msg).replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, '').trim();
+  const isErr = clean.toLowerCase().includes('erro') || clean.toLowerCase().includes('falh');
+  const isWarn = clean.toLowerCase().includes('aviso') || clean.toLowerCase().includes('interromp');
+  const ledColor = isErr ? '#FF453A' : (isWarn ? '#FF9F0A' : '#30D158');
+  toast.innerHTML = '<span style="width:7px; height:7px; border-radius:50%; background:' + ledColor + '; box-shadow:0 0 8px ' + ledColor + ';"></span><span>' + clean + '</span>';
   toast.style.opacity = '1';
   setTimeout(function() { toast.style.opacity = '0'; }, 3500);
 }
@@ -1447,7 +1464,7 @@ async function runQCEvaluate() {
   const btn = document.getElementById('btn-qc-eval-all');
   if (btn) {
     btn.disabled = true;
-    btn.innerHTML = '⚡ Avaliando com Gemini...';
+    btn.innerHTML = 'AVALIANDO COM GEMINI...';
   }
   try {
     const res = await fetch(API + '/api/qc/evaluate', {
@@ -1463,7 +1480,7 @@ async function runQCEvaluate() {
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.innerHTML = '⚡ Avaliar com Gemini';
+      btn.innerHTML = 'AVALIAR COM GEMINI';
     }
   }
 }
@@ -1473,7 +1490,7 @@ async function packageQCPacks(autoRun) {
   const originalText = btn ? btn.innerHTML : '';
   if (btn) {
     btn.disabled = true;
-    btn.innerHTML = autoRun ? '⏳ Zipando & Iniciando Conta 2...' : '⏳ Gerando Packs de 10...';
+    btn.innerHTML = autoRun ? 'ZIPANDO & INICIANDO CONTA 2...' : 'GERANDO PACKS DE 10...';
   }
 
   try {
@@ -1486,20 +1503,20 @@ async function packageQCPacks(autoRun) {
     if (data.success && data.data) {
       const d = data.data;
       if (d.total_packs > 0) {
-        showToast('📦 ' + d.total_images + ' imagens empacotadas em ' + d.total_packs + ' packs de 10!');
+        showToast('' + d.total_images + ' imagens empacotadas em ' + d.total_packs + ' packs de 10!');
         renderPacksInfo(d);
         if (autoRun) {
-          showToast('🚀 Conta 2 (SeedVR 8K) disparada com sucesso!');
+          showToast('DISPARADO: Conta 2 (SeedVR 8K) disparada com sucesso!');
         }
       } else {
-        showToast('⚠️ Nenhuma imagem aprovada pendente para empacotar.');
+        showToast('AVISO: Nenhuma imagem aprovada pendente para empacotar.');
       }
       await loadQC();
     } else {
-      showToast('❌ Erro ao empacotar zips: ' + (data.message || 'Falha'));
+      showToast('ERRO: Erro ao empacotar zips: ' + (data.message || 'Falha'));
     }
   } catch (e) {
-    showToast('❌ Erro: ' + e.message);
+    showToast('ERRO: Erro: ' + e.message);
   } finally {
     if (btn) {
       btn.disabled = false;
@@ -1512,7 +1529,7 @@ async function triggerConta2Bat() {
   const btn = document.getElementById('btn-qc-run-conta2');
   if (btn) {
     btn.disabled = true;
-    btn.innerHTML = '▶️ Iniciando...';
+    btn.innerHTML = 'INICIANDO...';
   }
 
   try {
@@ -1523,16 +1540,16 @@ async function triggerConta2Bat() {
     });
     const data = await res.json();
     if (data.success) {
-      showToast('🚀 ' + (data.message || 'run_conta2.bat disparado com sucesso!'));
+      showToast('DISPARADO: ' + (data.message || 'run_conta2.bat disparado com sucesso!'));
     } else {
-      showToast('❌ Erro: ' + (data.message || 'Falha ao executar bat'));
+      showToast('ERRO: Erro: ' + (data.message || 'Falha ao executar bat'));
     }
   } catch (e) {
-    showToast('❌ Erro: ' + e.message);
+    showToast('ERRO: Erro: ' + e.message);
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.innerHTML = '▶️ Rodar run_conta2.bat';
+      btn.innerHTML = 'EXECUTAR RUN_CONTA2.BAT';
     }
   }
 }
@@ -1546,7 +1563,7 @@ function renderPacksInfo(info) {
     banner.style.display = 'block';
     const firstCount = (info.packs && info.packs[0]) ? info.packs[0].count : 10;
     const packNames = (info.packs || []).map(function(p) { return p.filename; }).join(', ');
-    text.innerHTML = '📦 <strong>' + info.total_images + ' imagens aprovadas</strong> divididas em <strong>' + info.total_packs + ' packs</strong> de até 10 imagens.<br>' +
+    text.innerHTML = '<strong>' + info.total_images + ' imagens aprovadas</strong> divididas em <strong>' + info.total_packs + ' packs</strong> de até 10 imagens.<br>' +
       '• Pack atual pronto para ingestão no Nó #5: <code>approved_batch.zip</code> (' + firstCount + ' imagens)<br>' +
       '• Lista de packs em <code>data/staging/packs/</code>: ' + packNames;
   } else {
@@ -1570,7 +1587,7 @@ async function runQCUpscale() {
   const btn = document.getElementById('btn-qc-upscale-all');
   if (btn) {
     btn.disabled = true;
-    btn.innerHTML = '🚀 Upscaling para 8K...';
+    btn.innerHTML = 'UPSCALING PARA 8K...';
   }
   try {
     const res = await fetch(API + '/api/qc/upscale', {
@@ -1586,7 +1603,7 @@ async function runQCUpscale() {
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.innerHTML = '🚀 Upscale 8K Aprovadas (<span id="qc-approved-count">0</span>)';
+      btn.innerHTML = 'DISPARADO: Upscale 8K Aprovadas (<span id="qc-approved-count">0</span>)';
     }
   }
 }
@@ -1656,22 +1673,22 @@ function renderQCCards(images, stats) {
   grid.innerHTML = images.map(function(item) {
     const status = item.status || 'pending';
     let statusClass = 'qc-card-pending';
-    let badgeText = '⏳ Pendente';
+    let badgeText = 'PENDENTE';
     let badgeClass = 'qc-badge-pending';
 
     if (status === 'approved') {
       statusClass = 'qc-card-approved';
-      badgeText = '✓ Aprovada';
+      badgeText = 'APROVADA';
       badgeClass = 'qc-badge-approved';
     } else if (status === 'rejected') {
       statusClass = 'qc-card-rejected';
-      badgeText = '✗ Rejeitada';
+      badgeText = 'REJEITADA';
       badgeClass = 'qc-badge-rejected';
     }
 
     let upscaledBadge = '';
     if (item.upscaled) {
-      upscaledBadge = '<span class="qc-badge-8k" title="Render 4K salvo em data/final/images (8K)">✨ 8K Pronta</span>';
+      upscaledBadge = '<span class="qc-badge-8k" title="Render 4K salvo em data/final/images (8K)">8K MASTER</span>';
     }
 
     let scorePill = '';
@@ -1680,7 +1697,7 @@ function renderQCCards(images, stats) {
       let scoreColorClass = 'qc-score-mid';
       if (item.score >= 7.5) scoreColorClass = 'qc-score-high';
       else if (item.score < 6.0) scoreColorClass = 'qc-score-low';
-      scorePill = '<span class="qc-score-pill ' + scoreColorClass + '">⭐ ' + scoreVal + '</span>';
+      scorePill = '<span class="qc-score-pill ' + scoreColorClass + '">SCORE ' + scoreVal + '</span>';
     }
 
     let critiqueBoxHtml = '';
@@ -1696,7 +1713,7 @@ function renderQCCards(images, stats) {
 
       if (c.flaws && c.flaws.length > 0) {
         tagsHtml += c.flaws.slice(0, 2).map(function(f) {
-          return '<span class="qc-tag qc-tag-flaw">⚠️ ' + esc(f) + '</span>';
+          return '<span class="qc-tag qc-tag-flaw">AVISO: ' + esc(f) + '</span>';
         }).join('');
       }
 
@@ -1723,9 +1740,9 @@ function renderQCCards(images, stats) {
           '</div>' +
           critiqueBoxHtml +
           '<div class="qc-card-actions">' +
-            '<button class="btn-qc-action btn-qc-approve" onclick="setSingleQCStatus(\'' + esc(item.filename) + '\', \'approved\')" title="Aprovar imagem para upscale 4K">✓ Aprovar</button>' +
-            '<button class="btn-qc-action btn-qc-reject" onclick="setSingleQCStatus(\'' + esc(item.filename) + '\', \'rejected\')" title="Rejeitar imagem (não fará upscale)">✗ Rejeitar</button>' +
-            '<button class="btn-qc-action btn-qc-eval" onclick="evalSingleQC(\'' + esc(item.filename) + '\')" title="Auditar com Gemini Vision">⚡ IA</button>' +
+            '<button class="btn-qc-action btn-qc-approve" onclick="setSingleQCStatus(\'' + esc(item.filename) + '\', \'approved\')" title="Aprovar imagem para upscale 4K">APROVAR</button>' +
+            '<button class="btn-qc-action btn-qc-reject" onclick="setSingleQCStatus(\'' + esc(item.filename) + '\', \'rejected\')" title="Rejeitar imagem (não fará upscale)">REJEITAR</button>' +
+            '<button class="btn-qc-action btn-qc-eval" onclick="evalSingleQC(\'' + esc(item.filename) + '\')" title="Auditar com Gemini Vision">AUDITORIA IA</button>' +
 
           '</div>' +
         '</div>' +
@@ -1759,11 +1776,11 @@ function renderDaemon(data) {
   const isRunning = data.status === 'running';
   const isPaused = data.status === 'paused';
 
-  let statusBadge = '<span class="pill" style="background:var(--fill-tertiary); color:var(--label-secondary); font-size:0.85rem; padding:6px 14px;">⏹️ PARADO</span>';
+  let statusBadge = '<span class="pill" style="background:var(--fill-tertiary); color:var(--label-secondary); font-size:0.85rem; padding:6px 14px;">STANDBY</span>';
   if (isRunning) {
-    statusBadge = '<span class="pill pill-ok" style="font-size:0.85rem; padding:6px 14px;">🟢 EM PRODUÇÃO 24/7 (ATIVO)</span>';
+    statusBadge = '<span class="pill pill-ok" style="font-size:0.85rem; padding:6px 14px;">ATIVO 24/7</span>';
   } else if (isPaused) {
-    statusBadge = '<span class="pill pill-warn" style="font-size:0.85rem; padding:6px 14px;">⏸️ PAUSADO</span>';
+    statusBadge = '<span class="pill pill-warn" style="font-size:0.85rem; padding:6px 14px;">PAUSADO</span>';
   }
 
   const heartbeatTime = data.last_heartbeat ? new Date(data.last_heartbeat).toLocaleTimeString('pt-BR') : '—';
@@ -1800,11 +1817,11 @@ function renderDaemon(data) {
 
     let statusHtml = '';
     if (isAlamy || limit === 0) {
-      statusHtml = '<span style="color:var(--color-system-red); font-size:0.75rem; font-weight:600;">⛔ BLOQUEADO (Política Anti-IA)</span>';
+      statusHtml = '<span style="color:var(--color-system-red); font-size:0.75rem; font-weight:600;">BLOQUEADO (ADR-05)</span>';
     } else if (isExhausted) {
-      statusHtml = '<span style="color:var(--color-system-purple); font-size:0.75rem; font-weight:600;">⏸️ Cota Atingida (' + (rep.countdown_str || 'Aguardando') + ')</span>';
+      statusHtml = '<span style="color:var(--color-system-purple); font-size:0.75rem; font-weight:600;">Cota Atingida (' + (rep.countdown_str || 'Aguardando') + ')</span>';
     } else {
-      statusHtml = '<span style="color:var(--color-system-green); font-size:0.75rem; font-weight:600;">🟢 ' + available + ' vagas disponíveis</span>';
+      statusHtml = '<span style="color:var(--color-system-green); font-size:0.75rem; font-weight:600;">' + available + ' vagas disponíveis</span>';
     }
 
     quotaCardsHtml += `
@@ -1837,10 +1854,10 @@ function renderDaemon(data) {
             Ciclos de produção contínua com gestão inteligente de cotas semanais e cofre em nuvem.
           </p>
           <div style="display:flex; gap:20px; font-size:0.8rem; color:var(--label-secondary); margin-top:12px;">
-            <span>📍 Fase: <strong style="color:var(--color-system-blue);">${currentPhase}</strong></span>
-            <span>⚡ Ação: <strong style="color:var(--label-primary);">${currentAction}</strong></span>
-            <span>🔄 Ciclos: <strong style="color:var(--color-system-green);">#${cycles}</strong></span>
-            <span>💓 Heartbeat: <strong style="color:var(--label-tertiary);">${heartbeatTime}</strong></span>
+            <span>Fase: <strong style="color:var(--color-system-blue);">${currentPhase}</strong></span>
+            <span>Ação: <strong style="color:var(--label-primary);">${currentAction}</strong></span>
+            <span>Ciclos: <strong style="color:var(--color-system-green);">#${cycles}</strong></span>
+            <span>Heartbeat: <strong style="color:var(--label-tertiary);">${heartbeatTime}</strong></span>
           </div>
         </div>
 
@@ -1848,28 +1865,28 @@ function renderDaemon(data) {
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
           ${!isRunning ? `
             <button class="btn btn-primary" onclick="triggerStartDaemon('background')" style="display:flex; align-items:center; gap:6px;">
-              ▶️ Iniciar 24/7 (Background)
+              Iniciar 24/7 (Background)
             </button>
             <button class="btn btn-outline" onclick="triggerStartDaemon('window')" style="display:flex; align-items:center; gap:6px;">
-              💻 Abrir no Console (run_24_7.bat)
+              Abrir no Console (run_24_7.bat)
             </button>
           ` : `
             <button class="btn btn-danger" onclick="triggerStopDaemon()" style="display:flex; align-items:center; gap:6px;">
-              ⏹️ Parar Daemon 24/7
+              Parar Daemon 24/7
             </button>
           `}
-          <button class="btn btn-outline" onclick="loadDaemon()" title="Recarregar status">🔄 Atualizar</button>
+          <button class="btn btn-outline" onclick="loadDaemon()" title="Recarregar status">Atualizar</button>
         </div>
       </div>
     </div>
 
     <!-- Vault & Cloud Storage Metrics -->
     <h3 style="font-size:0.92rem; font-weight:600; color:var(--label-secondary); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:12px;">
-      🏦 O Cofre & Armazenamento Seguro
+      O Cofre & Armazenamento Seguro
     </h3>
     <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:14px; margin-bottom:24px;">
       <div class="card liquid-glass" style="border-radius:var(--radius-lg); padding:16px;">
-        <div style="font-size:0.75rem; color:var(--label-secondary); margin-bottom:4px;">📁 Assets no Disco Local</div>
+        <div style="font-size:0.75rem; color:var(--label-secondary); margin-bottom:4px;">Assets no Disco Local</div>
         <div style="font-size:1.4rem; font-weight:800; color:var(--color-system-cyan);">${vault.total_local_assets}</div>
         <div style="font-size:0.7rem; color:var(--label-tertiary); margin-top:2px;">data/final/images/</div>
       </div>
@@ -1881,19 +1898,19 @@ function renderDaemon(data) {
       </div>
 
       <div class="card liquid-glass" style="border-radius:var(--radius-lg); padding:16px;">
-        <div style="font-size:0.75rem; color:var(--label-secondary); margin-bottom:4px;">🎉 100% Distribuídos</div>
+        <div style="font-size:0.75rem; color:var(--label-secondary); margin-bottom:4px;">100% Distribuídos</div>
         <div style="font-size:1.4rem; font-weight:800; color:var(--color-system-green);">${vault.fully_distributed}</div>
         <div style="font-size:0.7rem; color:var(--label-tertiary); margin-top:2px;">Enviados a todas agências ativas</div>
       </div>
 
       <div class="card liquid-glass" style="border-radius:var(--radius-lg); padding:16px;">
-        <div style="font-size:0.75rem; color:var(--label-secondary); margin-bottom:4px;">☁️ No Cofre (Google Drive)</div>
+        <div style="font-size:0.75rem; color:var(--label-secondary); margin-bottom:4px;">No Cofre (Google Drive)</div>
         <div style="font-size:1.4rem; font-weight:800; color:var(--color-system-indigo);">${vault.gdrive_backed_up}</div>
         <div style="font-size:0.7rem; color:var(--label-tertiary); margin-top:2px;">100% seguros na nuvem</div>
       </div>
 
       <div class="card liquid-glass" style="border-radius:var(--radius-lg); padding:16px;">
-        <div style="font-size:0.75rem; color:var(--label-secondary); margin-bottom:4px;">🧹 Liberados do SSD (Auto-Purga)</div>
+        <div style="font-size:0.75rem; color:var(--label-secondary); margin-bottom:4px;">Liberados do SSD (Auto-Purga)</div>
         <div style="font-size:1.4rem; font-weight:800; color:var(--color-system-pink);">${vault.purged_from_local_ssd}</div>
         <div style="font-size:0.7rem; color:var(--label-tertiary); margin-top:2px;">Espaço em disco poupado</div>
       </div>
@@ -1901,7 +1918,7 @@ function renderDaemon(data) {
 
     <!-- Weekly Quotas (Rolling 7 Days) Grid -->
     <h3 style="font-size:0.92rem; font-weight:600; color:var(--label-secondary); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:12px;">
-      📊 Cotas Semanais por Agência (Janela Deslizante de 7 Dias)
+      Cotas Semanais por Agência (Janela Deslizante de 7 Dias)
     </h3>
     <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:14px;">
       ${quotaCardsHtml}
@@ -1916,10 +1933,10 @@ async function triggerStartDaemon(mode = 'background') {
     });
     const result = await res.json();
     if (result.success) {
-      alert('🚀 ' + result.message);
+      alert('DISPARADO: ' + result.message);
       setTimeout(loadDaemon, 1000);
     } else {
-      alert('⚠️ ' + result.message);
+      alert('AVISO: ' + result.message);
     }
   } catch (err) {
     alert('Erro ao iniciar Daemon: ' + err.message);
@@ -1931,7 +1948,7 @@ async function triggerStopDaemon() {
   try {
     const res = await fetch(API + '/api/daemon/stop', { method: 'POST' });
     const result = await res.json();
-    alert('🛑 ' + result.message);
+    alert('CANCELADO: ' + result.message);
     setTimeout(loadDaemon, 1000);
   } catch (err) {
     alert('Erro ao parar Daemon: ' + err.message);

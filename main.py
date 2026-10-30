@@ -55,14 +55,14 @@ FINAL_IMAGES_DIR = FINAL_DIR / "images"
 def print_banner() -> None:
     """Print the StockCont welcome banner."""
     print("=" * 65)
-    print("      📈 StockCont - AI Stock Asset Automation Pipeline")
+    print("      StockCont Studio - AI Stock Asset Automation Pipeline")
     print("      Autonomous Microstock Scout, Producer & Cataloger")
     print("=" * 65)
 
 def check_status() -> None:
     """Check and display the current status of all pipeline stages."""
     print_banner()
-    print("\n🔍 PIPELINE STATUS REPORT:\n")
+    print("\n=== PIPELINE STATUS REPORT ===\n")
 
     # Check API key
     api_key = os.getenv("GEMINI_API_KEY")
@@ -84,7 +84,7 @@ def check_status() -> None:
     raw_images_count = len(list(RAW_IMAGES_DIR.glob("*.*"))) if RAW_IMAGES_DIR.exists() else 0
     missing_raw_str = ""
     if trends_count > 0 and raw_images_count < trends_count:
-        missing_raw_str = f" ⚠️ ({trends_count - raw_images_count} ausentes - rode `python main.py --sync-raw`)"
+        missing_raw_str = f" [AVISO] ({trends_count - raw_images_count} ausentes - rode `python main.py --sync-raw`)"
     print(f"  [1] Phase 1 (Scout):     {trends_count} trends recorded | {raw_images_count} raw reference images{missing_raw_str}")
 
     # Phase 2: Prompts
@@ -154,7 +154,7 @@ def check_status() -> None:
     gdrive = GoogleDriveBackup()
     gdrive_status = f"Configured ({gdrive.mode})" if gdrive.is_configured else "Not Configured (Optional in .env)"
     gdrive_history_count = len(gdrive._history)
-    print(f"  [☁️] Google Drive Backup:  {gdrive_status} | {gdrive_history_count} assets backed up in history")
+    print(f"  [CLOUD] Google Drive Backup:  {gdrive_status} | {gdrive_history_count} assets backed up in history")
 
     # 24/7 Production Daemon Status & Quotas
     daemon_state_file = PROCESSED_DIR / "daemon_state.json"
@@ -162,8 +162,8 @@ def check_status() -> None:
         try:
             with open(daemon_state_file, "r", encoding="utf-8") as df:
                 d_data = json.load(df)
-                status_icon = "🟢" if d_data.get("status") == "running" else ("⏸️" if d_data.get("status") == "paused" else "⏹️")
-                print(f"  [🤖] Daemon 24/7:        {status_icon} {d_data.get('status', 'unknown').upper()} | Ciclos: {d_data.get('cycles_completed', 0)} | Ação: {d_data.get('current_action', 'N/A')}")
+                status_icon = "[ACTIVE]" if d_data.get("status") == "running" else ("[PAUSED]" if d_data.get("status") == "paused" else "[STOPPED]")
+                print(f"  [DAEMON] Production 24/7:        {status_icon} {d_data.get('status', 'unknown').upper()} | Ciclos: {d_data.get('cycles_completed', 0)} | Ação: {d_data.get('current_action', 'N/A')}")
         except Exception:
             pass
 
@@ -174,7 +174,7 @@ def check_status() -> None:
         exhausted = [p.upper() for p, r in q_reports.items() if r.is_quota_exhausted and r.weekly_limit > 0]
         active_slots = sum(r.slots_available for r in q_reports.values() if r.weekly_limit > 0)
         ex_str = f" | Esgotados: {', '.join(exhausted)}" if exhausted else " | 100% livre"
-        print(f"  [⚖️] Weekly Quotas (7D):  {active_slots} slots livres disponíveis{ex_str}")
+        print(f"  [QUOTAS] Weekly Rolling (7D):  {active_slots} slots livres disponíveis{ex_str}")
     except Exception:
         pass
 
@@ -182,25 +182,25 @@ def check_status() -> None:
     uncataloged = max(0, len(final_images) - cataloged_count)
     # Quick action recommendation
     if uncataloged > 0:
-        print(f"  💡 Next Recommended Action: Run Phase 4 (`python main.py --phase 4`)")
+        print(f"  [NEXT ACTION]: Run Phase 4 (`python main.py --phase 4`)")
         print(f"     to embed IPTC metadata and update CSV for {uncataloged} uncataloged images.")
         if q_stats['pending'] > 0:
             print(f"     Or continue Phase 3: `python main.py --phase 3 --all-batches` ({q_stats['pending']} prompts pendentes).")
     elif q_stats['pending'] > 0:
-        print(f"  💡 Next Recommended Action: Run Phase 3 (`python main.py --phase 3 --all-batches`)")
+        print(f"  [NEXT ACTION]: Run Phase 3 (`python main.py --phase 3 --all-batches`)")
         print(f"     to process the remaining {q_stats['pending']} pending prompts without repeating generated ones.")
     elif len(final_images) > 0 and uncataloged == 0:
         if cfg_count > 0:
-            print(f"  💡 Next Recommended Action: Run Phase 5 (`python main.py --phase 5 --dry-run`)")
+            print(f"  [NEXT ACTION]: Run Phase 5 (`python main.py --phase 5 --dry-run`)")
             print(f"     to distribute {len(final_images)} cataloged assets to {cfg_count} configured agencies.")
         else:
-            print(f"  🎉 All {len(final_images)} images are fully cataloged and embedded with IPTC/EXIF!")
+            print(f"  All {len(final_images)} images are fully cataloged and embedded with IPTC/EXIF!")
             print(f"     Configure agency credentials in .env to enable Phase 5 automated SFTP/FTP distribution.")
     elif generated_prompts_total > 0:
-        print(f"  💡 Next Recommended Action: Run Phase 3 (`python main.py --phase 3`)")
+        print(f"  [NEXT ACTION]: Run Phase 3 (`python main.py --phase 3`)")
         print(f"     to generate images using the {generated_prompts_total} available prompts.")
     else:
-        print(f"  💡 Next Recommended Action: Run Phase 1 & 2 (`python main.py --phase 1 -q 'minimalist interior'`)")
+        print(f"  [NEXT ACTION]: Run Phase 1 & 2 (`python main.py --phase 1 -q 'minimalist interior'`)")
     print("=" * 65 + "\n")
 
 def run_sync_raw(force: bool = False, workers: int = 8) -> None:
@@ -268,10 +268,10 @@ def run_phase_4(images_dir: Path | None = None, output_dir: Path | None = None) 
     from src.backup.gdrive_backup import GoogleDriveBackup
     gdrive = GoogleDriveBackup()
     if gdrive.is_configured:
-        logger.info("☁️ Google Drive configurado! Sincronizando backup automático dos assets...")
+        logger.info("[CLOUD] Google Drive configurado! Sincronizando backup automático dos assets...")
         gdrive.backup_assets()
     else:
-        logger.info("💡 Dica: Configure o Google Drive no .env para backup automático dos assets em nuvem.")
+        logger.info("[INFO] Dica: Configure o Google Drive no .env para backup automático dos assets em nuvem.")
 
 def run_backup(dry_run: bool = False, force: bool = False) -> None:
     """Execute Google Drive asset backup."""
@@ -326,7 +326,7 @@ def run_qc(mode: str | None = None) -> None:
         inspector.set_config(mode=mode)
     results = inspector.run_batch_qc()
     stats = inspector.get_stats()
-    print("\n🔍 QUALITY CONTROL & CURATION SUMMARY:")
+    print("\n=== QUALITY CONTROL & CURATION SUMMARY:")
     print(f"  • Modo Atual:       {stats['mode'].upper()} (Padrão: Auto)")
     print(f"  • Total em Staging: {stats['total_staging']}")
     print(f"  • Aprovadas:        {stats['approved']}")
@@ -346,12 +346,12 @@ def show_seasonal_radar() -> None:
     from src.analyzer.seasonal_radar import get_target_procurement_window
     print_banner()
     forecast = get_target_procurement_window()
-    print("\n🔮 SEASONAL DEMAND FORECAST & BLUE OCEAN RADAR:\n")
-    print(f"  📅 Current Date:           {forecast['current_date']}")
-    print(f"  🎯 Target Procurement Win: {forecast['target_procurement_date']} (Lead time: D+{forecast['lead_time_days']} days)")
-    print(f"  🏢 Target Quarter:         {forecast['target_quarter']} (Month {forecast['target_month']})")
-    print(f"  💡 Macro Buying Theme:     {forecast['macro_theme']}\n")
-    print("  ⭐ RECOMMENDED HIGH-CONVERTING MICRO-NICHES FOR PRODUCTION:")
+    print("\n=== SEASONAL DEMAND FORECAST & BLUE OCEAN RADAR ===\n")
+    print(f"  Current Date:           {forecast['current_date']}")
+    print(f"  Target Procurement Window: {forecast['target_procurement_date']} (Lead time: D+{forecast['lead_time_days']} days)")
+    print(f"  Target Quarter:         {forecast['target_quarter']} (Month {forecast['target_month']})")
+    print(f"  Macro Buying Theme:     {forecast['macro_theme']}\n")
+    print("  RECOMMENDED HIGH-CONVERTING MICRO-NICHES FOR PRODUCTION:")
     for idx, n in enumerate(forecast['recommended_niches'], 1):
         print(f"\n  [{idx}] {n['name']}")
         print(f"      • Command:           python main.py --phase 1 --mode search -q \"{n['query']}\"")
@@ -431,7 +431,7 @@ def main() -> None:
         try:
             with urllib.request.urlopen(f"http://127.0.0.1:{args.port}/api/status", timeout=1.0) as resp:
                 if resp.status == 200:
-                    logger.info("⚡ StockCont Dashboard já está ativo em http://localhost:%d!", args.port)
+                    logger.info("[INFO] StockCont Dashboard já está ativo em http://localhost:%d!", args.port)
                     if not args.no_browser:
                         import webbrowser
                         webbrowser.open(f"http://localhost:{args.port}")

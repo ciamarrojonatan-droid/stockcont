@@ -367,19 +367,19 @@ def build_full_status() -> Dict[str, Any]:
 
     phases = [
         {
-            "phase": 1, "name": "Scout", "icon": "🔍",
+            "phase": 1, "name": "Scout", "icon": "scout",
             "count": len(trends), "total": None,
             "status": "ok" if len(trends) > 0 else "idle",
             "detail": f"{len(trends)} trends | {raw_img_count} images",
         },
         {
-            "phase": 2, "name": "Director", "icon": "🎨",
+            "phase": 2, "name": "Director", "icon": "director",
             "count": total_gen_prompts, "total": None,
             "status": "ok" if total_gen_prompts > 0 else "idle",
             "detail": f"{len(prompts_data)} analyzed | {total_gen_prompts} prompts",
         },
         {
-            "phase": 3, "name": "Factory", "icon": "🏭",
+            "phase": 3, "name": "Factory", "icon": "factory",
             "count": queue_stats.get("generated", 0),
             "total": queue_stats.get("total", 0),
             "status": (
@@ -389,7 +389,7 @@ def build_full_status() -> Dict[str, Any]:
             "detail": f"{queue_stats.get('generated', 0)}/{queue_stats.get('total', 0)} ({queue_stats.get('progress_percent', 0)}%)",
         },
         {
-            "phase": 4, "name": "Cataloger", "icon": "📋",
+            "phase": 4, "name": "Cataloger", "icon": "cataloger",
             "count": cataloged_count, "total": final_img_count,
             "status": (
                 "ok" if cataloged_count >= final_img_count and final_img_count > 0
@@ -398,7 +398,7 @@ def build_full_status() -> Dict[str, Any]:
             "detail": f"{cataloged_count} catalogados | {max(0, final_img_count - cataloged_count)} pendentes",
         },
         {
-            "phase": 5, "name": "Distributor", "icon": "🚀",
+            "phase": 5, "name": "Distributor", "icon": "distributor",
             "count": len(uploads), "total": None,
             "status": "ok" if len(uploads) > 0 else "idle",
             "detail": f"{len(uploads)} uploads logged",
