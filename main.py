@@ -21,12 +21,6 @@ from pathlib import Path
 # Root Directory
 BASE_DIR = Path(__file__).resolve().parent
 
-# Auto-bootstrap Virtual Environment if running under global/system Python
-venv_python = BASE_DIR / "venv" / "Scripts" / "python.exe"
-if venv_python.exists() and sys.executable.lower() != str(venv_python).lower():
-    if sys.prefix == sys.base_prefix or not os.environ.get("VIRTUAL_ENV"):
-        sys.exit(subprocess.call([str(venv_python)] + sys.argv))
-
 from dotenv import load_dotenv
 load_dotenv(BASE_DIR / ".env", override=True)
 
@@ -524,4 +518,9 @@ def main() -> None:
         run_phase_5(platform=args.platform, dry_run=args.dry_run, force=args.force, images_dir=target_dir, asset_type=asset_t)
 
 if __name__ == "__main__":
+    # Auto-bootstrap Virtual Environment if running under global/system Python
+    venv_python = BASE_DIR / "venv" / "Scripts" / "python.exe"
+    if venv_python.exists() and sys.executable.lower() != str(venv_python).lower():
+        if sys.prefix == sys.base_prefix or not os.environ.get("VIRTUAL_ENV"):
+            sys.exit(subprocess.call([str(venv_python)] + sys.argv))
     main()

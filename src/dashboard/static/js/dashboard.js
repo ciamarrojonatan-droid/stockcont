@@ -305,7 +305,7 @@ async function loadGallery() {
       ? '<span class="gallery-item-badge badge-cataloged">✓ IPTC</span>'
       : '<span class="gallery-item-badge badge-uncataloged">⏳</span>';
     const uploadBadge = (img.uploaded_agencies && img.uploaded_agencies.length > 0)
-      ? '<span class="gallery-item-badge" style="right:auto; left:8px; background:rgba(6,182,212,0.9); color:#fff; font-size:0.65rem; padding:2px 6px; border-radius:4px; font-weight:600;">🚀 ' + img.uploaded_agencies.length + ' enviada' + (img.uploaded_agencies.length > 1 ? 's' : '') + '</span>'
+      ? '<span class="gallery-item-badge" style="right:auto; left:8px; background:var(--color-system-teal); color:#ffffff; font-size:0.65rem; padding:2px 8px; border-radius:var(--radius-pill); font-weight:600;">🚀 ' + img.uploaded_agencies.length + ' enviada' + (img.uploaded_agencies.length > 1 ? 's' : '') + '</span>'
       : '';
     const title = img.title || img.filename;
     return '' +
@@ -386,7 +386,7 @@ function renderModalMeta(meta) {
         '<div class="meta-group-title">Enviado para Agências (' + meta.uploaded_agencies.length + ')</div>' +
         '<div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:4px;">' +
           meta.uploaded_agencies.map(function(a) {
-            return '<span style="background:rgba(16,185,129,0.15); color:#10b981; border:1px solid rgba(16,185,129,0.3); font-weight:600; font-size:0.75rem; padding:3px 8px; border-radius:4px;">✓ ' + esc(a.toUpperCase()) + '</span>';
+            return '<span style="background:rgba(48,209,88,0.15); color:#30D158; border:1px solid rgba(48,209,88,0.3); font-weight:600; font-size:0.75rem; padding:3px 10px; border-radius:var(--radius-pill);">✓ ' + esc(a.toUpperCase()) + '</span>';
           }).join('') +
         '</div>' +
       '</div>';
@@ -771,7 +771,7 @@ function renderMatrix() {
     bodyHtml += '<td>' +
       '<div style="font-weight:600; color:var(--text-primary); font-size:0.83rem;">' + esc(it.title) + '</div>' +
       '<div style="font-family:var(--font-mono); font-size:0.72rem; color:var(--text-muted); margin-top:2px;">' +
-        esc(it.filename) + ' • ' + it.size_mb + ' MB ' + (it.is_cataloged ? '• <span style="color:#10b981;">✓ IPTC</span>' : '') +
+        esc(it.filename) + ' • ' + it.size_mb + ' MB ' + (it.is_cataloged ? '• <span style="color:var(--color-system-green);">✓ IPTC</span>' : '') +
       '</div>' +
     '</td>';
 
@@ -793,7 +793,7 @@ function renderMatrix() {
     });
 
     const progPct = Math.round((it.uploaded_count / agencies.length) * 100);
-    const progColor = progPct === 100 ? '#10b981' : (progPct > 0 ? '#06b6d4' : 'var(--text-muted)');
+    const progColor = progPct === 100 ? 'var(--color-system-green)' : (progPct > 0 ? 'var(--color-system-teal)' : 'var(--label-tertiary)');
 
     bodyHtml += '<td style="text-align:center;">' +
       '<span style="font-weight:700; color:' + progColor + '; font-size:0.82rem;">' + it.uploaded_count + '/' + agencies.length + '</span>' +
@@ -1748,7 +1748,7 @@ async function loadDaemon() {
     const data = await res.json();
     renderDaemon(data);
   } catch (err) {
-    container.innerHTML = '<div class="card" style="padding:20px; color:#f87171;">Erro ao carregar dados do Daemon: ' + err.message + '</div>';
+    container.innerHTML = '<div class="card" style="padding:20px; color:var(--color-system-red);">Erro ao carregar dados do Daemon: ' + err.message + '</div>';
   }
 }
 
@@ -1759,7 +1759,7 @@ function renderDaemon(data) {
   const isRunning = data.status === 'running';
   const isPaused = data.status === 'paused';
 
-  let statusBadge = '<span class="pill" style="background:#334155; color:#94a3b8; font-size:0.85rem; padding:6px 14px;">⏹️ PARADO</span>';
+  let statusBadge = '<span class="pill" style="background:var(--fill-tertiary); color:var(--label-secondary); font-size:0.85rem; padding:6px 14px;">⏹️ PARADO</span>';
   if (isRunning) {
     statusBadge = '<span class="pill pill-ok" style="font-size:0.85rem; padding:6px 14px;">🟢 EM PRODUÇÃO 24/7 (ATIVO)</span>';
   } else if (isPaused) {
@@ -1790,21 +1790,21 @@ function renderDaemon(data) {
     const available = rep.slots_available || 0;
     const isExhausted = rep.is_quota_exhausted;
 
-    let barColor = '#10b981';
+    let barColor = 'var(--color-system-green)';
     let percent = 0;
     if (limit > 0) {
       percent = Math.min(100, Math.round((used / limit) * 100));
-      if (isExhausted) barColor = '#a855f7';
-      else if (percent >= 70) barColor = '#f59e0b';
+      if (isExhausted) barColor = 'var(--color-system-purple)';
+      else if (percent >= 70) barColor = 'var(--color-system-orange)';
     }
 
     let statusHtml = '';
     if (isAlamy || limit === 0) {
-      statusHtml = '<span style="color:#ef4444; font-size:0.75rem; font-weight:600;">⛔ BLOQUEADO (Política Anti-IA)</span>';
+      statusHtml = '<span style="color:var(--color-system-red); font-size:0.75rem; font-weight:600;">⛔ BLOQUEADO (Política Anti-IA)</span>';
     } else if (isExhausted) {
-      statusHtml = '<span style="color:#c084fc; font-size:0.75rem; font-weight:600;">⏸️ Cota Atingida (' + (rep.countdown_str || 'Aguardando') + ')</span>';
+      statusHtml = '<span style="color:var(--color-system-purple); font-size:0.75rem; font-weight:600;">⏸️ Cota Atingida (' + (rep.countdown_str || 'Aguardando') + ')</span>';
     } else {
-      statusHtml = '<span style="color:#34d399; font-size:0.75rem; font-weight:600;">🟢 ' + available + ' vagas disponíveis</span>';
+      statusHtml = '<span style="color:var(--color-system-green); font-size:0.75rem; font-weight:600;">🟢 ' + available + ' vagas disponíveis</span>';
     }
 
     quotaCardsHtml += `
