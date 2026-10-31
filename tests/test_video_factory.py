@@ -20,6 +20,9 @@ from src.factory.runninghub_bot import (
     get_account_config,
     get_node_videos,
     save_video_from_src,
+    upload_image_to_node,
+    upload_zip_to_node,
+    dismiss_runninghub_popups,
 )
 from src.factory.stealth_profile import CONTA_3_FINGERPRINT, get_stealth_fingerprint
 
@@ -183,3 +186,96 @@ class TestDashboardVideoPhase3:
             args, kwargs = mock_run.call_args
             assert args[0] == 3
             assert kwargs["extra_args"] == ["--account", "3"]
+
+
+class TestNodeUploadRobustness:
+    """Verify robust multi-tier upload and anti-validation failure mechanisms for ComfyUI nodes."""
+
+    def test_upload_image_to_node_api_success(self, tmp_path):
+        """Test upload_image_to_node succeeds when ComfyUI native API returns success."""
+        dummy_img = tmp_path / "reference_test.jpg"
+        dummy_img.write_bytes(b"dummy image bytes content 12345")
+
+        mock_page = MagicMock()
+        mock_frame = MagicMock()
+        mock_page.main_frame = mock_frame
+        mock_page.frames = [mock_frame]
+
+        # Simulate ComfyUI API success
+        mock_frame.evaluate.return_value = {
+            "apiSuccess": True,
+            "uploadedName": "reference_test.jpg",
+            "backendConfirmed": True,
+            "nodeConfigured": True,
+            "log": ["Upload via app.api.uploadImage com sucesso"],
+            "errors": [],
+        }
+
+        res = upload_image_to_node(mock_page, mock_frame, node_id=164, image_path=dummy_img)
+        assert res is True
+        mock_frame.evaluate.assert_called_once()
+
+    def test_upload_image_to_node_file_chooser_fallback(self, tmp_path):
+        """Test upload_image_to_node falls back to Playwright FileChooser if API evaluate returns no upload."""
+        dummy_img = tmp_path / "reference_test_fc.jpg"
+        dummy_img.write_bytes(b"dummy image bytes for file chooser")
+
+        mock_page = MagicMock()
+        mock_frame = MagicMock()
+        mock_page.main_frame = mock_frame
+        mock_page.frames = [mock_frame]
+
+        # First evaluate (API upload) fails to upload
+        # Second evaluate (button_coords) returns coordinates
+        mock_frame.evaluate.side_effect = [
+            {"apiSuccess": False, "nodeConfigured": False, "errors": ["upload failed"]},
+            {"x": 450, "y": 320},
+        ]
+
+        mock_fc = MagicMock()
+        mock_fc_info = MagicMock()
+        mock_fc_info.value = mock_fc
+        mock_page.expect_file_chooser.return_value.__enter__.return_value = mock_fc_info
+
+        res = upload_image_to_node(mock_page, mock_frame, node_id=164, image_path=dummy_img)
+        assert res is True
+        mock_fc.set_files.assert_called_once_with(str(dummy_img))
+
+    def test_upload_zip_to_node_api_success(self, tmp_path):
+        """Test upload_zip_to_node succeeds with ZIP API upload and ComfyUI options synchronization."""
+        dummy_zip = tmp_path / "approved_batch.zip"
+        dummy_zip.write_bytes(b"PK fake zip content for testing 1234")
+
+        mock_page = MagicMock()
+        mock_frame = MagicMock()
+        mock_page.main_frame = mock_frame
+        mock_page.frames = [mock_frame]
+
+        mock_frame.evaluate.return_value = {
+            "apiSuccess": True,
+            "uploadedName": "approved_batch.zip",
+            "backendConfirmed": True,
+            "nodeConfigured": True,
+            "log": ["ZIP upload via app.api.uploadImage com sucesso"],
+            "errors": [],
+        }
+
+        res = upload_zip_to_node(mock_page, mock_frame, node_id=5, zip_path=dummy_zip)
+        assert res is True
+        mock_frame.evaluate.assert_called_once()
+
+    def test_dismiss_runninghub_popups_handles_validation_error(self):
+        """Verify dismiss_runninghub_popups detects and closes ComfyUI validation failure popups."""
+        mock_page = MagicMock()
+        mock_locator = MagicMock()
+        mock_locator.count.return_value = 1
+        mock_btn = MagicMock()
+        mock_btn.is_visible.return_value = True
+        mock_locator.nth.return_value = mock_btn
+
+        mock_page.locator.return_value = mock_locator
+        mock_page.frames = []
+
+        dismissed = dismiss_runninghub_popups(mock_page)
+        assert dismissed is True
+        mock_btn.click.assert_called()

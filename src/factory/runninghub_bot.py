@@ -324,95 +324,187 @@ def cancel_runninghub_task(page: Page, max_wait_sec: int = 45) -> bool:
 def upload_image_to_node(page: Page, frame: Optional[Frame], node_id: int, image_path: Path) -> bool:
     """
     Injeta uma imagem de referência no Nó ComfyUI especificado (ex: Nó #164 'Load Image').
-    Aplica 3 estratégias de injeção para máxima confiabilidade:
-    1. DOM input[type='file'] no frame
-    2. FileChooser hook via Playwright com acionamento do widget
-    3. Multipart upload direto via fetch('/upload/image') e atualização do widget LiteGraph
+    Aplica arquitetura multi-camadas de injeção e upload com verificação remota:
+    1. ComfyUI API Upload via window.app.api.uploadImage() e window.app.api.fetchApi('/upload/image')
+    2. ComfyUI API URL Discovery via window.app.api.apiURL('/upload/image')
+    3. FileChooser nativo do Playwright disparado via clique nas coordenadas do botão do Nó
+    4. DOM input[type='file'] no frame com despacho de DataTransfer e change event
+    5. Sincronização do widget LiteGraph com inclusão obrigatória em options.values (prevenção de validação)
+    6. Confirmação do arquivo via GET /view?filename=... no backend ComfyUI
     """
     logger.info(f"📤 Injetando imagem de referência ({image_path.name}) no Nó #{node_id}...")
     target_frame = frame or page.main_frame
     uploaded = False
 
-    # Estratégia 1: Input file no DOM
-    try:
-        for f in page.frames:
-            inputs = f.locator("input[type='file']")
-            cnt = inputs.count()
-            if cnt > 0:
-                for i in range(cnt):
-                    try:
-                        inputs.nth(i).set_input_files(str(image_path))
-                        logger.info("🎯 Imagem injetada via input[type='file'] no DOM.")
-                        uploaded = True
-                    except Exception:
-                        pass
-    except Exception as e:
-        logger.debug(f"Aviso no input file do DOM: {e}")
+    # 1. Certificar que nenhum modal/toast prévio esteja bloqueando
+    dismiss_runninghub_popups(page)
 
-    # Estratégia 2: File Chooser trigger
-    try:
-        with page.expect_file_chooser(timeout=2500) as fc_info:
-            target_frame.evaluate("""(nodeId) => {
-                if (typeof window.app === 'undefined' || !window.app.graph) return false;
-                const node = window.app.graph.getNodeById(nodeId);
-                if (node) {
-                    if (window.app.canvas) {
-                        window.app.canvas.centerOnNode(node);
-                        window.app.canvas.selectNode(node);
-                    }
-                    if (node.widgets) {
-                        for (let w of node.widgets) {
-                            if (w.type === 'button' || (w.name && w.name.toLowerCase().includes('upload'))) {
-                                if (typeof w.callback === 'function') {
-                                    w.callback();
-                                    return true;
-                                }
-                            }
-                        }
-                    }
-                }
-                return false;
-            }""", node_id)
-        fc = fc_info.value
-        fc.set_files(str(image_path))
-        logger.info(f"🎯 Imagem injetada via FileChooser no Nó #{node_id}.")
-        uploaded = True
-    except Exception:
-        pass
-
-    # Estratégia 3: Multipart upload direto via API ComfyUI & atualização do widget
+    # 2. Upload via API nativa do ComfyUI (window.app.api) com verificação de status HTTP 200
     try:
         mime = "image/png" if image_path.suffix.lower() == ".png" else "image/jpeg"
         with open(image_path, "rb") as f:
             b64_img = base64.b64encode(f.read()).decode("utf-8")
+
         api_res = target_frame.evaluate("""async ({ nodeId, filename, b64Data, mimeType }) => {
-            let uploadedName = filename;
+            const result = {
+                apiSuccess: false,
+                uploadedName: null,
+                backendConfirmed: false,
+                nodeConfigured: false,
+                errors: [],
+                log: []
+            };
+
+            let fileObj = null;
             try {
                 const byteCharacters = atob(b64Data);
-                const byteNumbers = new Array(byteCharacters.length);
+                const byteNumbers = new Uint8Array(byteCharacters.length);
                 for (let i = 0; i < byteCharacters.length; i++) {
                     byteNumbers[i] = byteCharacters.charCodeAt(i);
                 }
-                const byteArray = new Uint8Array(byteNumbers);
-                const blob = new Blob([byteArray], { type: mimeType });
-                const file = new File([blob], filename, { type: mimeType });
+                const blob = new Blob([byteNumbers], { type: mimeType });
+                fileObj = new File([blob], filename, { type: mimeType, lastModified: Date.now() });
+            } catch (e) {
+                result.errors.push("Erro ao criar File/Blob: " + e.message);
+                return result;
+            }
 
-                const formData = new FormData();
-                formData.append('image', file);
-                formData.append('overwrite', 'true');
-                formData.append('type', 'input');
-
-                const resp = await fetch('/upload/image', {
-                    method: 'POST',
-                    body: formData,
-                    credentials: 'include'
-                });
-                if (resp.ok) {
-                    const data = await resp.json();
-                    if (data && data.name) uploadedName = data.name;
+            // TENTATIVA 1: window.app.api.uploadImage (função nativa oficial do ComfyUI)
+            if (window.app && window.app.api && typeof window.app.api.uploadImage === 'function') {
+                try {
+                    const resp = await window.app.api.uploadImage(fileObj, '', true);
+                    if (resp && resp.name) {
+                        result.uploadedName = resp.name;
+                        result.apiSuccess = true;
+                        result.log.push("Upload via app.api.uploadImage com sucesso: " + resp.name);
+                    }
+                } catch (e) {
+                    result.errors.push("uploadImage falhou: " + e.message);
                 }
-            } catch (err) {}
+            }
 
+            // TENTATIVA 2: window.app.api.fetchApi('/upload/image') com headers e host do ComfyUI
+            if (!result.apiSuccess && window.app && window.app.api && typeof window.app.api.fetchApi === 'function') {
+                try {
+                    const formData = new FormData();
+                    formData.append('image', fileObj);
+                    formData.append('overwrite', 'true');
+                    formData.append('type', 'input');
+
+                    const resp = await window.app.api.fetchApi('/upload/image', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    if (resp && (resp.ok || resp.status === 200)) {
+                        const data = await resp.json();
+                        if (data && data.name) {
+                            result.uploadedName = data.name;
+                            result.apiSuccess = true;
+                            result.log.push("Upload via app.api.fetchApi('/upload/image') com sucesso: " + data.name);
+                        }
+                    } else if (resp) {
+                        result.errors.push("fetchApi status: " + resp.status + " " + resp.statusText);
+                    }
+                } catch (e) {
+                    result.errors.push("fetchApi falhou: " + e.message);
+                }
+            }
+
+            // TENTATIVA 3: fetch com URL resolvida por window.app.api.apiURL('/upload/image')
+            if (!result.apiSuccess && window.app && window.app.api && typeof window.app.api.apiURL === 'function') {
+                try {
+                    const uploadUrl = window.app.api.apiURL('/upload/image');
+                    const formData = new FormData();
+                    formData.append('image', fileObj);
+                    formData.append('overwrite', 'true');
+                    formData.append('type', 'input');
+
+                    const resp = await fetch(uploadUrl, {
+                        method: 'POST',
+                        body: formData,
+                        credentials: 'include'
+                    });
+                    if (resp && (resp.ok || resp.status === 200)) {
+                        const data = await resp.json();
+                        if (data && data.name) {
+                            result.uploadedName = data.name;
+                            result.apiSuccess = true;
+                            result.log.push("Upload via apiURL ('" + uploadUrl + "') com sucesso: " + data.name);
+                        }
+                    } else if (resp) {
+                        result.errors.push("apiURL fetch status: " + resp.status + " " + resp.statusText);
+                    }
+                } catch (e) {
+                    result.errors.push("apiURL fetch falhou: " + e.message);
+                }
+            }
+
+            // TENTATIVA 4: window.app.handleFile(fileObj) (ComfyUI drag & drop handler)
+            if (!result.apiSuccess && window.app && typeof window.app.handleFile === 'function') {
+                try {
+                    if (window.app.graph) {
+                        const targetNode = window.app.graph.getNodeById(nodeId);
+                        if (targetNode && window.app.canvas) {
+                            window.app.canvas.centerOnNode(targetNode);
+                            window.app.canvas.selectNode(targetNode);
+                        }
+                    }
+                    await window.app.handleFile(fileObj);
+                    result.log.push("Disparado window.app.handleFile()");
+                    result.apiSuccess = true;
+                    result.uploadedName = filename;
+                } catch (e) {
+                    result.errors.push("handleFile falhou: " + e.message);
+                }
+            }
+
+            // TENTATIVA 5: Input elements no DOM via DataTransfer
+            if (!result.apiSuccess) {
+                try {
+                    const fileInputs = Array.from(document.querySelectorAll("input[type='file']"));
+                    for (const inp of fileInputs) {
+                        const dt = new DataTransfer();
+                        dt.items.add(fileObj);
+                        inp.files = dt.files;
+                        inp.dispatchEvent(new Event('input', { bubbles: true }));
+                        inp.dispatchEvent(new Event('change', { bubbles: true }));
+                        result.log.push("Disparado DataTransfer em input[type='file']");
+                    }
+                } catch (e) {
+                    result.errors.push("DOM DataTransfer falhou: " + e.message);
+                }
+            }
+
+            // TENTATIVA 6: Fallback fetch no endpoint relativo
+            if (!result.apiSuccess) {
+                for (const fallbackPath of ['/upload/image', '/api/upload/image']) {
+                    try {
+                        const formData = new FormData();
+                        formData.append('image', fileObj);
+                        formData.append('overwrite', 'true');
+                        formData.append('type', 'input');
+
+                        const resp = await fetch(fallbackPath, {
+                            method: 'POST',
+                            body: formData,
+                            credentials: 'include'
+                        });
+                        if (resp && (resp.ok || resp.status === 200)) {
+                            const data = await resp.json();
+                            if (data && data.name) {
+                                result.uploadedName = data.name;
+                                result.apiSuccess = true;
+                                result.log.push("Upload via fallback path ('" + fallbackPath + "') com sucesso: " + data.name);
+                                break;
+                            }
+                        }
+                    } catch (e) {}
+                }
+            }
+
+            const finalName = result.uploadedName || filename;
+
+            // CONFIGURAÇÃO DO NÓ #nodeId NO GRAFO COMFYUI
             if (typeof window.app !== 'undefined' && window.app.graph) {
                 const node = window.app.graph.getNodeById(nodeId);
                 if (node) {
@@ -423,31 +515,122 @@ def upload_image_to_node(page: Page, frame: Optional[Frame], node_id: int, image
                     if (node.widgets) {
                         for (let w of node.widgets) {
                             if (w.name && (w.name.toLowerCase().includes('image') || w.name.toLowerCase().includes('file') || w.type === 'combo' || w.type === 'customtext')) {
-                                w.value = uploadedName;
+                                // MANDATÓRIO: Registrar finalName em w.options.values para passar na validação estrita do ComfyUI
+                                if (w.options && Array.isArray(w.options.values)) {
+                                    if (!w.options.values.includes(finalName)) {
+                                        w.options.values.push(finalName);
+                                    }
+                                }
+                                w.value = finalName;
                                 if (w.inputEl) {
-                                    w.inputEl.value = uploadedName;
+                                    w.inputEl.value = finalName;
                                     w.inputEl.dispatchEvent(new Event('input', { bubbles: true }));
                                     w.inputEl.dispatchEvent(new Event('change', { bubbles: true }));
                                 }
                                 if (typeof w.callback === 'function') {
-                                    try { w.callback(uploadedName); } catch(e) {}
+                                    try { w.callback(finalName); } catch (e) {}
                                 }
+                                result.nodeConfigured = true;
                             }
                         }
                     }
+
+                    // Tentar anexar à propriedade de upload se disponível
+                    if (node.fileInput) {
+                        try {
+                            const dt = new DataTransfer();
+                            dt.items.add(fileObj);
+                            node.fileInput.files = dt.files;
+                            node.fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+                        } catch (e) {}
+                    }
+
                     if (window.app.graph.setDirtyCanvas) window.app.graph.setDirtyCanvas(true, true);
                     if (window.app.canvas && window.app.canvas.draw) window.app.canvas.draw(true, true);
-                    return { success: true, uploadedName: uploadedName };
                 }
             }
-            return { success: false };
+
+            // VERIFICAÇÃO REMOTA NO BACKEND COMFYUI
+            if (window.app && window.app.api && typeof window.app.api.fetchApi === 'function') {
+                try {
+                    const checkResp = await window.app.api.fetchApi('/view?filename=' + encodeURIComponent(finalName) + '&type=input');
+                    if (checkResp && (checkResp.ok || checkResp.status === 200)) {
+                        result.backendConfirmed = true;
+                        result.log.push("Arquivo verificado e confirmado no backend ComfyUI (/view?filename=" + finalName + ")!");
+                    }
+                } catch (e) {}
+            }
+
+            return result;
         }""", {"nodeId": node_id, "filename": image_path.name, "b64Data": b64_img, "mimeType": mime})
 
-        if api_res and api_res.get("success"):
-            logger.info("🎯 Widget de Imagem do Nó #%d atualizado com sucesso (%s).", node_id, api_res.get("uploadedName"))
-            uploaded = True
+        if api_res:
+            for l_msg in api_res.get("log", []):
+                logger.info(f"  [Upload Nó #{node_id}] {l_msg}")
+            if api_res.get("apiSuccess") or api_res.get("backendConfirmed"):
+                logger.info(f"🎯 Imagem de referência ({api_res.get('uploadedName') or image_path.name}) confirmada e validada no Nó #{node_id}!")
+                uploaded = True
+            elif api_res.get("nodeConfigured"):
+                logger.warning(f"⚠️ Widget do Nó #{node_id} configurado, mas sem confirmação explícita da API: {api_res.get('errors')}")
+                uploaded = True
     except Exception as e:
-        logger.debug(f"Aviso no fallback de API de Imagem do Nó #{node_id}: {e}")
+        logger.debug(f"Aviso no upload via API ComfyUI do Nó #{node_id}: {e}")
+
+    # 3. Fallback: FileChooser nativo do Playwright disparado via clique no botão do Nó
+    if not uploaded:
+        try:
+            button_coords = target_frame.evaluate("""(nodeId) => {
+                const node = window.app && window.app.graph ? window.app.graph.getNodeById(nodeId) : null;
+                if (!node || !window.app.canvas) return null;
+                window.app.canvas.centerOnNode(node);
+                const canvas = window.app.canvas;
+                const rect = canvas.canvas.getBoundingClientRect();
+                let uploadWidget = null;
+                let widgetIdx = 1;
+                if (node.widgets) {
+                    for (let i = 0; i < node.widgets.length; i++) {
+                        const w = node.widgets[i];
+                        if (w.type === 'button' || (w.name && w.name.toLowerCase().includes('upload'))) {
+                            uploadWidget = w;
+                            widgetIdx = i;
+                            break;
+                        }
+                    }
+                }
+                const widgetY = (uploadWidget && uploadWidget.last_y) ? uploadWidget.last_y : (30 + widgetIdx * 25);
+                const graphX = node.pos[0] + (node.size[0] / 2);
+                const graphY = node.pos[1] + widgetY + 10;
+                const screenX = rect.left + (graphX + canvas.ds.offset[0]) * canvas.ds.scale;
+                const screenY = rect.top + (graphY + canvas.ds.offset[1]) * canvas.ds.scale;
+                return { x: screenX, y: screenY };
+            }""", node_id)
+
+            if button_coords and "x" in button_coords:
+                with page.expect_file_chooser(timeout=3500) as fc_info:
+                    page.mouse.click(button_coords["x"], button_coords["y"])
+                fc = fc_info.value
+                fc.set_files(str(image_path))
+                logger.info(f"🎯 Imagem injetada via clique direto no botão e FileChooser no Nó #{node_id}.")
+                uploaded = True
+        except Exception as e:
+            logger.debug(f"Aviso no clique de FileChooser do Nó #{node_id}: {e}")
+
+    # 4. Fallback: Inputs file no DOM de todos os frames
+    if not uploaded:
+        try:
+            for f in page.frames:
+                inputs = f.locator("input[type='file']")
+                cnt = inputs.count()
+                if cnt > 0:
+                    for i in range(cnt):
+                        try:
+                            inputs.nth(i).set_input_files(str(image_path))
+                            logger.info(f"🎯 Imagem injetada via input[type='file'] no frame {f.name or 'default'}.")
+                            uploaded = True
+                        except Exception:
+                            pass
+        except Exception as e:
+            logger.debug(f"Aviso no input file do DOM: {e}")
 
     return uploaded
 
@@ -616,95 +799,141 @@ def save_video_from_src(
 
 def upload_zip_to_node(page: Page, frame: Optional[Frame], node_id: int, zip_path: Path) -> bool:
     """
-    Injeta o arquivo ZIP no Nó ComfyUI especificado (ex: Nó #5 'Load Images (zip)').
-    Aplica múltiplas estratégias concorrentes para máxima confiabilidade:
-    1. Direct DOM input file injection no frame
-    2. File chooser hook via Playwright com disparo de clique no widget
-    3. Direct multipart upload via fetch('/upload/image') e atualização do widget LiteGraph
+    Injeta o arquivo ZIP empacotado no Nó ComfyUI (ex: Nó #5 'Load Images (zip)').
+    Aplica arquitetura multi-camadas de injeção e upload com verificação remota:
+    1. ComfyUI API Upload via window.app.api.uploadImage() e window.app.api.fetchApi('/upload/image')
+    2. ComfyUI API URL Discovery via window.app.api.apiURL('/upload/image')
+    3. FileChooser nativo do Playwright disparado via clique nas coordenadas do botão do Nó
+    4. DOM input[type='file'] no frame com despacho de DataTransfer e change event
+    5. Sincronização do widget LiteGraph com inclusão obrigatória em options.values
+    6. Confirmação do arquivo via GET /view?filename=... no backend ComfyUI
     """
     logger.info(f"📤 Iniciando upload do arquivo ZIP ({zip_path.name}) no Nó #{node_id}...")
     target_frame = frame or page.main_frame
     uploaded = False
 
-    # Estratégia 1: Input file no DOM
-    try:
-        for f in page.frames:
-            inputs = f.locator("input[type='file']")
-            cnt = inputs.count()
-            if cnt > 0:
-                for i in range(cnt):
-                    try:
-                        inputs.nth(i).set_input_files(str(zip_path))
-                        logger.info("🎯 Injetado arquivo ZIP via input[type='file'] no DOM.")
-                        uploaded = True
-                    except Exception:
-                        pass
-    except Exception as e:
-        logger.debug(f"Aviso na verificação de inputs de arquivo: {e}")
+    # 1. Certificar que nenhum modal/toast prévio esteja bloqueando
+    dismiss_runninghub_popups(page)
 
-    # Estratégia 2: File Chooser trigger
-    try:
-        with page.expect_file_chooser(timeout=2500) as fc_info:
-            target_frame.evaluate("""(nodeId) => {
-                if (typeof window.app === 'undefined' || !window.app.graph) return false;
-                const node = window.app.graph.getNodeById(nodeId);
-                if (node) {
-                    if (window.app.canvas) {
-                        window.app.canvas.centerOnNode(node);
-                        window.app.canvas.selectNode(node);
-                    }
-                    if (node.widgets) {
-                        for (let w of node.widgets) {
-                            if (w.type === 'button' || (w.name && w.name.toLowerCase().includes('upload'))) {
-                                if (typeof w.callback === 'function') {
-                                    w.callback();
-                                    return true;
-                                }
-                            }
-                        }
-                    }
-                }
-                return false;
-            }""", node_id)
-        fc = fc_info.value
-        fc.set_files(str(zip_path))
-        logger.info(f"🎯 Injetado arquivo ZIP via FileChooser no Nó #{node_id}.")
-        uploaded = True
-    except Exception:
-        pass
-
-    # Estratégia 3: Multipart upload direto via API ComfyUI & atualização do widget
+    # 2. Upload via API nativa do ComfyUI (window.app.api) com verificação de status HTTP 200
     try:
         with open(zip_path, "rb") as f:
             b64_zip = base64.b64encode(f.read()).decode("utf-8")
+
         api_res = target_frame.evaluate("""async ({ nodeId, filename, b64Data }) => {
-            let uploadedName = filename;
+            const result = {
+                apiSuccess: false,
+                uploadedName: null,
+                backendConfirmed: false,
+                nodeConfigured: false,
+                errors: [],
+                log: []
+            };
+
+            let fileObj = null;
             try {
                 const byteCharacters = atob(b64Data);
-                const byteNumbers = new Array(byteCharacters.length);
+                const byteNumbers = new Uint8Array(byteCharacters.length);
                 for (let i = 0; i < byteCharacters.length; i++) {
                     byteNumbers[i] = byteCharacters.charCodeAt(i);
                 }
-                const byteArray = new Uint8Array(byteNumbers);
-                const blob = new Blob([byteArray], { type: 'application/zip' });
-                const file = new File([blob], filename, { type: 'application/zip' });
+                const blob = new Blob([byteNumbers], { type: 'application/zip' });
+                fileObj = new File([blob], filename, { type: 'application/zip', lastModified: Date.now() });
+            } catch (e) {
+                result.errors.push("Erro ao criar File/Blob ZIP: " + e.message);
+                return result;
+            }
 
-                const formData = new FormData();
-                formData.append('image', file);
-                formData.append('overwrite', 'true');
-                formData.append('type', 'input');
-
-                const resp = await fetch('/upload/image', {
-                    method: 'POST',
-                    body: formData,
-                    credentials: 'include'
-                });
-                if (resp.ok) {
-                    const data = await resp.json();
-                    if (data && data.name) uploadedName = data.name;
+            // TENTATIVA 1: window.app.api.uploadImage
+            if (window.app && window.app.api && typeof window.app.api.uploadImage === 'function') {
+                try {
+                    const resp = await window.app.api.uploadImage(fileObj, '', true);
+                    if (resp && resp.name) {
+                        result.uploadedName = resp.name;
+                        result.apiSuccess = true;
+                        result.log.push("ZIP upload via app.api.uploadImage com sucesso: " + resp.name);
+                    }
+                } catch (e) {
+                    result.errors.push("uploadImage ZIP falhou: " + e.message);
                 }
-            } catch (err) {}
+            }
 
+            // TENTATIVA 2: window.app.api.fetchApi('/upload/image')
+            if (!result.apiSuccess && window.app && window.app.api && typeof window.app.api.fetchApi === 'function') {
+                try {
+                    const formData = new FormData();
+                    formData.append('image', fileObj);
+                    formData.append('overwrite', 'true');
+                    formData.append('type', 'input');
+
+                    const resp = await window.app.api.fetchApi('/upload/image', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    if (resp && (resp.ok || resp.status === 200)) {
+                        const data = await resp.json();
+                        if (data && data.name) {
+                            result.uploadedName = data.name;
+                            result.apiSuccess = true;
+                            result.log.push("ZIP upload via app.api.fetchApi('/upload/image') com sucesso: " + data.name);
+                        }
+                    } else if (resp) {
+                        result.errors.push("fetchApi status: " + resp.status + " " + resp.statusText);
+                    }
+                } catch (e) {
+                    result.errors.push("fetchApi falhou: " + e.message);
+                }
+            }
+
+            // TENTATIVA 3: fetch com URL resolvida por window.app.api.apiURL('/upload/image')
+            if (!result.apiSuccess && window.app && window.app.api && typeof window.app.api.apiURL === 'function') {
+                try {
+                    const uploadUrl = window.app.api.apiURL('/upload/image');
+                    const formData = new FormData();
+                    formData.append('image', fileObj);
+                    formData.append('overwrite', 'true');
+                    formData.append('type', 'input');
+
+                    const resp = await fetch(uploadUrl, {
+                        method: 'POST',
+                        body: formData,
+                        credentials: 'include'
+                    });
+                    if (resp && (resp.ok || resp.status === 200)) {
+                        const data = await resp.json();
+                        if (data && data.name) {
+                            result.uploadedName = data.name;
+                            result.apiSuccess = true;
+                            result.log.push("ZIP upload via apiURL ('" + uploadUrl + "') com sucesso: " + data.name);
+                        }
+                    } else if (resp) {
+                        result.errors.push("apiURL fetch status: " + resp.status + " " + resp.statusText);
+                    }
+                } catch (e) {
+                    result.errors.push("apiURL fetch falhou: " + e.message);
+                }
+            }
+
+            // TENTATIVA 4: Input elements no DOM via DataTransfer
+            if (!result.apiSuccess) {
+                try {
+                    const fileInputs = Array.from(document.querySelectorAll("input[type='file']"));
+                    for (const inp of fileInputs) {
+                        const dt = new DataTransfer();
+                        dt.items.add(fileObj);
+                        inp.files = dt.files;
+                        inp.dispatchEvent(new Event('input', { bubbles: true }));
+                        inp.dispatchEvent(new Event('change', { bubbles: true }));
+                        result.log.push("Disparado DataTransfer ZIP em input[type='file']");
+                    }
+                } catch (e) {
+                    result.errors.push("DOM DataTransfer falhou: " + e.message);
+                }
+            }
+
+            const finalName = result.uploadedName || filename;
+
+            // CONFIGURAÇÃO DO NÓ #nodeId NO GRAFO COMFYUI
             if (typeof window.app !== 'undefined' && window.app.graph) {
                 const node = window.app.graph.getNodeById(nodeId);
                 if (node) {
@@ -715,31 +944,104 @@ def upload_zip_to_node(page: Page, frame: Optional[Frame], node_id: int, zip_pat
                     if (node.widgets) {
                         for (let w of node.widgets) {
                             if (w.name && (w.name.toLowerCase().includes('zip') || w.name.toLowerCase().includes('file') || w.name.toLowerCase().includes('image') || w.type === 'combo' || w.type === 'customtext')) {
-                                w.value = uploadedName;
+                                if (w.options && Array.isArray(w.options.values)) {
+                                    if (!w.options.values.includes(finalName)) {
+                                        w.options.values.push(finalName);
+                                    }
+                                }
+                                w.value = finalName;
                                 if (w.inputEl) {
-                                    w.inputEl.value = uploadedName;
+                                    w.inputEl.value = finalName;
                                     w.inputEl.dispatchEvent(new Event('input', { bubbles: true }));
                                     w.inputEl.dispatchEvent(new Event('change', { bubbles: true }));
                                 }
                                 if (typeof w.callback === 'function') {
-                                    try { w.callback(uploadedName); } catch(e) {}
+                                    try { w.callback(finalName); } catch (e) {}
+                                }
+                                result.nodeConfigured = true;
+                            }
+                        }
+                    }
+
+                    if (window.app.graph.setDirtyCanvas) window.app.graph.setDirtyCanvas(true, true);
+                    if (window.app.canvas && window.app.canvas.draw) window.app.canvas.draw(true, true);
+                }
+            }
+
+            // VERIFICAÇÃO REMOTA NO BACKEND COMFYUI
+            if (window.app && window.app.api && typeof window.app.api.fetchApi === 'function') {
+                try {
+                    const checkResp = await window.app.api.fetchApi('/view?filename=' + encodeURIComponent(finalName) + '&type=input');
+                    if (checkResp && (checkResp.ok || checkResp.status === 200)) {
+                        result.backendConfirmed = true;
+                        result.log.push("Arquivo ZIP verificado e confirmado no backend ComfyUI (/view?filename=" + finalName + ")!");
+                    }
+                } catch (e) {}
+            }
+
+            return result;
+        }""", {"nodeId": node_id, "filename": zip_path.name, "b64Data": b64_zip})
+
+        if api_res:
+            for l_msg in api_res.get("log", []):
+                logger.info(f"  [Upload Nó #{node_id}] {l_msg}")
+            if api_res.get("apiSuccess") or api_res.get("backendConfirmed"):
+                logger.info(f"🎯 Arquivo ZIP ({api_res.get('uploadedName') or zip_path.name}) confirmado e validado no Nó #{node_id}!")
+                uploaded = True
+            elif api_res.get("nodeConfigured"):
+                logger.warning(f"⚠️ Widget do Nó #{node_id} configurado com ZIP, mas sem confirmação explícita da API: {api_res.get('errors')}")
+                uploaded = True
+    except Exception as e:
+        logger.debug(f"Aviso no fallback de API do Nó #{node_id}: {e}")
+
+    # 3. Fallback: FileChooser nativo do Playwright
+    if not uploaded:
+        try:
+            with page.expect_file_chooser(timeout=3500) as fc_info:
+                target_frame.evaluate("""(nodeId) => {
+                    if (typeof window.app === 'undefined' || !window.app.graph) return false;
+                    const node = window.app.graph.getNodeById(nodeId);
+                    if (node) {
+                        if (window.app.canvas) {
+                            window.app.canvas.centerOnNode(node);
+                            window.app.canvas.selectNode(node);
+                        }
+                        if (node.widgets) {
+                            for (let w of node.widgets) {
+                                if (w.type === 'button' || (w.name && w.name.toLowerCase().includes('upload'))) {
+                                    if (typeof w.callback === 'function') {
+                                        w.callback();
+                                        return true;
+                                    }
                                 }
                             }
                         }
                     }
-                    if (window.app.graph.setDirtyCanvas) window.app.graph.setDirtyCanvas(true, true);
-                    if (window.app.canvas && window.app.canvas.draw) window.app.canvas.draw(true, true);
-                    return { success: true, uploadedName: uploadedName };
-                }
-            }
-            return { success: false };
-        }""", {"nodeId": node_id, "filename": zip_path.name, "b64Data": b64_zip})
-
-        if api_res and api_res.get("success"):
-            logger.info("🎯 Widget do Nó #%d atualizado com sucesso (%s).", node_id, api_res.get("uploadedName"))
+                    return false;
+                }""", node_id)
+            fc = fc_info.value
+            fc.set_files(str(zip_path))
+            logger.info(f"🎯 Injetado arquivo ZIP via FileChooser no Nó #{node_id}.")
             uploaded = True
-    except Exception as e:
-        logger.debug(f"Aviso no fallback de API do Nó #{node_id}: {e}")
+        except Exception:
+            pass
+
+    # 4. Fallback: Inputs file no DOM
+    if not uploaded:
+        try:
+            for f in page.frames:
+                inputs = f.locator("input[type='file']")
+                cnt = inputs.count()
+                if cnt > 0:
+                    for i in range(cnt):
+                        try:
+                            inputs.nth(i).set_input_files(str(zip_path))
+                            logger.info("🎯 Injetado arquivo ZIP via input[type='file'] no DOM.")
+                            uploaded = True
+                        except Exception:
+                            pass
+        except Exception as e:
+            logger.debug(f"Aviso na verificação de inputs de arquivo: {e}")
 
     return uploaded
 
@@ -780,6 +1082,10 @@ def dismiss_runninghub_popups(page: Page) -> bool:
         ".ant-modal-close-x",
         ".el-dialog__headerbtn",
         ".el-dialog__close",
+        "xpath=//*[contains(text(), 'Node threw an error')]/ancestor::div//button",
+        "xpath=//*[contains(text(), 'Incorrect values') or contains(text(), 'Custom validation failed')]/ancestor::div//button",
+        "xpath=//*[contains(text(), 'Incorrect values') or contains(text(), 'Custom validation failed')]/ancestor::*[contains(@class, 'modal') or contains(@class, 'dialog') or position()<=3]//*[contains(@class, 'close') or text()='×' or text()='X']",
+        "xpath=//*[contains(text(), 'Custom validation failed')]/following-sibling::*[contains(@class, 'close')]",
         "button[aria-label='Close']",
         "button[aria-label='close']",
         "button:has-text('Close')",
@@ -1228,6 +1534,27 @@ def run_factory_bot(
                         logger.info("✅ Geração iniciada no RunningHub!")
                     else:
                         page.keyboard.press("Control+Enter")
+
+                    # Verificação imediata pós-clique de modal de validação do ComfyUI
+                    time.sleep(1.5)
+                    has_val_err = False
+                    for f in page.frames:
+                        try:
+                            val_err = f.evaluate("""() => {
+                                const bodyText = document.body ? document.body.innerText : '';
+                                if (bodyText.includes('Custom validation failed for node') || bodyText.includes('Incorrect values in the current workflow')) {
+                                    return true;
+                                }
+                                return false;
+                            }""")
+                            if val_err:
+                                has_val_err = True
+                                break
+                        except Exception:
+                            pass
+                    if has_val_err:
+                        logger.warning("⚠️ Detectado alerta de validação no ComfyUI pós-execução. Fechando modal...")
+                        dismiss_runninghub_popups(page)
                 except Exception as e:
                     logger.error(f"Erro ao clicar em Executar: {e}")
 

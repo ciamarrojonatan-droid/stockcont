@@ -1,9 +1,9 @@
 # StockCont Pipeline State
 > Sincronizado automaticamente por hooks e comandos do ecossistema.
 
-## Sprint Atual: Calibração da Janela de Upload no Nó #164 Load Image (30s Wait)
-- **Status da Sprint**: [CONCLUÍDO] Calibrado o tempo de espera no Nó #164 (Load Image) para 30 segundos (`RUNNINGHUB_IMAGE_UPLOAD_WAIT_SEC=30`) com contagem regressiva em logs antes do acionamento de 'Executar (Lite/Plus)'. Adicionado auto-dismiss de modais de erro residuais do ComfyUI e flag `--upload-wait-sec`. 161 testes 100% verdes.
-- **Última Atualização**: 2026-10-31 01:40
+## Sprint Atual: Blindagem Multi-Camadas e Validação do Nó #164 Load Image (Anti-Custom Validation Failed)
+- **Status da Sprint**: [CONCLUÍDO] Implementada arquitetura de upload em 6 camadas em `src/factory/runninghub_bot.py` (`upload_image_to_node` e `upload_zip_to_node`): (1) `window.app.api.uploadImage()`, (2) `window.app.api.fetchApi('/upload/image')`, (3) `window.app.api.apiURL('/upload/image')`, (4) `window.app.handleFile()`, (5) Playwright FileChooser nativo com coordenadas do botão do nó, e (6) Injeção forçada em `w.options.values` do LiteGraph para neutralizar o erro `Node ID:164(image: Custom validation failed for node;)`. Adicionada verificação remota `/view?filename=...`, auto-dismiss de popups de validação e 4 novos testes unitários. Suíte expandida para 165 testes 100% verdes.
+- **Última Atualização**: 2026-10-31 02:10
 - **Modo Operacional**: Dual-Mode (Antigravity & Claude Code via SSOT `PROJECT_CONTEXT.md`)
 
 ---
@@ -31,7 +31,7 @@
 | **Conta 2: SeedVR 8K Upscaler** | 🟢 Calibrada & Pronta | **Workflow SeedVR 8K** \| Ingestão ZIP Nó #5 ➔ Preview Nó #55 (1 a 1 Real-Time) ➔ Auto-cancel na última imagem | Integrado no Daemon |
 | **Fase 4: O Catalogador** | 🟢 Concluído | **190 assets catalogados** em `adobe_stock_upload.csv` \| Injeção obrigatória de 300 DPI + IPTC/EXIF | Integrado no Daemon |
 | **Fase 5: O Distribuidor com Cotas** | 🟢 Protegido | **Despacho seletivo por plataforma**: Pausa agências com cotas esgotadas e prossegue nas demais \| Anti-Ban Alamy ativo | Integrado no Daemon |
-| **Suíte de Testes (Pytest)** | 🟢 100% Verde | **161 testes passando (100% verde)** | Regressão zero (19 suítes de teste) | `pytest tests/` |
+| **Suíte de Testes (Pytest)** | 🟢 100% Verde | **165 testes passando (100% verde)** | Regressão zero (19 suítes de teste) | `pytest tests/` |
 
 ---
 

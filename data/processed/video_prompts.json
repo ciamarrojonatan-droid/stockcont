@@ -13,7 +13,9 @@
         "camera_motion": "smooth_dolly_in",
         "copy_space_zone": "left_third",
         "prompt": "Cinematic commercial 4K stock footage, ultra-high definition. The scene opens with a sterile, minimalist laboratory background, rendered in soft, clean, diffused white tones to provide extensive negative space on the left third for future corporate typography. A gloved hand, wearing a high-quality, matte-finish dark grey protective nitrile glove, enters the frame from the right, holding a pristine glass test tube filled with a vibrant, translucent sapphire-blue chemical liquid. The camera executes a slow, deliberate 8-second dolly-in movement, drawing the viewer's eye toward the delicate refraction of light through the glass vessel. The lens, a 50mm prime cine lens at f/2.8, captures subtle textures on the glove's surface and the sharp, crisp edges of the test tube. Motion is fluid and professional, maintained at a steady 1.2 meters per second, with a 180-degree shutter angle providing authentic motion blur. Lighting is soft-box studio quality, creating gentle specular highlights on the glass and the rounded contours of the fingers, ensuring no harsh shadows. The atmosphere is quiet, clinical, and precise. The composition is strictly designed for high-end biotech, pharmaceutical, or chemical research branding, ensuring no identifiable human features or copyrighted logos are present. The background remains a clean, high-key white gradient, facilitating seamless overlays of motion graphics, company logos, and mission statements. Every frame is optimized for post-production color grading, maintaining natural skin tone undertones within the glove material, and ensuring the blue liquid retains its deep, rich, saturated hue throughout the entire sequence.",
-        "status": "pending"
+        "status": "generated",
+        "generated_at": "2026-10-31T04:46:18.094920+00:00",
+        "video_file": "final_4k_video_48006219.mp4"
       },
       {
         "id": 2,
