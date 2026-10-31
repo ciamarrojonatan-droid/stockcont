@@ -150,3 +150,27 @@ class QCPackageZipRequest(BaseModel):
 class QCRunConta2Request(BaseModel):
     batch_size: Optional[int] = 10
     mode: Optional[Literal['window', 'background']] = 'window'
+
+
+# ── Video Models ─────────────────────────────────────
+
+class VideoPromptMarkRequest(BaseModel):
+    hashes: Optional[List[str]] = None
+    all_pending: Optional[bool] = False
+    all_generated: Optional[bool] = False
+
+
+class VideoI2VRequest(BaseModel):
+    image_stem: str
+
+
+class VideoMatrixToggleRequest(BaseModel):
+    filename: str
+    agency: str
+    uploaded: bool
+
+
+class VideoMatrixBatchRequest(BaseModel):
+    agency: str
+    action: Literal["mark_all", "unmark_all"]
+    filenames: Optional[List[str]] = None

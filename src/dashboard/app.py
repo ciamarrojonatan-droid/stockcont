@@ -67,6 +67,15 @@ async def index():
     return HTMLResponse(content=index_file.read_text(encoding="utf-8"))
 
 
+@app.get("/video", response_class=HTMLResponse)
+async def video_dashboard():
+    """Serve the dedicated Video Command Center SPA."""
+    video_file = STATIC_DIR / "video.html"
+    if not video_file.exists():
+        video_file = STATIC_DIR / "index.html"
+    return HTMLResponse(content=video_file.read_text(encoding="utf-8"))
+
+
 # ── Pipeline Status ──────────────────────────────────
 
 @app.get("/api/status")
@@ -686,3 +695,199 @@ async def stop_daemon_endpoint():
     """Stop the running 24/7 daemon task."""
     terminated = runner.terminate_task("daemon")
     return {"success": terminated, "message": "Comando de parada do Daemon enviado"}
+
+
+# ── Video Dedicated Endpoints ────────────────────────
+
+ALLOWED_VIDEO_EXTS = {".mp4", ".mov", ".webm"}
+
+
+def _resolve_video_path(filename: str) -> Path:
+    safe_name = Path(filename).name
+    if safe_name != filename or not filename:
+        raise HTTPException(status_code=400, detail="Nome de arquivo inválido")
+    if Path(safe_name).suffix.lower() not in ALLOWED_VIDEO_EXTS:
+        raise HTTPException(status_code=400, detail="Formato de vídeo não suportado")
+    candidate = readers.FINAL_VIDEOS_DIR / safe_name
+    if candidate.exists() and candidate.is_file():
+        return candidate
+    raise HTTPException(status_code=404, detail="Arquivo de vídeo não encontrado")
+
+
+@app.get("/api/video/status")
+async def get_video_status():
+    """Full pipeline status dedicated to video assets."""
+    return readers.build_full_video_status()
+
+
+@app.get("/api/video/prompts")
+async def get_video_prompts(filter: str = "all", aspect: str = "all", page: int = 1, per_page: int = 50):
+    """Paginated list of 4D video prompts with filters."""
+    items = readers.get_video_prompt_queue_items()
+    if filter == "pending":
+        items = [i for i in items if i["status"] == "pending"]
+    elif filter == "generated":
+        items = [i for i in items if i["status"] == "generated"]
+    if aspect in ("16:9", "9:16"):
+        items = [i for i in items if i["aspect_ratio"] == aspect]
+
+    total = len(items)
+    start = (page - 1) * per_page
+    return {
+        "items": items[start:start + per_page],
+        "total": total,
+        "page": page,
+        "per_page": per_page,
+        "pages": max(1, (total + per_page - 1) // per_page),
+    }
+
+
+@app.get("/api/video/prompts/stats")
+async def get_video_prompts_stats():
+    """Quick counters for video prompts."""
+    return readers.get_video_prompt_queue_stats()
+
+
+@app.post("/api/video/prompts/mark-generated")
+async def mark_video_prompts_generated(req: schemas.VideoPromptMarkRequest):
+    """Mark video prompt(s) as generated."""
+    count = readers.mark_video_prompts(hashes=req.hashes, target_status="generated", all_matching=bool(req.all_pending))
+    return {"success": True, "marked_count": count, "message": f"{count} prompt(s) de vídeo marcados como gerados."}
+
+
+@app.post("/api/video/prompts/mark-pending")
+async def mark_video_prompts_pending(req: schemas.VideoPromptMarkRequest):
+    """Mark video prompt(s) as pending."""
+    count = readers.mark_video_prompts(hashes=req.hashes, target_status="pending", all_matching=bool(req.all_generated))
+    return {"success": True, "marked_count": count, "message": f"{count} prompt(s) de vídeo revertidos para pendentes."}
+
+
+@app.get("/api/video/items")
+async def get_video_items():
+    """List all rendered videos in data/final/videos/."""
+    videos = readers.list_final_videos()
+    return {"videos": videos, "total": len(videos)}
+
+
+@app.get("/api/video/stream/{filename}")
+async def stream_video_file(filename: str):
+    """Serve video file with range request support for seeking in HTML5 players."""
+    path = _resolve_video_path(filename)
+    media = "video/quicktime" if path.suffix.lower() == ".mov" else "video/mp4"
+    return FileResponse(str(path), media_type=media)
+
+
+@app.get("/api/video/poster/{filename}")
+async def get_video_poster(filename: str):
+    """Return or generate poster thumbnail frame for video."""
+    path = _resolve_video_path(filename)
+    poster_path = readers.VIDEO_POSTERS_DIR / f"{path.stem}_poster.jpg"
+    if not poster_path.exists():
+        readers.VIDEO_POSTERS_DIR.mkdir(parents=True, exist_ok=True)
+        try:
+            from src.video.ffmpeg_processor import extract_poster_frame
+            extract_poster_frame(path, poster_path, time_offset_percent=0.5)
+        except Exception as e:
+            logger.warning("Failed to extract poster for %s: %s", filename, e)
+    if poster_path.exists():
+        return FileResponse(str(poster_path), media_type="image/jpeg")
+    raise HTTPException(status_code=404, detail="Poster frame não encontrado")
+
+
+@app.get("/api/video/meta/{filename}")
+async def get_video_meta(filename: str):
+    """Inspect technical ffprobe properties, stock CSV metadata, and upload history."""
+    path = _resolve_video_path(filename)
+    tech_info: dict = {}
+    try:
+        from src.video.ffmpeg_processor import probe_video
+        props = probe_video(path)
+        tech_info = {
+            "width": props.width,
+            "height": props.height,
+            "duration_seconds": round(props.duration_seconds, 2),
+            "fps": round(props.fps, 2),
+            "video_codec": props.video_codec,
+            "audio_codec": props.audio_codec,
+            "has_audio": props.has_audio,
+            "bitrate_kbps": props.bitrate_kbps,
+            "aspect_ratio": props.aspect_ratio,
+            "is_4k": props.is_4k,
+            "is_vertical": props.is_vertical,
+        }
+    except Exception as e:
+        tech_info = {"error": str(e)}
+
+    adobe_cat = readers.load_cataloged_video_csv(readers.ADOBE_VIDEO_CSV).get(filename, {})
+    pond5_cat = readers.load_cataloged_video_csv(readers.POND5_VIDEO_CSV).get(filename, {})
+    upload_hist = readers.read_upload_history_dict().get(filename, {})
+
+    return {
+        "filename": filename,
+        "technical": tech_info,
+        "adobe_csv": adobe_cat,
+        "pond5_csv": pond5_cat,
+        "upload_history": upload_hist,
+    }
+
+
+@app.get("/api/video/matrix")
+async def get_video_matrix():
+    """Return distribution matrix matching videos with stock agencies."""
+    return readers.get_video_distribution_matrix()
+
+
+@app.post("/api/video/matrix/toggle")
+async def toggle_video_matrix_cell(req: schemas.VideoMatrixToggleRequest):
+    """Toggle video upload status in upload history."""
+    success = readers.update_matrix_cell(req.filename, req.agency, req.uploaded)
+    return {"success": success, "filename": req.filename, "agency": req.agency, "uploaded": req.uploaded}
+
+
+@app.post("/api/video/matrix/batch-set")
+async def batch_video_matrix_set(req: schemas.VideoMatrixBatchRequest):
+    """Batch mark or unmark an agency for videos."""
+    count = readers.batch_update_matrix_agency(req.agency, req.action, req.filenames)
+    return {"success": True, "agency": req.agency, "action": req.action, "updated_count": count}
+
+
+@app.post("/api/video/matrix/upload-pending")
+async def trigger_video_matrix_upload(platform: str = "all"):
+    """Trigger Phase 5 distribution upload for videos."""
+    args = ["--platform", platform]
+    return await runner.run_video_phase(5, extra_args=args)
+
+
+@app.post("/api/video/run-phase/{phase}")
+async def run_video_phase_endpoint(
+    phase: int,
+    query: Optional[str] = None,
+    platform: Optional[str] = None,
+    max_items: Optional[int] = None,
+    prores: Optional[bool] = False
+):
+    """Trigger video pipeline phases (1, 2, 4, 5)."""
+    if phase not in (1, 2, 4, 5):
+        raise HTTPException(status_code=400, detail="Video phase must be 1, 2, 4, or 5")
+    extra_args = []
+    if query:
+        extra_args.extend(["--query", query])
+    if platform:
+        extra_args.extend(["--platform", platform])
+    if max_items:
+        extra_args.extend(["--max-items", str(max_items)])
+    if prores:
+        extra_args.append("--prores")
+    return await runner.run_video_phase(phase, extra_args=extra_args)
+
+
+@app.get("/api/video/reference-images")
+async def get_reference_images_for_i2v():
+    """List 8K master images available for Image-to-Video (I2V) prompt synthesis."""
+    return readers.list_reference_images_for_i2v()
+
+
+@app.post("/api/video/director/from-image")
+async def synthesize_video_from_image(req: schemas.VideoI2VRequest):
+    """Synthesize 4D video prompts for a specific 8K image via Gemini Vision."""
+    return await runner.run_video_i2v_synthesis(req.image_stem)

@@ -5,6 +5,7 @@ atomic writes for the distribution matrix and prompt queue managers.
 """
 
 import csv
+import hashlib
 import json
 import logging
 import os
@@ -37,6 +38,13 @@ UPLOAD_HISTORY_FILE = PROCESSED_DIR / "upload_history.json"
 GDRIVE_HISTORY_FILE = PROCESSED_DIR / "gdrive_backup_history.json"
 FINAL_IMAGES_DIR = FINAL_DIR / "images"
 REJECTED_DIR = FINAL_DIR / "rejected"
+
+# ── Video Specific Paths ─────────────────────────
+FINAL_VIDEOS_DIR = FINAL_DIR / "videos"
+VIDEO_POSTERS_DIR = FINAL_VIDEOS_DIR / "posters"
+VIDEO_PROMPTS_FILE = PROCESSED_DIR / "video_prompts.json"
+ADOBE_VIDEO_CSV = PROCESSED_DIR / "adobe_stock_video_upload.csv"
+POND5_VIDEO_CSV = PROCESSED_DIR / "pond5_video_upload.csv"
 
 
 # ── Low-Level Helpers ────────────────────────────
@@ -649,3 +657,447 @@ def list_staging_images(filter_status: str = "all") -> List[Dict[str, Any]]:
     # Sort newest first
     items.sort(key=lambda x: x.get("created_at") or "", reverse=True)
     return items
+
+
+# ── Video Dedicated Pipeline Data Readers ────────────
+
+def read_video_prompts() -> List[Dict[str, Any]]:
+    """Safely read processed video prompts file."""
+    data = _read_json(VIDEO_PROMPTS_FILE)
+    return data if isinstance(data, list) else []
+
+
+def get_video_prompt_queue_items() -> List[Dict[str, Any]]:
+    """Return flattened list of 4D video prompts with metadata and status."""
+    raw_data = read_video_prompts()
+    items: List[Dict[str, Any]] = []
+
+    for container in raw_data:
+        if not isinstance(container, dict):
+            continue
+        source_id = str(container.get("source_id", ""))
+        source_title = container.get("source_title", "")
+        ref_img = container.get("reference_image", "")
+        created_at = container.get("created_at")
+        if isinstance(created_at, (int, float)):
+            created_at_str = datetime.fromtimestamp(created_at, timezone.utc).isoformat()
+        else:
+            created_at_str = str(created_at) if created_at else ""
+
+        derivatives = container.get("derivative_prompts", [])
+        if not isinstance(derivatives, list):
+            continue
+
+        for p in derivatives:
+            if not isinstance(p, dict):
+                continue
+            prompt_text = p.get("prompt", "").strip()
+            prompt_hash = hashlib.sha256(prompt_text.lower().encode("utf-8")).hexdigest()[:16]
+            items.append({
+                "prompt_hash": prompt_hash,
+                "full_hash": hashlib.sha256(prompt_text.lower().encode("utf-8")).hexdigest(),
+                "prompt_id": p.get("id"),
+                "concept": p.get("concept", ""),
+                "format_type": p.get("format_type", "landscape_broll"),
+                "aspect_ratio": p.get("aspect_ratio", "16:9"),
+                "target_duration_sec": p.get("target_duration_sec", 8),
+                "target_fps": p.get("target_fps", 24),
+                "camera_motion": p.get("camera_motion", ""),
+                "copy_space_zone": p.get("copy_space_zone", ""),
+                "prompt_text": prompt_text,
+                "status": p.get("status", "pending"),
+                "source_id": source_id,
+                "source_title": source_title,
+                "reference_image": ref_img,
+                "created_at": created_at_str,
+                "word_count": len(prompt_text.split()),
+            })
+
+    return items
+
+
+def get_video_prompt_queue_stats() -> Dict[str, Any]:
+    """Return count of video prompts: total, pending, generated, percent."""
+    items = get_video_prompt_queue_items()
+    total = len(items)
+    pending = sum(1 for i in items if i["status"] == "pending")
+    generated = sum(1 for i in items if i["status"] == "generated")
+    percent = round((generated / total) * 100, 1) if total > 0 else 0.0
+    return {
+        "total": total,
+        "pending": pending,
+        "generated": generated,
+        "percent": percent,
+    }
+
+
+def mark_video_prompts(
+    hashes: Optional[List[str]] = None,
+    target_status: str = "generated",
+    all_matching: bool = False
+) -> int:
+    """Atomically update status of video prompts in video_prompts.json (ADR-02)."""
+    if not VIDEO_PROMPTS_FILE.exists():
+        return 0
+
+    try:
+        with open(VIDEO_PROMPTS_FILE, "r", encoding="utf-8") as f:
+            raw_data = json.load(f)
+    except Exception as e:
+        logger.error("Error reading %s: %s", VIDEO_PROMPTS_FILE.name, e)
+        return 0
+
+    if not isinstance(raw_data, list):
+        return 0
+
+    hash_set = set(hashes or [])
+    updated_count = 0
+
+    for container in raw_data:
+        if not isinstance(container, dict):
+            continue
+        derivatives = container.get("derivative_prompts", [])
+        if not isinstance(derivatives, list):
+            continue
+        for p in derivatives:
+            if not isinstance(p, dict):
+                continue
+            prompt_text = p.get("prompt", "").strip()
+            p_hash = hashlib.sha256(prompt_text.lower().encode("utf-8")).hexdigest()[:16]
+            full_h = hashlib.sha256(prompt_text.lower().encode("utf-8")).hexdigest()
+
+            if all_matching:
+                if (target_status == "generated" and p.get("status") == "pending") or \
+                   (target_status == "pending" and p.get("status") == "generated"):
+                    p["status"] = target_status
+                    updated_count += 1
+            elif p_hash in hash_set or full_h in hash_set:
+                p["status"] = target_status
+                updated_count += 1
+
+    if updated_count > 0:
+        tmp_file = VIDEO_PROMPTS_FILE.with_suffix(f".tmp.{os.getpid()}.{uuid.uuid4().hex[:6]}")
+        try:
+            with open(tmp_file, "w", encoding="utf-8") as f:
+                json.dump(raw_data, f, indent=2, ensure_ascii=False)
+            tmp_file.replace(VIDEO_PROMPTS_FILE)
+        except Exception as e:
+            logger.error("Error writing video prompts: %s", e)
+            return 0
+        finally:
+            if tmp_file.exists():
+                try:
+                    tmp_file.unlink()
+                except Exception:
+                    pass
+
+    return updated_count
+
+
+def load_cataloged_video_csv(csv_path: Path) -> Dict[str, Dict[str, str]]:
+    """Read video catalog CSV and return mapping by filename."""
+    if not csv_path.exists():
+        return {}
+    catalog: Dict[str, Dict[str, str]] = {}
+    try:
+        with open(csv_path, "r", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                fname = row.get("Filename")
+                if fname:
+                    catalog[fname.strip()] = row
+    except Exception as e:
+        logger.warning("Error reading video CSV %s: %s", csv_path.name, e)
+    return catalog
+
+
+def list_final_videos() -> List[Dict[str, Any]]:
+    """List all rendered video files in data/final/videos/ with catalog and upload status."""
+    if not FINAL_VIDEOS_DIR.exists():
+        return []
+
+    adobe_catalog = load_cataloged_video_csv(ADOBE_VIDEO_CSV)
+    pond5_catalog = load_cataloged_video_csv(POND5_VIDEO_CSV)
+    upload_history = read_upload_history_dict()
+
+    allowed_exts = {".mp4", ".mov", ".webm"}
+    videos: List[Dict[str, Any]] = []
+
+    for f in FINAL_VIDEOS_DIR.iterdir():
+        if not f.is_file() or f.suffix.lower() not in allowed_exts:
+            continue
+        if f.name.startswith((".", "temp_", "mute_")):
+            continue
+
+        size = f.stat().st_size
+        size_mb = round(size / (1024 * 1024), 2)
+        mtime = datetime.fromtimestamp(f.stat().st_mtime, timezone.utc).isoformat()
+
+        adobe_row = adobe_catalog.get(f.name)
+        pond5_row = pond5_catalog.get(f.name)
+        is_cataloged = bool(adobe_row or pond5_row)
+
+        title = ""
+        keywords = ""
+        description = ""
+        if adobe_row:
+            title = adobe_row.get("Title", "")
+            keywords = adobe_row.get("Keywords", "")
+        elif pond5_row:
+            title = pond5_row.get("Title", "")
+            description = pond5_row.get("Description", "")
+            keywords = pond5_row.get("Keywords", "")
+
+        # Poster detection
+        poster_candidate = VIDEO_POSTERS_DIR / f"{f.stem}_poster.jpg"
+        has_poster = poster_candidate.exists() and poster_candidate.is_file()
+
+        # Upload history
+        hist_entry = upload_history.get(f.name, {})
+        uploaded_agencies = list(hist_entry.keys()) if isinstance(hist_entry, dict) else []
+
+        videos.append({
+            "filename": f.name,
+            "stem": f.stem,
+            "path": str(f.relative_to(BASE_DIR)).replace("\\", "/"),
+            "size_bytes": size,
+            "size_mb": size_mb,
+            "created_at": mtime,
+            "is_cataloged": is_cataloged,
+            "cataloged_adobe": bool(adobe_row),
+            "cataloged_pond5": bool(pond5_row),
+            "title": title or f.stem.replace("_", " ").title(),
+            "description": description,
+            "keywords": keywords,
+            "poster_exists": has_poster,
+            "poster_url": f"/api/video/poster/{f.name}" if has_poster else None,
+            "uploaded_agencies": uploaded_agencies,
+            "platforms": hist_entry if isinstance(hist_entry, dict) else {},
+        })
+
+    # Sort newest first
+    videos.sort(key=lambda x: x.get("created_at") or "", reverse=True)
+    return videos
+
+
+def get_video_agency_status() -> List[Dict[str, Any]]:
+    """Configuration and upload status for video-supporting microstock platforms."""
+    upload_dict = read_upload_history_dict()
+
+    video_exts = {".mp4", ".mov", ".webm"}
+    video_uploads_per_agency: Dict[str, int] = {}
+    last_upload_per_agency: Dict[str, Optional[str]] = {}
+
+    for fn, plat_data in upload_dict.items():
+        if Path(fn).suffix.lower() not in video_exts:
+            continue
+        if isinstance(plat_data, dict):
+            for ag, info in plat_data.items():
+                video_uploads_per_agency[ag] = video_uploads_per_agency.get(ag, 0) + 1
+                ts = info.get("uploaded_at") if isinstance(info, dict) else str(info)
+                curr_last = last_upload_per_agency.get(ag)
+                if ts and (not curr_last or ts > curr_last):
+                    last_upload_per_agency[ag] = ts
+
+    adobe_ok = bool(os.getenv("ADOBE_SFTP_HOST") and os.getenv("ADOBE_SFTP_USER") and os.getenv("ADOBE_SFTP_PASS"))
+    pond5_ok = bool(os.getenv("POND5_FTP_HOST") and os.getenv("POND5_FTP_USER") and os.getenv("POND5_FTP_PASS"))
+    freepik_ok = bool(os.getenv("FREEPIK_FTP_HOST") and os.getenv("FREEPIK_FTP_USER") and os.getenv("FREEPIK_FTP_PASS"))
+
+    return [
+        {
+            "name": "Adobe Stock Video",
+            "key": "adobe",
+            "protocol": "SFTP",
+            "configured": adobe_ok,
+            "uploads": video_uploads_per_agency.get("adobe", 0),
+            "last_upload": last_upload_per_agency.get("adobe"),
+            "ai_policy": "Aceita (Tag IA obrigatória)",
+            "allowed": True,
+        },
+        {
+            "name": "Pond5 Footage",
+            "key": "pond5",
+            "protocol": "FTP",
+            "configured": pond5_ok,
+            "uploads": video_uploads_per_agency.get("pond5", 0),
+            "last_upload": last_upload_per_agency.get("pond5"),
+            "ai_policy": "Aceita (Líder Global em Footage)",
+            "allowed": True,
+        },
+        {
+            "name": "Freepik Motion",
+            "key": "freepik",
+            "protocol": "FTP",
+            "configured": freepik_ok,
+            "uploads": video_uploads_per_agency.get("freepik", 0),
+            "last_upload": last_upload_per_agency.get("freepik"),
+            "ai_policy": "Aceita (MP4 Full HD / 4K)",
+            "allowed": True,
+        },
+        {
+            "name": "Alamy Motion",
+            "key": "alamy",
+            "protocol": "FTP",
+            "configured": False,
+            "uploads": 0,
+            "last_upload": None,
+            "ai_policy": "⛔ PROIBIDO PARA IA (Banimento Imediato - Bloqueado)",
+            "allowed": False,
+        },
+    ]
+
+
+def get_video_distribution_matrix() -> Dict[str, Any]:
+    """Generate distribution matrix for final videos across video agencies."""
+    videos = list_final_videos()
+    agencies = [a for a in get_video_agency_status() if a.get("allowed", False)]
+    upload_dict = read_upload_history_dict()
+
+    rows: List[Dict[str, Any]] = []
+    for v in videos:
+        fn = v["filename"]
+        file_uploads = upload_dict.get(fn, {})
+        row = {
+            "filename": fn,
+            "stem": v["stem"],
+            "title": v.get("title", fn),
+            "size_mb": v.get("size_mb", 0),
+            "is_cataloged": v.get("is_cataloged", False),
+            "poster_url": v.get("poster_url"),
+            "agencies": {},
+        }
+        for ag in agencies:
+            ag_key = ag["key"]
+            uploaded = ag_key in file_uploads if isinstance(file_uploads, dict) else False
+            row["agencies"][ag_key] = {
+                "uploaded": uploaded,
+                "detail": file_uploads.get(ag_key) if uploaded and isinstance(file_uploads, dict) else None,
+            }
+        rows.append(row)
+
+    return {
+        "agencies": agencies,
+        "rows": rows,
+        "total_videos": len(videos),
+    }
+
+
+def list_reference_images_for_i2v() -> List[Dict[str, Any]]:
+    """List 8K images from data/final/images/ indicating if video prompts exist."""
+    images = list_final_images()
+    video_prompts = read_video_prompts()
+
+    processed_sources: Set[str] = set()
+    prompts_count_by_source: Dict[str, int] = {}
+
+    for c in video_prompts:
+        if isinstance(c, dict):
+            s_id = str(c.get("source_id", ""))
+            if s_id:
+                processed_sources.add(s_id)
+                num = len(c.get("derivative_prompts", []))
+                prompts_count_by_source[s_id] = prompts_count_by_source.get(s_id, 0) + num
+
+    results: List[Dict[str, Any]] = []
+    for img in images:
+        stem = Path(img["filename"]).stem
+        has_prompts = stem in processed_sources
+        count = prompts_count_by_source.get(stem, 0)
+        results.append({
+            "filename": img["filename"],
+            "stem": stem,
+            "size_bytes": img["size_bytes"],
+            "created_at": img["created_at"],
+            "has_video_prompts": has_prompts,
+            "video_prompts_count": count,
+            "title": img.get("title") or stem.replace("_", " ").title(),
+        })
+
+    return results
+
+
+def build_full_video_status() -> Dict[str, Any]:
+    """Aggregate full pipeline status specifically for the Video Dashboard."""
+    trends = read_trends()
+    video_trends = [t for t in trends if t.get("category") == "video"]
+    trends_count = len(video_trends) if video_trends else len(trends)
+
+    queue_stats = get_video_prompt_queue_stats()
+
+    videos = list_final_videos()
+    videos_total = len(videos)
+    videos_cataloged = sum(1 for v in videos if v.get("is_cataloged"))
+    videos_distributed = sum(1 for v in videos if v.get("uploaded_agencies"))
+
+    gemini_key = os.getenv("GEMINI_API_KEY")
+    gemini_configured = bool(gemini_key and len(gemini_key) > 5)
+
+    phases = [
+        {
+            "phase": 1,
+            "name": "Olheiro Vídeo",
+            "subtitle": "Scout B-Roll & Motion Trends",
+            "icon": "radar",
+            "count": trends_count,
+            "status": "ok" if trends_count > 0 else "idle",
+            "detail": f"{trends_count} referências de mercado mapeadas",
+        },
+        {
+            "phase": 2,
+            "name": "Diretor 4D",
+            "subtitle": "Gemini Vision Prompt Architect",
+            "icon": "director",
+            "count": queue_stats["total"],
+            "status": "ok" if queue_stats["total"] > 0 else "idle",
+            "detail": f"{queue_stats['total']} prompts cinematográficos sintetizados",
+        },
+        {
+            "phase": 3,
+            "name": "Fábrica Render",
+            "subtitle": "I2V & T2V Motion Synthesis",
+            "icon": "factory",
+            "count": queue_stats["generated"],
+            "total": queue_stats["total"],
+            "status": "ok" if queue_stats["generated"] > 0 else ("warning" if queue_stats["pending"] > 0 else "idle"),
+            "detail": f"{queue_stats['generated']} gerados ({queue_stats['percent']}%) | {queue_stats['pending']} pendentes",
+        },
+        {
+            "phase": 4,
+            "name": "Catalogador Vídeo",
+            "subtitle": "Áudio Mudo (-an) + Rec.709 + CSV",
+            "icon": "cataloger",
+            "count": videos_cataloged,
+            "total": videos_total,
+            "status": "ok" if videos_cataloged > 0 else "idle",
+            "detail": f"{videos_cataloged}/{videos_total} vídeos masterizados e catalogados",
+        },
+        {
+            "phase": 5,
+            "name": "Distribuidor Vídeo",
+            "subtitle": "Adobe SFTP & Pond5 FTP",
+            "icon": "distributor",
+            "count": videos_distributed,
+            "total": videos_total,
+            "status": "ok" if videos_distributed > 0 else "idle",
+            "detail": f"{videos_distributed} vídeos distribuídos com sucesso",
+        },
+    ]
+
+    agencies = get_video_agency_status()
+
+    return {
+        "kpis": {
+            "trends": trends_count,
+            "prompts_total": queue_stats["total"],
+            "queue_pending": queue_stats["pending"],
+            "queue_generated": queue_stats["generated"],
+            "queue_percent": queue_stats["percent"],
+            "videos_total": videos_total,
+            "videos_cataloged": videos_cataloged,
+            "videos_distributed": videos_distributed,
+            "gemini_configured": gemini_configured,
+        },
+        "phases": phases,
+        "agencies": agencies,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }

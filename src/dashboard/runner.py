@@ -393,3 +393,121 @@ async def run_daemon_task(mode: str = "background", interval: int = 300, min_buf
             _task_records[task_key]["completed_at"] = datetime.now(timezone.utc).isoformat()
             _task_records[task_key]["last_log"] = f"Failed to start: {e}"
         return {"success": False, "message": str(e), "task_id": None}
+
+
+async def run_video_phase(phase: int, extra_args: Optional[List[str]] = None) -> Dict[str, Any]:
+    """Start a video pipeline phase in a background subprocess."""
+    task_key = f"video-phase-{phase}"
+
+    if task_key in _running_tasks and _running_tasks[task_key].returncode is None:
+        return {"success": False, "message": f"Video Phase {phase} is already running", "task_id": task_key}
+
+    cmd = [PYTHON, "-u", str(MAIN_PY), "--phase", str(phase), "--video"]
+    if extra_args:
+        cmd.extend(extra_args)
+
+    logger.info("Starting Video Phase %d: %s", phase, " ".join(cmd))
+
+    _task_records[task_key] = {
+        "task_id": task_key,
+        "phase": f"video-{phase}",
+        "status": "running",
+        "returncode": None,
+        "started_at": datetime.now(timezone.utc).isoformat(),
+        "completed_at": None,
+        "logs": deque(maxlen=100),
+        "last_log": f"Starting Video Phase {phase}...",
+    }
+
+    env = os.environ.copy()
+    env["PYTHONUNBUFFERED"] = "1"
+    env["PYTHONIOENCODING"] = "utf-8"
+    env["PYTHONUTF8"] = "1"
+
+    try:
+        process = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            cwd=str(BASE_DIR),
+            env=env,
+        )
+        _running_tasks[task_key] = process
+        asyncio.create_task(_monitor_task(task_key, process))
+        return {"success": True, "message": f"Video Phase {phase} started", "task_id": task_key}
+    except Exception as e:
+        logger.error("Failed to start Video Phase %d: %s", phase, e)
+        if task_key in _task_records:
+            _task_records[task_key]["status"] = "failed"
+            _task_records[task_key]["completed_at"] = datetime.now(timezone.utc).isoformat()
+            _task_records[task_key]["last_log"] = f"Failed to start: {e}"
+        return {"success": False, "message": str(e), "task_id": None}
+
+
+async def run_video_i2v_synthesis(image_stem: str) -> Dict[str, Any]:
+    """Synthesize 4D video prompts for a specific 8K image via Gemini Vision."""
+    clean_stem = Path(image_stem).stem
+    task_key = f"i2v-{clean_stem[:12]}"
+    if task_key in _running_tasks and _running_tasks[task_key].returncode is None:
+        return {"success": False, "message": f"I2V synthesis already running for {clean_stem}", "task_id": task_key}
+
+    script = (
+        "import os, sys, json, time; from pathlib import Path; "
+        "from dotenv import load_dotenv; from src.analyzer.video_director import generate_video_prompts_from_reference, BASE_DIR, PROCESSED_VIDEO_PROMPTS_FILE, FINAL_IMAGES_DIR; "
+        "load_dotenv(BASE_DIR / '.env', override=True); "
+        "api_key = os.getenv('GEMINI_API_KEY'); "
+        f"stem = '{clean_stem}'; "
+        "cand = FINAL_IMAGES_DIR / f'{stem}.jpg'; "
+        "if not cand.exists(): cand = FINAL_IMAGES_DIR / f'{stem}.png'; "
+        "if not cand.exists(): print(f'Image not found: {stem}'); sys.exit(1); "
+        "print(f'Synthesizing 4D video prompts from {cand.name}...'); "
+        "res = generate_video_prompts_from_reference(cand, stem.replace('_', ' ').title(), stem, api_key); "
+        "if not res: print('Failed to generate prompts via Gemini'); sys.exit(2); "
+        "existing = []; "
+        "if PROCESSED_VIDEO_PROMPTS_FILE.exists(): "
+        "    try: existing = json.loads(PROCESSED_VIDEO_PROMPTS_FILE.read_text(encoding='utf-8')) "
+        "    except: existing = []; "
+        "existing = [x for x in existing if str(x.get('source_id')) != stem]; "
+        "existing.append(res); "
+        "tmp = PROCESSED_VIDEO_PROMPTS_FILE.with_suffix(f'.tmp.{os.getpid()}'); "
+        "tmp.write_text(json.dumps(existing, indent=2, ensure_ascii=False), encoding='utf-8'); "
+        "tmp.replace(PROCESSED_VIDEO_PROMPTS_FILE); "
+        "print(f'Successfully generated 4 commercial video prompts for {stem}!');"
+    )
+
+    cmd = [PYTHON, "-u", "-c", script]
+
+    _task_records[task_key] = {
+        "task_id": task_key,
+        "phase": "i2v-synthesis",
+        "status": "running",
+        "returncode": None,
+        "started_at": datetime.now(timezone.utc).isoformat(),
+        "completed_at": None,
+        "logs": deque(maxlen=100),
+        "last_log": f"Synthesizing 4D video prompts for {clean_stem}...",
+    }
+
+    env = os.environ.copy()
+    env["PYTHONUNBUFFERED"] = "1"
+    env["PYTHONIOENCODING"] = "utf-8"
+    env["PYTHONUTF8"] = "1"
+
+    try:
+        process = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            cwd=str(BASE_DIR),
+            env=env,
+        )
+        _running_tasks[task_key] = process
+        asyncio.create_task(_monitor_task(task_key, process))
+        return {"success": True, "message": f"I2V synthesis started for {clean_stem}", "task_id": task_key}
+    except Exception as e:
+        logger.error("Failed to start I2V synthesis: %s", e)
+        if task_key in _task_records:
+            _task_records[task_key]["status"] = "failed"
+            _task_records[task_key]["completed_at"] = datetime.now(timezone.utc).isoformat()
+            _task_records[task_key]["last_log"] = f"Failed to start: {e}"
+        return {"success": False, "message": str(e), "task_id": None}

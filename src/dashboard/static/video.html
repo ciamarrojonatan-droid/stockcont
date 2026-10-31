@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StockCont Cinema — Video & Motion Command Center</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#000000">
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="stylesheet" href="/static/css/dashboard.css?v=3.1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- ── Global SVG Defs & Filters (3D Glassmorphic Lighting Engine) ── -->
+  <svg style="display:none;" aria-hidden="true">
+    <defs>
+      <filter id="glass-glow-blue" x="-20%" y="-20%" width="140%" height="140%">
+        <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#007AFF" flood-opacity="0.45" />
+      </filter>
+      <filter id="glass-glow-cyan" x="-20%" y="-20%" width="140%" height="140%">
+        <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#00C7BE" flood-opacity="0.45" />
+      </filter>
+      <filter id="glass-glow-purple" x="-20%" y="-20%" width="140%" height="140%">
+        <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#AF52DE" flood-opacity="0.45" />
+      </filter>
+      <filter id="glass-glow-amber" x="-20%" y="-20%" width="140%" height="140%">
+        <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#FF9F0A" flood-opacity="0.45" />
+      </filter>
+      <filter id="glass-glow-green" x="-20%" y="-20%" width="140%" height="140%">
+        <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#30D158" flood-opacity="0.45" />
+      </filter>
+
+      <!-- Volumetric Gradients -->
+      <linearGradient id="grad-cube-top" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#AF52DE" stop-opacity="0.95" />
+        <stop offset="100%" stop-color="#007AFF" stop-opacity="0.75" />
+      </linearGradient>
+      <linearGradient id="grad-sparkline" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="rgba(175,82,222,0.35)" />
+        <stop offset="100%" stop-color="rgba(175,82,222,0.0)" />
+      </linearGradient>
+    </defs>
+  </svg>
+
+  <!-- ── Header ─────────────────────────────────── -->
+  <header class="header">
+    <div class="header-left">
+      <div class="brand-container">
+        <svg class="brand-cube-3d" viewBox="0 0 70 70" width="38" height="38">
+          <line x1="35" y1="4" x2="35" y2="66" stroke="#AF52DE" stroke-width="1.6" stroke-dasharray="2,2" opacity="0.75" />
+          <polygon points="35,50 60,59 35,68 10,59" fill="#0C1322" stroke="rgba(255,255,255,0.18)" stroke-width="1" />
+          <polygon points="35,39 60,48 35,57 10,48" fill="#4A154B" stroke="rgba(175,82,222,0.35)" stroke-width="1" opacity="0.45" />
+          <polygon points="35,28 60,37 35,46 10,37" fill="#6B21A8" stroke="rgba(175,82,222,0.6)" stroke-width="1.2" opacity="0.65" />
+          <polygon points="35,17 60,26 35,35 10,26" fill="#9333EA" stroke="rgba(192,132,252,0.8)" stroke-width="1.3" opacity="0.85" />
+          <polygon points="35,6 60,15 35,24 10,15" fill="url(#grad-cube-top)" stroke="#FFFFFF" stroke-width="1.5" />
+          <polyline points="10,15 35,24 60,15" stroke="#FFFFFF" stroke-width="1" opacity="0.85" />
+          <circle cx="35" cy="15" r="3.2" fill="#AF52DE" filter="url(#glass-glow-purple)" />
+          <circle cx="35" cy="15" r="1.4" fill="#FFFFFF" />
+        </svg>
+        <div>
+          <h1 class="logo">StockCont <span style="color:var(--color-system-purple, #af52de); font-weight:700;">Cinema</span></h1>
+          <span class="tagline">Autonomous Video & Motion Architecture (4K / 8K I2V • ProRes • 60s B-Roll)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Media Mode Switcher: Imagens vs Vídeos -->
+    <div class="media-mode-switcher">
+      <a href="/" class="mode-pill" title="Mudar para o Centro de Comando de Imagens & Stills">
+        <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8">
+          <rect x="2" y="2" width="12" height="12" rx="2" />
+          <circle cx="5.5" cy="5.5" r="1.5" />
+          <path d="M2.5 12.5l3.5-3.5 2.5 2.5 3-4 2 2.5" />
+        </svg>
+        <span>Imagens 8K</span>
+      </a>
+      <a href="/video" class="mode-pill active-video" title="Centro de Comando de Vídeo & Motion Ativo">
+        <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8">
+          <rect x="2" y="3" width="12" height="10" rx="2" />
+          <polygon points="6.5,5.5 11,8 6.5,10.5" fill="currentColor" stroke="none" />
+        </svg>
+        <span>Vídeos 4D</span>
+        <span class="mode-badge-new">CINEMA</span>
+      </a>
+    </div>
+
+    <div class="header-right">
+      <span id="status-pill" class="pill pill-ok">
+        <span class="pulse-led pulse-led-ok"></span>
+        <span class="pill-label">VIDEO CORE ONLINE</span>
+      </span>
+      <span id="gemini-pill" class="pill pill-idle" title="Gemini Vision 4D Cinematography">
+        <svg class="pill-icon" viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6">
+          <circle cx="8" cy="8" r="3" />
+          <path d="M8 1v3M8 12v3M1 8h3M12 8h3" stroke-linecap="round" />
+        </svg>
+        <span class="pill-label">GEMINI 4D</span>
+      </span>
+      <span id="last-refresh" class="meta-text mono">—</span>
+      <button id="btn-refresh" class="btn btn-sm btn-refresh" onclick="refreshVideoAll()" title="Sincronizar telemetria de vídeo">
+        <svg class="btn-icon-refresh" viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M14 8A6 6 0 1 1 12.2 3.8L14 2v4h-4" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <span>SYNC</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ── KPI Cards (High-Frequency Cockpit) ──────── -->
+  <section class="kpi-row">
+    <!-- KPI 1: Trends -->
+    <div class="kpi-card" id="kpi-trends">
+      <div class="kpi-top">
+        <div class="kpi-icon-wrapper kpi-icon-cyan">
+          <svg viewBox="0 0 28 28" width="24" height="24" class="svg-3d-glass">
+            <circle cx="14" cy="14" r="11" fill="none" stroke="#00C7BE" stroke-width="1.6" opacity="0.8" />
+            <polygon points="12,10 18,14 12,18" fill="#00C7BE" />
+          </svg>
+        </div>
+        <div class="kpi-meta-badge">STAGE 1</div>
+      </div>
+      <div class="kpi-body">
+        <div class="kpi-value mono" id="kpi-val-trends">—</div>
+        <div class="kpi-label">Tendências Motion Mapeadas</div>
+      </div>
+    </div>
+
+    <!-- KPI 2: Prompts 4D -->
+    <div class="kpi-card" id="kpi-prompts">
+      <div class="kpi-top">
+        <div class="kpi-icon-wrapper kpi-icon-purple">
+          <svg viewBox="0 0 28 28" width="24" height="24" class="svg-3d-glass">
+            <polygon points="14,3 25,9 25,21 14,27 3,21 3,9" fill="none" stroke="#AF52DE" stroke-width="1.6" opacity="0.8" />
+            <circle cx="14" cy="15" r="3" fill="#FFFFFF" opacity="0.9" />
+          </svg>
+        </div>
+        <div class="kpi-meta-badge">STAGE 2</div>
+      </div>
+      <div class="kpi-body">
+        <div class="kpi-value mono" id="kpi-val-prompts">—</div>
+        <div class="kpi-label">Prompts Cinemáticos 4D</div>
+      </div>
+    </div>
+
+    <!-- KPI 3: Queue Motion -->
+    <div class="kpi-card" id="kpi-queue">
+      <div class="kpi-top">
+        <div class="kpi-icon-wrapper kpi-icon-amber">
+          <svg viewBox="0 0 28 28" width="24" height="24" class="svg-3d-glass">
+            <path d="M5,4 L23,4 L16,14 L23,24 L5,24 L12,14 Z" fill="rgba(255,159,10,0.15)" stroke="#FF9F0A" stroke-width="1.6" stroke-linejoin="round" />
+            <circle cx="14" cy="14" r="1.5" fill="#FFFFFF" />
+          </svg>
+        </div>
+        <div class="kpi-meta-badge">STAGE 3</div>
+      </div>
+      <div class="kpi-body">
+        <div class="kpi-value mono" id="kpi-val-queue">—</div>
+        <div class="kpi-label">Fila Render Motion</div>
+        <div class="progress-bar"><div class="progress-fill" id="queue-progress"></div></div>
+      </div>
+    </div>
+
+    <!-- KPI 4: Rendered Videos -->
+    <div class="kpi-card" id="kpi-videos">
+      <div class="kpi-top">
+        <div class="kpi-icon-wrapper kpi-icon-blue">
+          <svg viewBox="0 0 28 28" width="24" height="24" class="svg-3d-glass">
+            <rect x="3" y="5" width="22" height="18" rx="4" fill="rgba(0,122,255,0.15)" stroke="#007AFF" stroke-width="1.6" />
+            <polygon points="11,10 19,14 11,18" fill="#007AFF" />
+          </svg>
+        </div>
+        <div class="kpi-meta-badge">STAGE 3/4</div>
+      </div>
+      <div class="kpi-body">
+        <div class="kpi-value mono" id="kpi-val-videos">—</div>
+        <div class="kpi-label">Vídeos 4K / ProRes Prontos</div>
+      </div>
+    </div>
+
+    <!-- KPI 5: Cataloged Videos -->
+    <div class="kpi-card" id="kpi-cataloged">
+      <div class="kpi-top">
+        <div class="kpi-icon-wrapper kpi-icon-purple">
+          <svg viewBox="0 0 28 28" width="24" height="24" class="svg-3d-glass">
+            <circle cx="14" cy="14" r="11" fill="none" stroke="#AF52DE" stroke-width="1.6" />
+            <path d="M9 14l3 3 7-7" stroke="#AF52DE" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+          </svg>
+        </div>
+        <div class="kpi-meta-badge">STAGE 4</div>
+      </div>
+      <div class="kpi-body">
+        <div class="kpi-value mono" id="kpi-val-cataloged">—</div>
+        <div class="kpi-label">Áudio Mudo (-an) + CSVs</div>
+      </div>
+    </div>
+
+    <!-- KPI 6: Distributed Videos -->
+    <div class="kpi-card" id="kpi-distributed">
+      <div class="kpi-top">
+        <div class="kpi-icon-wrapper kpi-icon-green">
+          <svg viewBox="0 0 28 28" width="24" height="24" class="svg-3d-glass">
+            <circle cx="14" cy="18" r="4" fill="none" stroke="#30D158" stroke-width="1.6" />
+            <line x1="14" y1="14" x2="14" y2="4" stroke="#30D158" stroke-width="1.8" stroke-linecap="round" />
+            <path d="M8,9 C11,6 17,6 20,9" fill="none" stroke="#30D158" stroke-width="1.4" stroke-linecap="round" />
+          </svg>
+        </div>
+        <div class="kpi-meta-badge">STAGE 5</div>
+      </div>
+      <div class="kpi-body">
+        <div class="kpi-value mono" id="kpi-val-distributed">—</div>
+        <div class="kpi-label">Uplinks Adobe & Pond5</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Video Pipeline Tracker ──────────────────── -->
+  <section class="pipeline-section">
+    <div class="section-header">
+      <h2 class="section-title">Video & Motion Pipeline Orchestration</h2>
+      <span class="section-sub mono">4K UHD / PRORES 422 HQ • FASTSTART MOOV • AUDIO-MUTED</span>
+    </div>
+    <div class="pipeline-track" id="video-pipeline-track">
+      <!-- Dynamic render via JS -->
+    </div>
+  </section>
+
+  <!-- ── Tab Navigation (Tactile Capsule Switcher) ─ -->
+  <nav class="tabs">
+    <button class="tab active" data-tab="gallery" onclick="switchVideoTab('gallery')">
+      <svg class="tab-icon" viewBox="0 0 18 18" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6">
+        <rect x="2" y="3" width="14" height="12" rx="2" />
+        <polygon points="7,6 12,9 7,12" fill="currentColor" stroke="none" />
+      </svg>
+      <span>Galeria Cinema</span>
+    </button>
+
+    <button class="tab" data-tab="queue" onclick="switchVideoTab('queue')">
+      <svg class="tab-icon" viewBox="0 0 18 18" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6">
+        <path d="M3 4h12M3 9h12M3 14h7" stroke-linecap="round" />
+        <circle cx="14" cy="14" r="2" fill="currentColor" stroke="none" />
+      </svg>
+      <span>Fila de Prompts 4D</span>
+    </button>
+
+    <button class="tab" data-tab="i2v" onclick="switchVideoTab('i2v')">
+      <svg class="tab-icon" viewBox="0 0 18 18" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6">
+        <path d="M4 14l5-9 5 9" stroke-linecap="round" stroke-linejoin="round" />
+        <circle cx="9" cy="6" r="1.5" fill="currentColor" />
+      </svg>
+      <span>Estúdio I2V (Imagens 8K ➔ Vídeo)</span>
+    </button>
+
+    <button class="tab" data-tab="matrix" onclick="switchVideoTab('matrix')">
+      <svg class="tab-icon" viewBox="0 0 18 18" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6">
+        <rect x="2" y="2" width="6" height="6" rx="1.5" />
+        <rect x="10" y="2" width="6" height="6" rx="1.5" />
+        <rect x="2" y="10" width="6" height="6" rx="1.5" />
+        <rect x="10" y="10" width="6" height="6" rx="1.5" />
+      </svg>
+      <span>Matriz de Distribuição</span>
+    </button>
+
+    <button class="tab" data-tab="agencies" onclick="switchVideoTab('agencies')">
+      <svg class="tab-icon" viewBox="0 0 18 18" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6">
+        <path d="M3 16V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v11" />
+        <path d="M7 7h1M10 7h1M7 10h1M10 10h1M7 13h1M10 13h1" stroke-linecap="round" />
+      </svg>
+      <span>Agências de Vídeo</span>
+    </button>
+
+    <button class="tab" data-tab="timeline" onclick="switchVideoTab('timeline')">
+      <svg class="tab-icon" viewBox="0 0 18 18" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6">
+        <circle cx="9" cy="9" r="7" />
+        <polyline points="9,5 9,9 12,11" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+      <span>Timeline & Logs</span>
+    </button>
+  </nav>
+
+  <!-- ── Tab 1: Galeria Cinema ───────────────────── -->
+  <section class="tab-content active" id="tab-gallery">
+    <div class="tab-toolbar">
+      <div class="filter-group">
+        <button class="filter-btn active" onclick="filterVideos('all')">Todos</button>
+        <button class="filter-btn" onclick="filterVideos('cataloged')">Catalogados</button>
+        <button class="filter-btn" onclick="filterVideos('uncataloged')">Não Catalogados</button>
+      </div>
+      <div class="queue-actions-group">
+        <button class="btn btn-sm btn-primary" onclick="triggerRunVideoPhase(4)" title="Conformar resolução, remover áudio ruidoso de IA (-an) e gerar CSVs">
+          <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M12 2H4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z" />
+            <path d="M8 5v6M5 8h6" />
+          </svg>
+          <span>Catalogar & Mudar Áudio (Fase 4)</span>
+        </button>
+        <button class="btn btn-sm btn-success" onclick="triggerRunVideoPhase(5)" title="Disparar upload SFTP para Adobe Stock Video e FTP para Pond5">
+          <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M8 12V2M3 7l5-5 5 5M2 14h12" />
+          </svg>
+          <span>Distribuir Vídeos (Fase 5)</span>
+        </button>
+      </div>
+      <span class="tab-stat mono" id="video-gallery-stat">—</span>
+    </div>
+    <div class="video-grid" id="video-grid">
+      <div class="loading">Carregando acervo de vídeos renderizados em data/final/videos…</div>
+    </div>
+  </section>
+
+  <!-- ── Tab 2: Fila de Prompts 4D ────────────────── -->
+  <section class="tab-content" id="tab-queue">
+    <div class="tab-toolbar">
+      <div class="filter-group">
+        <button class="filter-btn active" onclick="filterVideoQueue('all')">Todos</button>
+        <button class="filter-btn" onclick="filterVideoQueue('pending')">Pendentes</button>
+        <button class="filter-btn" onclick="filterVideoQueue('generated')">Gerados</button>
+        <button class="filter-btn" onclick="filterVideoQueue('16:9')">16:9 Landscape</button>
+        <button class="filter-btn" onclick="filterVideoQueue('9:16')">9:16 Vertical</button>
+      </div>
+      <div class="queue-actions-group">
+        <button id="btn-video-mark-gen" class="btn btn-sm btn-success" onclick="markSelectedVideoGenerated()" disabled>
+          <span>Marcar Gerado (<span id="video-selected-count" class="mono">0</span>)</span>
+        </button>
+        <button id="btn-video-mark-pend" class="btn btn-sm btn-warning" onclick="markSelectedVideoPending()" disabled>
+          <span>Marcar Pendente</span>
+        </button>
+        <button class="btn btn-sm btn-primary" onclick="triggerRunVideoPhase(2)" title="Executar Diretor de Vídeo (Fase 2) para sintetizar novos prompts">
+          <span>Sintetizar Novos Prompts 4D</span>
+        </button>
+      </div>
+      <span class="tab-stat mono" id="video-queue-stat">—</span>
+    </div>
+    <div class="queue-table-wrapper">
+      <table class="data-table" id="video-queue-table">
+        <thead>
+          <tr>
+            <th style="width:40px; text-align:center;">
+              <input type="checkbox" id="select-all-video-prompts" class="prompt-select-checkbox" onchange="toggleSelectAllVideoPrompts(this.checked)">
+            </th>
+            <th>Hash SHA-256</th>
+            <th>Conceito Comercial</th>
+            <th>Formato</th>
+            <th>Movimento de Câmera & Copy-Space</th>
+            <th>Status</th>
+            <th style="text-align:center; width:110px;">Ações</th>
+          </tr>
+        </thead>
+        <tbody id="video-queue-tbody">
+          <tr><td colspan="7" class="loading">Carregando fila de prompts cinematográficos 4D…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ── Tab 3: Estúdio I2V (Imagens 8K ➔ Vídeo) ── -->
+  <section class="tab-content" id="tab-i2v">
+    <div class="tab-toolbar">
+      <div>
+        <h2 style="font-size: 1.05rem; font-family: var(--font-display); color: var(--color-system-purple); margin-bottom: 2px;">
+          The I2V Multiplier Paradigm — Transformação de Imagens 8K em Footage Cinemático
+        </h2>
+        <p style="font-size: 0.8rem; color: var(--label-secondary);">
+          Gere 4 conceitos de vídeo comerciais (16:9 Dolly-in, Rack Focus, 9:16 Reels e Seamless Loop) diretamente de suas imagens 8K aprovadas.
+        </p>
+      </div>
+      <span class="tab-stat mono" id="i2v-stat">—</span>
+    </div>
+    <div class="i2v-grid" id="i2v-grid">
+      <div class="loading">Carregando acervo de imagens 8K prontas para conversão Image-to-Video…</div>
+    </div>
+  </section>
+
+  <!-- ── Tab 4: Matriz de Distribuição ───────────── -->
+  <section class="tab-content" id="tab-matrix">
+    <div class="tab-toolbar">
+      <div>
+        <h2 style="font-size: 1.05rem; font-family: var(--font-display); color: var(--color-system-cyan); margin-bottom: 2px;">
+          Matriz de Distribuição de Vídeo (Adobe Stock Video & Pond5)
+        </h2>
+        <p style="font-size: 0.8rem; color: var(--label-secondary);">
+          Controle atômico de envio e idempotência criptográfica para footage comercial.
+        </p>
+      </div>
+      <div class="queue-actions-group">
+        <button class="btn btn-sm btn-success" onclick="triggerRunVideoPhase(5)">
+          <span>Despachar Todos Pendentes</span>
+        </button>
+      </div>
+      <span class="tab-stat mono" id="video-matrix-stat">—</span>
+    </div>
+    <div class="matrix-table-wrapper">
+      <table class="data-table matrix-table" id="video-matrix-table">
+        <thead id="video-matrix-thead"></thead>
+        <tbody id="video-matrix-tbody">
+          <tr><td colspan="6" class="loading">Carregando matriz de distribuição de vídeo…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ── Tab 5: Agências de Vídeo ────────────────── -->
+  <section class="tab-content" id="tab-agencies">
+    <table class="data-table" id="video-agencies-table">
+      <thead>
+        <tr>
+          <th>Agência Parceira</th>
+          <th>Protocolo</th>
+          <th>Status de Autenticação</th>
+          <th>Vídeos Enviados</th>
+          <th>Último Despacho</th>
+          <th>Política de IA</th>
+          <th>Ação</th>
+        </tr>
+      </thead>
+      <tbody id="video-agencies-tbody">
+        <tr><td colspan="7" class="loading">Carregando status dos integradores de vídeo…</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ── Tab 6: Timeline & Logs ──────────────────── -->
+  <section class="tab-content" id="tab-timeline">
+    <div class="tab-toolbar">
+      <div>
+        <h2 style="font-size: 1.05rem; font-family: var(--font-display); color: #ffffff; margin-bottom: 2px;">
+          Monitor de Tarefas em Tempo Real
+        </h2>
+        <p style="font-size: 0.8rem; color: var(--label-secondary);">Log ao vivo dos subprocessos de conformação de vídeo e upload.</p>
+      </div>
+    </div>
+    <div class="timeline-feed" id="video-timeline-feed">
+      <div class="loading">Carregando eventos de telemetria…</div>
+    </div>
+  </section>
+
+  <!-- ── Cinema Video Modal & Interactive Player ─── -->
+  <div class="modal-overlay" id="video-modal-overlay" onclick="closeVideoModal()">
+    <div class="modal video-modal-dialog" onclick="event.stopPropagation()">
+      <button class="modal-close" onclick="closeVideoModal()">
+        <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="3" y1="3" x2="13" y2="13" stroke-linecap="round" />
+          <line x1="13" y1="3" x2="3" y2="13" stroke-linecap="round" />
+        </svg>
+      </button>
+      <div class="video-player-frame">
+        <video id="cinema-video-player" controls autoplay loop playsinline preload="auto">
+          <source id="cinema-video-source" src="" type="video/mp4">
+          Seu navegador não suporta reprodução nativa de vídeo MP4/QuickTime.
+        </video>
+      </div>
+      <div class="video-modal-info-panel" id="video-modal-info-panel">
+        <div>
+          <h3 id="cinema-modal-title" style="font-size: 1.15rem; color: #ffffff; margin-bottom: 4px;">—</h3>
+          <p id="cinema-modal-filename" class="mono meta-text" style="color: var(--label-secondary);">—</p>
+        </div>
+
+        <div class="video-tech-grid" id="cinema-tech-grid">
+          <!-- Populated by JS: Resolution, FPS, Duration, Codec, Audio Muted, Moov Atom -->
+        </div>
+
+        <div id="cinema-modal-meta">
+          <!-- Populated by JS: Title, AI Caption, Keywords, CSV Status -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Prompt Detail Modal ─────────────────────── -->
+  <div class="modal-overlay" id="prompt-modal-overlay" onclick="closePromptModal()">
+    <div class="modal" onclick="event.stopPropagation()" style="max-width: 680px;">
+      <button class="modal-close" onclick="closePromptModal()">
+        <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="3" y1="3" x2="13" y2="13" stroke-linecap="round" />
+          <line x1="13" y1="3" x2="3" y2="13" stroke-linecap="round" />
+        </svg>
+      </button>
+      <div class="modal-body" style="padding: 24px;">
+        <h3 id="prompt-modal-concept" style="color: #ffffff; margin-bottom: 8px;">Conceito Comercial</h3>
+        <div style="display:flex; gap:8px; margin-bottom:14px;" id="prompt-modal-badges"></div>
+        <textarea id="prompt-modal-text" class="mono" readonly style="width:100%; height:260px; background:rgba(0,0,0,0.5); color:#e2e8f0; border:1px solid rgba(255,255,255,0.15); border-radius:10px; padding:12px; font-size:0.8rem; line-height:1.5; resize:none;"></textarea>
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:14px;">
+          <button class="btn btn-sm btn-primary" onclick="copyPromptTextFromModal()">Copiar Prompt</button>
+          <button class="btn btn-sm btn-outline" onclick="closePromptModal()">Fechar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Footer ──────────────────────────────────── -->
+  <footer class="footer">
+    <span class="mono">StockCont Cinema & Motion v3.1 • 4K UHD / ProRes 422 HQ • Audio Strip (-an) • Auto-sync: <strong>15s</strong></span>
+  </footer>
+
+  <script src="/static/js/video.js?v=3.1.0"></script>
+</body>
+</html>

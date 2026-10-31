@@ -1,9 +1,9 @@
 # StockCont Pipeline State
 > Sincronizado automaticamente por hooks e comandos do ecossistema.
 
-## Sprint Atual: Identidade Visual Industrial & Logomarca Vetorial Nativa Liquid Glass (Conceito C)
-- **Status da Sprint**: [CONCLUÍDO] Interface 100% Livre de Emojis, SVGs 3D Glassmorphic com Iluminação Volumétrica, Tríade Tipográfica (Space Grotesk + Instrument Sans + Fira Code), Micro-Sparklines e Suíte 100% Verde
-- **Última Atualização**: 2026-10-30 21:11
+## Sprint Atual: Central de Comando Dedicada de Vídeo SPA (`/video`) & Estúdio I2V Multiplier
+- **Status da Sprint**: [CONCLUÍDO] Nova página SPA dedicada exclusivamente a vídeos em `http://localhost:8501/video`, alternador tátil no Header (Imagens vs Vídeos), Player Cinema HTML5 com scrubbing nativo, Estúdio I2V direto de imagens 8K, conformação FFmpeg (-an) e 140 testes 100% verdes.
+- **Última Atualização**: 2026-10-30 22:00
 - **Modo Operacional**: Dual-Mode (Antigravity & Claude Code via SSOT `PROJECT_CONTEXT.md`)
 
 ---
@@ -12,7 +12,9 @@
 
 | Fase / Módulo | Status | Contagem / Métricas | Próxima Ação Recomendada |
 | :--- | :--- | :--- | :--- |
-| **Dashboard Web SPA (iOS 27)** | 🟢 Ativo | **Design System iOS 27 Liquid Glass**: Tokens HIG (`#2A2A2C`, `#007AFF`, `#0088FF`), Translucent Glass, Segmented Capsules (`.pickerStyle(.tabs)`), KPI Cards Inset Grouped | `python main.py --dashboard` |
+| **Dashboard Vídeo SPA (`/video`)** | 🟢 Ativo | **Dedicated Cinema Command Center**: URL dedicada `http://localhost:8501/video`, Player Cinema HTML5, 6 KPIs de vídeo, Fila 4D, Matriz e Estúdio I2V | Acessar via browser |
+| **Dashboard Imagens SPA (`/`)** | 🟢 Ativo | **Design System iOS 27 Liquid Glass**: Alternador tátil no Header conectando Imagens (`/`) e Vídeos (`/video`) | `python main.py --dashboard` |
+| **Estúdio I2V (8K ➔ Vídeo)** | 🟢 Operacional | **Motor I2V Multiplier**: Seleção direta de imagens 8K em `data/final/images/` para síntese de 4 prompts 4D (Gemini Vision) | Integrado na aba Estúdio I2V |
 | **Pipeline de Vídeo (Fases 1-5)** | 🟢 Operacional | **Motor I2V Multiplier (`src/video/`)** \| Probing FFmpeg, áudio mudo mandatória (`-an`), Seamless Loop Engine e injeção QuickTime/MP4 | `python main.py --video --status` |
 | **Diretor de Arte de Vídeo** | 🟢 Pronto | **Síntese 4D Temporal (`src/analyzer/video_director.py`)** \| Prompts cinemáticos 500-800 palavras para 16:9 Landscape e 9:16 Vertical (Reels) | `python main.py --video --phase 2` |
 | **Catalogador de Vídeo** | 🟢 Pronto | **Mastering & CSVs (`src/cataloger/video_cataloger.py`)** \| Injeção de metadados binários nos átomos MP4 + exportação para Adobe Stock Video e Pond5 | `python main.py --video --phase 4` |
@@ -27,50 +29,36 @@
 | **Conta 2: SeedVR 8K Upscaler** | 🟢 Calibrada & Pronta | **Workflow SeedVR 8K** \| Ingestão ZIP Nó #5 ➔ Preview Nó #55 (1 a 1 Real-Time) ➔ Auto-cancel na última imagem | Integrado no Daemon |
 | **Fase 4: O Catalogador** | 🟢 Concluído | **190 assets catalogados** em `adobe_stock_upload.csv` \| Injeção obrigatória de 300 DPI + IPTC/EXIF | Integrado no Daemon |
 | **Fase 5: O Distribuidor com Cotas** | 🟢 Protegido | **Despacho seletivo por plataforma**: Pausa agências com cotas esgotadas e prossegue nas demais \| Anti-Ban Alamy ativo | Integrado no Daemon |
-| **Suíte de Testes (Pytest)** | 🟢 100% Verde | **131 testes passando (100% verde)** \| Regressão zero | `pytest tests/` |
+| **Suíte de Testes (Pytest)** | 🟢 100% Verde | **140 testes passando (100% verde)** \| Regressão zero (17 suítes de teste) | `pytest tests/` |
 
 ---
 
-## 🧭 Inventário Completo da Implementação 24/7
+## 🎬 Arquitetura da Central de Comando de Vídeo (`/video`)
 
-### 1. Motor de Cotas Semanais Deslizantes (`src/uploader/quota_manager.py`) ✅
-- [x] **Cálculo da Janela Deslizante de 7 Dias**: Conta uploads onde `timestamp >= (now - 7 days)` a partir do livro-razão `upload_history.json`.
-- [x] **Controle Granular por Agência**: Suporta limites individuais (`ADOBE_WEEKLY_LIMIT`, `FREEPIK_WEEKLY_LIMIT`, etc.) via `.env` ou defaults.
-- [x] **Countdown para Próxima Vaga**: Calcula a projeção exata em dias, horas e minutos para quando o upload mais antigo da janela completar 7 dias.
-- [x] **CLI de Consulta Rápida**: `python main.py --quotas` exibe barras de progresso visuais e status detalhado no terminal.
+### 1. Rota Dedicada & Experiência de Navegação Unificada
+- **URL**: `http://localhost:8501/video`
+- **Alternador Tátil de Mídia no Header**: Cápsula de vidro líquido presente em ambas as páginas (`/` e `/video`) permitindo transição com um clique entre Modo Imagens 8K e Modo Vídeos 4D.
+- **Design System Mantido**: iOS 27 Liquid Glass, tokens Apple HIG, tipografia tripla (`Space Grotesk`, `Instrument Sans`, `Fira Code`) e prismas cibernéticos com iluminação volumétrica violeta/azul.
 
-### 2. O Distribuidor com Quotas (`src/uploader/ftp_distributor.py`) ✅
-- [x] **Despacho Seletivo**: Verifica vagas livres antes de enviar; se a agência atingir a cota, pausa o envio para aquela agência e prossegue nas demais.
-- [x] **Capping Dinâmico**: Limita o lote de submissão ao número exato de slots restantes na semana.
-- [x] **Preservação de Fila**: Assets excedentes permanecem no Cofre engatilhados para os próximos ciclos.
-- [x] **Anti-Ban Alamy Preservado**: Bloqueio irrestrito de qualquer asset gerado por IA para Alamy (ADR-05).
-
-### 3. O Daemon 24/7 & Auto-Purga Inteligente (`src/orchestrator/daemon.py`) ✅
-- [x] **Loop Pipelined Contínuo**:
-  - Buffer de Prompts: Abastece fila (Fase 1 + 2) se pendentes < `min_prompt_buffer` (padrão 50).
-  - Conta 1 (Raw Producer): Processa lotes de até 210 prompts no RunningHub.
-  - QC Automático: Curadoria multimodal via Gemini Vision e empacotamento em zips de 10.
-  - Conta 2 (SeedVR 8K): Processa pacotes aprovados de 10 em 10.
-  - Fase 4: Cataloga IPTC/EXIF 300 DPI e salva no Google Drive ("Cofre Cloud").
-  - Fase 5: Despacha assets respeitando as cotas semanais deslizantes.
-- [x] **Auto-Purga Inteligente de SSD**: Remove o JPG 8K do disco local apenas quando confirmado o upload em TODAS as agências ativas e confirmado o backup no Google Drive.
-- [x] **Heartbeat Atômico**: Salva o estado vivo em `data/processed/daemon_state.json` via `.tmp` e `os.replace` (ADR-02).
-- [x] **Pacing Sleep Responsivo**: Intervalo de descanso (padrão 300s = 5 min) com polling rápido para resposta imediata a sinais de pausa ou interrupção.
-
-### 4. Scripts de Inicialização e Supervisão Windows ✅
-- [x] **`run_24_7.bat`**: Script com loop supervisor watchdog que captura códigos de saída/crashes e reinicia a esteira automaticamente em 30 segundos.
-- [x] **`scripts/setup_windows_task.ps1`**: Script PowerShell para registro automático no Agendador de Tarefas do Windows (Task Scheduler) no logon do sistema.
-
-### 5. Dashboard Web SPA Integrado ✅
-- [x] **Aba "🤖 Produção 24/7"**:
-  - Hero card com badge interativo de status (🟢 Rodando 24/7 / ⏹️ Parado).
-  - Métricas do Cofre: Assets no disco local, engatilhados, 100% distribuídos, no Google Drive e liberados do SSD.
-  - Grid de Cotas Semanais: Cards com barras de progresso coloridas (Verde / Laranja / Roxo) e contagem regressiva para a próxima vaga.
-  - Botões de Ação: Iniciar em Background, Iniciar em Janela de Console (`run_24_7.bat`) e Parar.
-- [x] **Endpoints REST**: `/api/quotas`, `/api/daemon/status`, `/api/daemon/start`, `/api/daemon/stop`.
+### 2. Seções e Abas Dedicadas a Vídeo
+- **Galeria Cinema (Player)**:
+  - Grid de cards de vídeo com poster, badges flutuantes (`4K UHD`, `Catalogado`/`Pendente CSV`, `Sem Áudio -an`) e contador de duração (`00:08`).
+  - Modal Cinema com player nativo HTML5 (`<video controls autoplay loop>`), streaming de alta performance com suporte a scrub bar e painel com métricas de ffprobe, metadados de IA e status de CSV.
+- **Fila de Prompts 4D**:
+  - Tabela com filtros por proporção (`16:9 Landscape` vs `9:16 Vertical Reels`) e status (`Pendentes` / `Gerados`).
+  - Ações em lote e modal para inspeção do prompt cinematográfico de 500 a 800 palavras.
+- **Estúdio I2V (Imagens 8K ➔ Vídeo)**:
+  - Exibe todos os renders 8K finalizados de `data/final/images/`.
+  - Permite disparar o sintetizador de vídeo 4D do Gemini Vision para qualquer imagem com um clique.
+- **Matriz de Distribuição de Vídeo**:
+  - Controle de envio específico para **Adobe Stock Video** e **Pond5**.
+- **Agências de Vídeo**:
+  - Telemetria de protocolos SFTP e FTP com bloqueio ativo de IA para Alamy (ADR-05).
+- **Timeline & Logs**:
+  - Visualização ao vivo de processos em background (Scout, Director, Cataloger, Distributor).
 
 ---
 
 ## 🧪 Qualidade de Código & Testes
-- **Total de Testes**: **131 testes automatizados** passando 100% verde (16 suítes de teste).
-- **Regressão Zero**: Todos os testes legados, novos testes de cotas (`test_quota_manager.py`), daemon (`test_daemon.py`), distribuidor e dashboard continuam verdes.
+- **Total de Testes**: **140 testes automatizados** passando 100% verde (17 suítes de teste).
+- **Novos Testes Adicionados**: `tests/test_video_dashboard.py` (9 novos testes cobrindo todas as rotas e regras de negócio do painel de vídeo).
