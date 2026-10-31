@@ -23,6 +23,7 @@ from src.factory.runninghub_bot import (
     upload_image_to_node,
     upload_zip_to_node,
     dismiss_runninghub_popups,
+    click_runninghub_execute,
 )
 from src.factory.stealth_profile import CONTA_3_FINGERPRINT, get_stealth_fingerprint
 
@@ -47,6 +48,11 @@ class TestVideoFactoryTopology:
         """Account 3 must default to 30 seconds wait for Node #164 Load Image upload."""
         cfg = get_account_config(3)
         assert cfg.get("upload_wait_sec") == 30
+
+    def test_account_3_execute_mode_is_lite_plus(self):
+        """Account 3 must default to 'lite_plus' execute mode (the middle button)."""
+        cfg = get_account_config(3)
+        assert cfg.get("execute_mode") == "lite_plus" 
 
     def test_account_video_string_alias(self):
         """String aliases 'video' or 'video_4k' must resolve to CONTA_VIDEO_CONFIG."""
@@ -279,3 +285,50 @@ class TestNodeUploadRobustness:
         dismissed = dismiss_runninghub_popups(mock_page)
         assert dismissed is True
         mock_btn.click.assert_called()
+
+    def test_click_runninghub_execute_lite_plus_evaluate(self):
+        """Verify click_runninghub_execute uses DOM evaluate to target Lite/Plus and triggers mouse click."""
+        mock_page = MagicMock()
+        mock_page.evaluate.return_value = {
+            "success": True,
+            "method": "middle_of_three_top_bar",
+            "x": 725.0,
+            "y": 48.0
+        }
+
+        res = click_runninghub_execute(mock_page, mode="lite_plus")
+        assert res is True
+        mock_page.evaluate.assert_called_once()
+        mock_page.mouse.click.assert_called_once_with(725.0, 48.0)
+
+    def test_click_runninghub_execute_lite_plus_fallback_middle_button(self):
+        """Verify fallback selects the MIDDLE button (index 1) when evaluate fails."""
+        mock_page = MagicMock()
+        mock_page.evaluate.return_value = {"success": False}
+
+        # Sibling/ancestor selectors return no matches
+        mock_locator = MagicMock()
+        mock_locator.count.return_value = 0
+
+        # But 'button:has-text("Executar")' returns 3 buttons
+        mock_exec_locator = MagicMock()
+        mock_exec_locator.count.return_value = 3
+        mock_btn_left = MagicMock()
+        mock_btn_mid = MagicMock()
+        mock_btn_right = MagicMock()
+        mock_btn_mid.is_visible.return_value = True
+
+        def locator_side_effect(sel):
+            if "has-text('Executar')" in sel:
+                return mock_exec_locator
+            return mock_locator
+
+        mock_page.locator.side_effect = locator_side_effect
+        mock_exec_locator.nth.side_effect = lambda idx: [mock_btn_left, mock_btn_mid, mock_btn_right][idx]
+
+        res = click_runninghub_execute(mock_page, mode="lite_plus")
+        assert res is True
+        # Must click the middle button (index 1), NEVER index 0!
+        mock_btn_mid.click.assert_called_once()
+        mock_btn_left.click.assert_not_called()
+        mock_btn_right.click.assert_not_called()

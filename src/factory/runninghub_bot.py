@@ -60,6 +60,7 @@ CONTA_1_CONFIG = {
     "prefix": "raw",
     "save_mode": "batch_all",  # Salva todas de uma vez após a conclusão
     "session_dir_name": "playwright_session_raw",
+    "execute_mode": "standard",
 }
 
 # Conta 2: Consumidora SeedVR 2.5 8K Upscale (Nó #55 -> Salva 1 a 1 em tempo real)
@@ -76,6 +77,7 @@ CONTA_2_CONFIG = {
     "prefix": "upscaled_8k",
     "save_mode": "realtime_single",  # Salva 1 a 1 instantaneamente antes de sobrescrever
     "session_dir_name": "playwright_session_upscale",
+    "execute_mode": "standard",
 }
 
 # Video Pipeline: Geração e Upscale com Output Final em 4K
@@ -96,6 +98,7 @@ CONTA_VIDEO_CONFIG = {
     "save_mode": "video_output",
     "session_dir_name": "playwright_session_video",
     "upload_wait_sec": int(os.getenv("RUNNINGHUB_IMAGE_UPLOAD_WAIT_SEC", "30")),
+    "execute_mode": "lite_plus",  # Botão do meio (Lite/Plus - cor amarela/ouro) mandatário para Vídeo 4K
 }
 
 # Default Active Configuration (Padrão: Conta 1 - Raw Producer)
@@ -1166,6 +1169,205 @@ def dismiss_runninghub_popups(page: Page) -> bool:
     return dismissed
 
 
+def click_runninghub_execute(page: Page, mode: str = "lite_plus") -> bool:
+    """
+    Localiza e aciona o botão de execução correto no RunningHub:
+    - 'lite_plus': Botão do meio (Lite/Plus - cor dourada/laranja), mandatário para o Pipeline de Vídeo 4K.
+    - 'standard': Botão da esquerda (Lite/Standard - cor verde/ciano).
+    - 'ultra': Botão da direita (Ultra-6000D - cor vermelha).
+    """
+    logger.info(f"🎯 Acionando botão de execução RunningHub [Modo: {mode.upper()}]...")
+    clicked = False
+
+    # 1. Tentar via JavaScript inteligente no contexto da página:
+    # Identifica o label/badge do modo ('Lite/Plus', 'Lite/Standard', etc.) e associa geometricamente ao botão
+    try:
+        res = page.evaluate("""(targetMode) => {
+            const mode = (targetMode || 'lite_plus').toLowerCase();
+            const targetBadgeText = mode === 'lite_plus' ? 'Lite/Plus' : (mode === 'ultra' ? 'Ultra' : 'Standard');
+
+            // 1. Localizar elemento badge com o texto do modo
+            const allElements = Array.from(document.querySelectorAll("*"));
+            const badgeEl = allElements.find(el => {
+                const t = (el.innerText || el.textContent || '').trim();
+                return t === targetBadgeText || t.includes(targetBadgeText);
+            });
+
+            // Coletar todos os botões de execução visíveis na barra superior
+            const allBtns = Array.from(document.querySelectorAll("button, [role='button'], .run-btn, .beveled-btn-left, .beveled-btn-middle, .beveled-btn-center, .beveled-btn-right"));
+            const runBtns = allBtns.filter(b => {
+                if (b.offsetParent === null && b.offsetWidth === 0) return false;
+                const txt = (b.innerText || b.textContent || '').trim();
+                const rect = b.getBoundingClientRect();
+                return rect.top < 200 && rect.width > 20 && (txt.includes('Executar') || txt.includes('Run') || b.className.includes('run-btn') || b.className.includes('beveled-btn'));
+            });
+
+            // Se encontramos o badge, encontrar o botão correspondente
+            if (badgeEl) {
+                // Caso A: O próprio badge está dentro do botão
+                const parentBtn = badgeEl.closest("button, [role='button'], .run-btn");
+                if (parentBtn) {
+                    parentBtn.click();
+                    const r = parentBtn.getBoundingClientRect();
+                    return { success: true, method: 'closest_button', x: r.left + r.width / 2, y: r.top + r.height / 2 };
+                }
+
+                // Caso B: O botão é irmão ou filho do mesmo container pai (até 4 níveis)
+                let parent = badgeEl.parentElement;
+                for (let i = 0; i < 4 && parent; i++) {
+                    const btn = parent.querySelector("button, [role='button'], .run-btn");
+                    if (btn && (btn.innerText || btn.textContent || '').includes('Executar')) {
+                        btn.click();
+                        const r = btn.getBoundingClientRect();
+                        return { success: true, method: 'container_button', x: r.left + r.width / 2, y: r.top + r.height / 2 };
+                    }
+                    parent = parent.parentElement;
+                }
+
+                // Caso C: Proximidade geométrica (o botão imediatamente abaixo do badge)
+                const badgeRect = badgeEl.getBoundingClientRect();
+                let closest = null;
+                let minDist = Infinity;
+                for (const b of runBtns) {
+                    const bRect = b.getBoundingClientRect();
+                    const dx = (bRect.left + bRect.width / 2) - (badgeRect.left + badgeRect.width / 2);
+                    const dy = bRect.top - badgeRect.bottom;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < minDist) {
+                        minDist = dist;
+                        closest = b;
+                    }
+                }
+                if (closest && minDist < 200) {
+                    closest.click();
+                    const r = closest.getBoundingClientRect();
+                    return { success: true, method: 'geometrical_closest_to_badge', x: r.left + r.width / 2, y: r.top + r.height / 2, dist: minDist };
+                }
+            }
+
+            // 2. Se for 'lite_plus' (botão do MEIO) e tivermos botões na barra superior:
+            // Ordenar da esquerda para a direita
+            if (runBtns.length >= 3) {
+                runBtns.sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left);
+                // runBtns[0] = Standard (esquerda)
+                // runBtns[1] = Lite/Plus (MEIO)
+                // runBtns[2] = Ultra (direita)
+                const targetBtn = mode === 'lite_plus' ? runBtns[1] : (mode === 'ultra' ? runBtns[2] : runBtns[0]);
+                targetBtn.click();
+                const r = targetBtn.getBoundingClientRect();
+                return { success: true, method: 'segmented_order_' + mode, index: mode === 'lite_plus' ? 1 : 0, x: r.left + r.width / 2, y: r.top + r.height / 2 };
+            } else if (runBtns.length === 2 && mode === 'lite_plus') {
+                // Se só tem 2, o Lite/Plus é o segundo
+                runBtns.sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left);
+                runBtns[1].click();
+                const r = runBtns[1].getBoundingClientRect();
+                return { success: true, method: 'second_of_two', x: r.left + r.width / 2, y: r.top + r.height / 2 };
+            }
+
+            // 3. Classes específicas do RunningHub
+            if (mode === 'lite_plus') {
+                for (const sel of [
+                    '.beveled-btn-center',
+                    '.beveled-btn-middle',
+                    '.beveled-btn-mid',
+                    '[class*="btn-center"]',
+                    '[class*="btn-middle"]'
+                ]) {
+                    const el = document.querySelector(sel);
+                    if (el && el.offsetParent !== null) {
+                        el.click();
+                        const r = el.getBoundingClientRect();
+                        return { success: true, method: 'class_' + sel, x: r.left + r.width / 2, y: r.top + r.height / 2 };
+                    }
+                }
+            }
+
+            return { success: false };
+        }""", mode)
+
+        if res and res.get("success"):
+            logger.info(f"✅ Botão Executar [{mode.upper()}] acionado via DOM evaluate ({res.get('method')})!")
+            clicked = True
+            # Também enviar clique via Playwright mouse nas coordenadas para garantir disparo de todos os event listeners
+            if "x" in res and "y" in res and res["x"] > 0 and res["y"] > 0:
+                try:
+                    page.mouse.click(res["x"], res["y"])
+                    logger.info(f"🖱️ Clique físico de mouse enviado nas coordenadas ({res['x']:.0f}, {res['y']:.0f}).")
+                except Exception:
+                    pass
+    except Exception as e:
+        logger.debug(f"Aviso no clique evaluate do botão de execução: {e}")
+
+    # 2. Fallback via seletores Playwright específicos para Lite/Plus (botão do meio)
+    if not clicked:
+        if mode == "lite_plus":
+            plus_selectors = [
+                # Botão que contém ou sucede diretamente o texto Lite/Plus
+                "xpath=//*[contains(text(), 'Lite/Plus')]/ancestor::*[contains(@class, 'btn') or self::button]",
+                "xpath=//*[contains(text(), 'Lite/Plus')]/following::button[1]",
+                "xpath=//*[contains(text(), 'Lite/Plus')]/parent::*//button",
+                "xpath=//*[contains(text(), 'Lite/Plus')]/ancestor::*[position()<=3]//button",
+                "button.beveled-btn-center.run-btn",
+                "button.beveled-btn-middle.run-btn",
+                "button.beveled-btn-center",
+                "button.beveled-btn-middle",
+            ]
+            for sel in plus_selectors:
+                try:
+                    candidates = page.locator(sel)
+                    for c_idx in range(candidates.count()):
+                        item = candidates.nth(c_idx)
+                        if item.is_visible():
+                            item.click(timeout=3000)
+                            logger.info(f"✅ Botão Executar Lite/Plus (do meio) acionado via seletor: {sel}")
+                            clicked = True
+                            break
+                except Exception:
+                    pass
+                if clicked:
+                    break
+
+            # Se ainda não clicou, pegar os botões 'Executar' visíveis e clicar no SEGUNDO (índice 1 = meio)
+            if not clicked:
+                try:
+                    exec_btns = page.locator("button:has-text('Executar'), [role='button']:has-text('Executar')")
+                    cnt = exec_btns.count()
+                    if cnt >= 2:
+                        # O botão do meio (Lite/Plus) é o de índice 1!
+                        middle_btn = exec_btns.nth(1)
+                        if middle_btn.is_visible():
+                            middle_btn.click(timeout=3000)
+                            logger.info("✅ Botão Executar Lite/Plus (do meio - índice 1) acionado com sucesso!")
+                            clicked = True
+                    elif cnt == 1:
+                        exec_btns.first.click(timeout=3000)
+                        clicked = True
+                except Exception as e:
+                    logger.debug(f"Aviso no fallback de índice para Lite/Plus: {e}")
+        else:
+            std_selectors = [
+                "button.beveled-btn-left.run-btn",
+                "button:has-text('Executar')",
+            ]
+            for sel in std_selectors:
+                try:
+                    candidates = page.locator(sel)
+                    if candidates.count() > 0 and candidates.first.is_visible():
+                        candidates.first.click(timeout=3000)
+                        clicked = True
+                        break
+                except Exception:
+                    pass
+
+    # 3. Fallback de emergência (Control+Enter)
+    if not clicked:
+        logger.warning(f"⚠️ Não foi possível localizar o botão {mode.upper()} via seletores; disparando atalho Control+Enter...")
+        page.keyboard.press("Control+Enter")
+        clicked = True
+
+    return clicked
+
+
 def run_factory_bot(
     account: Union[int, str] = DEFAULT_ACCOUNT,
     output_node_id: Optional[int] = None,
@@ -1178,6 +1380,7 @@ def run_factory_bot(
     input_image_path: Optional[Path] = None,
     custom_prompt_text: Optional[str] = None,
     upload_wait_sec: Optional[int] = None,
+    execute_mode: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Executa a Fábrica RPA adaptando o comportamento entre Conta 1, Conta 2 e Pipeline de Vídeo 4K:
@@ -1198,6 +1401,7 @@ def run_factory_bot(
     target_dir = destination_dir if destination_dir is not None else cfg["destination_dir"]
     target_dir.mkdir(parents=True, exist_ok=True)
     save_mode = cfg["save_mode"]  # 'batch_all' ou 'realtime_single'
+    effective_execute_mode = execute_mode or cfg.get("execute_mode", "lite_plus" if account == 3 else "standard")
     workflow_url = cfg["workflow_url"]
     workflow_id = cfg["workflow_id"]
 
@@ -1507,33 +1711,11 @@ def run_factory_bot(
                     logger.info(f"Ignorando {len(initial_node_images)} imagens pré-existentes no Node #{out_node}.")
 
                 # 3. Disparar Execução
-                logger.info("Acionando 'Executar' (Lite/Plus)...")
+                logger.info(f"Acionando botão de Execução ({effective_execute_mode.upper()})...")
                 try:
-                    btn = None
-                    for sel in [
-                        "xpath=//*[contains(text(), 'Lite/Plus')]/ancestor::button",
-                        "xpath=//*[contains(text(), 'Lite/Plus')]/ancestor::*[contains(@class, 'btn')]",
-                        "xpath=//*[contains(text(), 'Lite/Plus')]",
-                        "button.beveled-btn-left.run-btn",
-                        "button:has-text('Executar'), [role='button']:has-text('Executar')"
-                    ]:
-                        try:
-                            candidates = page.locator(sel)
-                            for c_idx in range(candidates.count()):
-                                item = candidates.nth(c_idx)
-                                if item.is_visible():
-                                    btn = item
-                                    break
-                        except Exception:
-                            pass
-                        if btn:
-                            break
-
-                    if btn:
-                        btn.click(timeout=5000)
-                        logger.info("✅ Geração iniciada no RunningHub!")
-                    else:
-                        page.keyboard.press("Control+Enter")
+                    clicked = click_runninghub_execute(page, mode=effective_execute_mode)
+                    if clicked:
+                        logger.info(f"✅ Geração iniciada no RunningHub via botão {effective_execute_mode.upper()}!")
 
                     # Verificação imediata pós-clique de modal de validação do ComfyUI
                     time.sleep(1.5)

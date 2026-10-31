@@ -260,6 +260,7 @@ def run_phase_3(
     input_image: Path | None = None,
     prompt_text: str | None = None,
     upload_wait_sec: int = 30,
+    execute_mode: str | None = None,
 ) -> None:
     """Execute Phase 3: The Factory RPA Bot (Conta 1 - Raw Producer, Conta 2 - SeedVR 8K, ou Conta 3/Vídeo - 4K Video Generator)."""
     if is_video or account == 3:
@@ -277,6 +278,7 @@ def run_phase_3(
         input_image_path=input_image,
         custom_prompt_text=prompt_text,
         upload_wait_sec=upload_wait_sec,
+        execute_mode=execute_mode,
     )
     logger.info("Phase 3 finished.")
 
@@ -424,6 +426,7 @@ def main() -> None:
     p3_group.add_argument("--batches", type=int, default=1, help="Number of consecutive batches to process in Phase 3 (default: 1)")
     p3_group.add_argument("--all-batches", action="store_true", help="Process all remaining pending batches until the prompt queue is exhausted")
     p3_group.add_argument("--upload-wait-sec", type=int, default=int(os.getenv("RUNNINGHUB_IMAGE_UPLOAD_WAIT_SEC", "30")), help="Seconds to wait after uploading image to Load Image node before clicking execute (default: 30)")
+    p3_group.add_argument("--execute-mode", default=None, choices=["lite_plus", "standard", "ultra"], help="Execution tier button: lite_plus (middle - default for video), standard (left), or ultra (right)")
 
     # Options for Phase 4
     p4_group = parser.add_argument_group("Phase 4 Options")
@@ -548,6 +551,7 @@ def main() -> None:
             input_image=getattr(args, "input_image", None),
             prompt_text=getattr(args, "video_prompt", None),
             upload_wait_sec=getattr(args, "upload_wait_sec", 30),
+            execute_mode=getattr(args, "execute_mode", None),
         )
     elif args.phase == 4:
         if args.video or args.asset_type == "video":

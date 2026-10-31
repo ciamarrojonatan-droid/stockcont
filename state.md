@@ -1,9 +1,9 @@
 # StockCont Pipeline State
 > Sincronizado automaticamente por hooks e comandos do ecossistema.
 
-## Sprint Atual: Blindagem Multi-Camadas e Validação do Nó #164 Load Image (Anti-Custom Validation Failed)
-- **Status da Sprint**: [CONCLUÍDO] Implementada arquitetura de upload em 6 camadas em `src/factory/runninghub_bot.py` (`upload_image_to_node` e `upload_zip_to_node`): (1) `window.app.api.uploadImage()`, (2) `window.app.api.fetchApi('/upload/image')`, (3) `window.app.api.apiURL('/upload/image')`, (4) `window.app.handleFile()`, (5) Playwright FileChooser nativo com coordenadas do botão do nó, e (6) Injeção forçada em `w.options.values` do LiteGraph para neutralizar o erro `Node ID:164(image: Custom validation failed for node;)`. Adicionada verificação remota `/view?filename=...`, auto-dismiss de popups de validação e 4 novos testes unitários. Suíte expandida para 165 testes 100% verdes.
-- **Última Atualização**: 2026-10-31 02:10
+## Sprint Atual: Calibração Mandatória do Botão de Execução do Meio (Lite/Plus) para Vídeo 4K
+- **Status da Sprint**: [CONCLUÍDO] Corrigido o disparo do botão de execução no RunningHub. Implementada a função inteligente `click_runninghub_execute()` em `src/factory/runninghub_bot.py`: para a Conta 3 (Pipeline de Vídeo 4K), o bot agora localiza especificamente o badge `Lite/Plus`, calcula a proximidade geométrica e seleciona obrigatoriamente o botão do meio (`index 1`), neutralizando o seletor antigo que clicava no botão da esquerda (`Lite/Standard`). Adicionado suporte ao parâmetro `--execute-mode lite_plus` no CLI `main.py` e expandida a suíte com 3 novos testes automatizados (168 testes 100% verdes).
+- **Última Atualização**: 2026-10-31 03:16
 - **Modo Operacional**: Dual-Mode (Antigravity & Claude Code via SSOT `PROJECT_CONTEXT.md`)
 
 ---
@@ -12,8 +12,8 @@
 
 | Fase / Módulo | Status | Contagem / Métricas | Próxima Ação Recomendada |
 | :--- | :--- | :--- | :--- |
+| **Pipeline de Vídeo (Fase 3: RunningHub)** | 🟢 Calibrado (Lite/Plus) | **Workflow 2115926169974812674**: Img #164 ➔ Prompt #17 ➔ Vídeo 4K #157 \| Botão do Meio (Lite/Plus) Ativo \| Playwright Stealth Conta 3 | `python main.py --phase 3 --video` |
 | **Scoring Comercial & Filtros** | 🟢 Ativo & Operacional | **Motor Comercial (`src/analyzer/commercial_scorer.py`)**: 93 ativos analisados \| Score médio: 91.2 pts \| 70 Tier S, 23 Tier A \| 49 com Copy-Space (53%) | Explorar via Dashboard (`/`) |
-| **Pipeline de Vídeo (Fase 3: RunningHub)** | 🟢 Calibrado & Pronto | **Workflow 2115926169974812674**: Img #164 ➔ Prompt #17 ➔ Vídeo 4K #157 \| Playwright Stealth Conta 3 | `python main.py --phase 3 --video` |
 | **Dashboard Vídeo SPA (`/video`)** | 🟢 Ativo | **Dedicated Cinema Command Center**: URL dedicada `http://localhost:8501/video`, Player Cinema HTML5, Fila 4D, Ação Fase 3 Direta e Estúdio I2V | Acessar via browser |
 | **Dashboard Imagens SPA (`/`)** | 🟢 Ativo | **Design System iOS 27 Liquid Glass**: Filtros de Potencial de Vendas, Nichos B2B, Copy-Space, Ordenação Inteligente e KPIs de Portfólio | `python main.py --dashboard` |
 | **Estúdio I2V (8K ➔ Vídeo)** | 🟢 Operacional | **Motor I2V Multiplier**: Seleção direta de imagens 8K em `data/final/images/` para síntese de 4 prompts 4D (Gemini Vision) | Integrado na aba Estúdio I2V |
@@ -31,7 +31,7 @@
 | **Conta 2: SeedVR 8K Upscaler** | 🟢 Calibrada & Pronta | **Workflow SeedVR 8K** \| Ingestão ZIP Nó #5 ➔ Preview Nó #55 (1 a 1 Real-Time) ➔ Auto-cancel na última imagem | Integrado no Daemon |
 | **Fase 4: O Catalogador** | 🟢 Concluído | **190 assets catalogados** em `adobe_stock_upload.csv` \| Injeção obrigatória de 300 DPI + IPTC/EXIF | Integrado no Daemon |
 | **Fase 5: O Distribuidor com Cotas** | 🟢 Protegido | **Despacho seletivo por plataforma**: Pausa agências com cotas esgotadas e prossegue nas demais \| Anti-Ban Alamy ativo | Integrado no Daemon |
-| **Suíte de Testes (Pytest)** | 🟢 100% Verde | **165 testes passando (100% verde)** | Regressão zero (19 suítes de teste) | `pytest tests/` |
+| **Suíte de Testes (Pytest)** | 🟢 100% Verde | **168 testes passando (100% verde)** | Regressão zero (19 suítes de teste) | `pytest tests/` |
 
 ---
 
@@ -41,5 +41,6 @@
 - **Load Image**: Nó `#164` (Ingestão de imagem de referência ou First Frame)
 - **Prompt**: Nó `#17` (Injeção de prompt temporal cinematográfico 500-800 palavras)
 - **Save video/video combine**: Nó `#157` (Saída final do vídeo renderizado e upscalado em 4K)
+- **Botão de Execução**: `Lite/Plus` (Botão do meio - cor amarela/laranja)
 - **Destino dos Vídeos 4K**: `data/final/videos/`
 - **Playwright Stealth Profile 3**: RTX 4090 Workstation, 4K Display, sessão isolada `playwright_session_video/`
