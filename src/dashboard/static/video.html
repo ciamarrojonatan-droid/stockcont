@@ -290,6 +290,10 @@
         <button class="filter-btn" onclick="filterVideos('uncataloged')">Não Catalogados</button>
       </div>
       <div class="queue-actions-group">
+        <select id="video-exec-mode" class="filter-btn" style="background: rgba(255,255,255,0.08); color: #f1f5f9; border: 1px solid rgba(255,255,255,0.18); border-radius: 8px; padding: 5px 10px; font-size: 12px; cursor: pointer;" title="Escolha a máquina no RunningHub (Ultra 6000D evita estouro de memória OOM em vídeos 4K)">
+          <option value="lite_plus">Lite/Plus (24GB VRAM)</option>
+          <option value="ultra">Ultra 6000D (48GB VRAM - Anti-OOM)</option>
+        </select>
         <button class="btn btn-sm btn-warning" onclick="triggerRunVideoPhase(3)" title="Gerar e fazer upscale 4K no RunningHub (Workflow 2115926169974812674: Img #164, Prompt #17, Vídeo #157)">
           <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8">
             <polygon points="5 3 13 8 5 13 5 3" />

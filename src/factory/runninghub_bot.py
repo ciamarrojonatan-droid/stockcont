@@ -324,6 +324,54 @@ def cancel_runninghub_task(page: Page, max_wait_sec: int = 45) -> bool:
 
 
 
+def optimize_reference_image_for_video(
+    image_path: Path,
+    aspect_ratio: str = "16:9",
+    max_dimension: int = 1920,
+) -> Path:
+    """
+    Otimiza a imagem de entrada (de 8K para Full HD/2K) antes do upload para o ComfyUI/RunningHub.
+    Reduz o consumo de VRAM e evita estouro de memória (OOM_KILLED) durante a geração de vídeo e upscale 4K.
+    """
+    try:
+        from PIL import Image
+
+        with Image.open(image_path) as img:
+            w, h = img.size
+            if w <= max_dimension and h <= max_dimension:
+                return image_path
+
+            logger.info(f"📐 Otimizando resolução da imagem de referência de {w}x{h} (8K) para vídeo (prevenção anti-OOM)...")
+
+            if "9:16" in aspect_ratio or "vertical" in str(aspect_ratio).lower():
+                target_w, target_h = 1080, 1920
+            else:
+                target_w, target_h = 1920, 1080
+
+            scale = min(target_w / w, target_h / h)
+            new_w = max(1, int(w * scale))
+            new_h = max(1, int(h * scale))
+
+            new_w = (new_w // 8) * 8
+            new_h = (new_h // 8) * 8
+
+            resized = img.resize((new_w, new_h), Image.Resampling.LANCZOS)
+
+            staging_dir = BASE_DIR / "data" / "staging" / "video_inputs"
+            staging_dir.mkdir(parents=True, exist_ok=True)
+            out_path = staging_dir / f"opt_{new_w}x{new_h}_{image_path.name}"
+            resized.convert("RGB").save(out_path, "JPEG", quality=95, optimize=True)
+            pct = (1.0 - (new_w * new_h) / (w * h)) * 100.0
+            logger.info(
+                f"✅ Imagem otimizada com sucesso: {w}x{h} ➔ {new_w}x{new_h} "
+                f"(redução de {pct:.1f}% em pixels): {out_path.name}"
+            )
+            return out_path
+    except Exception as e:
+        logger.warning(f"Aviso ao otimizar resolução da imagem para vídeo ({e}). Mantendo original: {image_path.name}")
+        return image_path
+
+
 def upload_image_to_node(page: Page, frame: Optional[Frame], node_id: int, image_path: Path) -> bool:
     """
     Injeta uma imagem de referência no Nó ComfyUI especificado (ex: Nó #164 'Load Image').
@@ -1177,7 +1225,9 @@ def click_runninghub_execute(page: Page, mode: str = "lite_plus") -> bool:
     try:
         res = page.evaluate("""(targetMode) => {
             const mode = (targetMode || 'lite_plus').toLowerCase();
-            const targetBadgeText = mode === 'lite_plus' ? 'Lite/Plus' : (mode === 'ultra' ? 'Ultra' : 'Standard');
+            const isUltra = mode.includes('ultra');
+            const isPlus = mode === 'lite_plus' || mode.includes('plus');
+            const targetBadgeText = isPlus ? 'Lite/Plus' : (isUltra ? 'Ultra' : 'Standard');
 
             // 1. Localizar elemento badge com o texto do modo
             const allElements = Array.from(document.querySelectorAll("*"));
@@ -1244,11 +1294,11 @@ def click_runninghub_execute(page: Page, mode: str = "lite_plus") -> bool:
                 runBtns.sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left);
                 // runBtns[0] = Standard (esquerda)
                 // runBtns[1] = Lite/Plus (MEIO)
-                // runBtns[2] = Ultra (direita)
-                const targetBtn = mode === 'lite_plus' ? runBtns[1] : (mode === 'ultra' ? runBtns[2] : runBtns[0]);
+                // runBtns[2] = Ultra 6000D (DIREITA)
+                const targetBtn = isPlus ? runBtns[1] : (isUltra ? runBtns[2] : runBtns[0]);
                 targetBtn.click();
                 const r = targetBtn.getBoundingClientRect();
-                return { success: true, method: 'segmented_order_' + mode, index: mode === 'lite_plus' ? 1 : 0, x: r.left + r.width / 2, y: r.top + r.height / 2 };
+                return { success: true, method: 'segmented_order_' + mode, index: isPlus ? 1 : (isUltra ? 2 : 0), x: r.left + r.width / 2, y: r.top + r.height / 2 };
             } else if (runBtns.length === 2 && mode === 'lite_plus') {
                 // Se só tem 2, o Lite/Plus é o segundo
                 runBtns.sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left);
@@ -1337,6 +1387,42 @@ def click_runninghub_execute(page: Page, mode: str = "lite_plus") -> bool:
                         clicked = True
                 except Exception as e:
                     logger.debug(f"Aviso no fallback de índice para Lite/Plus: {e}")
+        elif "ultra" in mode:
+            ultra_selectors = [
+                "xpath=//*[contains(text(), 'Ultra')]/ancestor::*[contains(@class, 'btn') or self::button]",
+                "xpath=//*[contains(text(), 'Ultra')]/following::button[1]",
+                "xpath=//*[contains(text(), 'Ultra')]/parent::*//button",
+                "xpath=//*[contains(text(), '6000D')]/ancestor::*[contains(@class, 'btn') or self::button]",
+                "button.beveled-btn-right.run-btn",
+                "button.beveled-btn-right",
+            ]
+            for sel in ultra_selectors:
+                try:
+                    candidates = page.locator(sel)
+                    for c_idx in range(candidates.count()):
+                        item = candidates.nth(c_idx)
+                        if item.is_visible():
+                            item.click(timeout=3000)
+                            logger.info(f"✅ Botão Executar Ultra 6000D acionado via seletor: {sel}")
+                            clicked = True
+                            break
+                except Exception:
+                    pass
+                if clicked:
+                    break
+
+            if not clicked:
+                try:
+                    exec_btns = page.locator("button:has-text('Executar'), [role='button']:has-text('Executar')")
+                    cnt = exec_btns.count()
+                    if cnt >= 3:
+                        ultra_btn = exec_btns.nth(2)
+                        if ultra_btn.is_visible():
+                            ultra_btn.click(timeout=3000)
+                            logger.info("✅ Botão Executar Ultra 6000D (da direita - índice 2) acionado com sucesso!")
+                            clicked = True
+                except Exception:
+                    pass
         else:
             std_selectors = [
                 "button.beveled-btn-left.run-btn",
@@ -1678,8 +1764,10 @@ def run_factory_bot(
                     time.sleep(2.0)
                 elif account == 3:
                     if ref_img and ref_img.exists():
-                        logger.info(f"📤 [Vídeo] Injetando imagem de referência ({ref_img.name}) no Nó #{input_node} (Load Image)...")
-                        upload_image_to_node(page, comfy_frame, input_node, ref_img)
+                        target_ar = v_item.aspect_ratio if v_item and getattr(v_item, "aspect_ratio", None) else "16:9"
+                        upload_ref = optimize_reference_image_for_video(ref_img, aspect_ratio=target_ar)
+                        logger.info(f"📤 [Vídeo] Injetando imagem de referência ({upload_ref.name}) no Nó #{input_node} (Load Image)...")
+                        upload_image_to_node(page, comfy_frame, input_node, upload_ref)
                     if p_text_video:
                         p_node = cfg.get("prompt_node", 17)
                         logger.info(f"📝 [Vídeo] Injetando prompt temporal de vídeo no Nó #{p_node}...")

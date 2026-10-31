@@ -1,15 +1,13 @@
 # StockCont Pipeline State
 > Sincronizado automaticamente por hooks e comandos do ecossistema.
 
-## Sprint Atual: Isolamento do Nó #157 contra Vídeos em Cache & Espera Total pelo Render 4K (~30 min)
-- **Status da Sprint**: [CONCLUÍDO] Diagnosticado e corrigido o comportamento de captura prematura e cancelamento indevido na Fábrica de Vídeo (Conta 3):
-  1. **Neutralização de Vídeo Pré-existente**: O bot agora escaneia e marca previamente qualquer vídeo remanescente no Nó #157 e no DOM com `data-pre-existing="true"` e limpa os ponteiros internos antes de clicar em `Executar`.
-  2. **Bloqueio Ativo por Status 'Gerando'**: Implementado sensor de estado que detecta o timer (`Gerando MM:SS`) e a fila na `Lista de tarefas` do RunningHub. Enquanto a GPU estiver processando, o bot mantém espera contínua e bloqueia qualquer tentativa de captura de vídeo antigo.
-  3. **Janela Estendida de GPU (60 min)**: Aumentado o timeout de espera de 20 min (`1200s`) para 60 min (`3600s`), acomodando com folga o tempo de renderização e upscale 4K (~30 min).
-  4. **Proteção Anti-Cancelamento na Conta 3**: Proibido estritamente o disparo de `cancel_runninghub_task()` para a Conta 3, garantindo que o job na nuvem não seja abortado após o download.
-  5. **Rollback de Prompt & Ledger Limpo**: Removido o arquivo prematuro de 941 KB, restaurado o Prompt #2 para `pending` em `video_prompts.json` e limpo o hash em `video_generation_history.json`.
-  6. **Cobertura de Testes**: 169 testes automatizados passando com 100% de sucesso.
-- **Última Atualização**: 2026-10-31 03:39
+## Sprint Atual: Mitigação Anti-OOM no Vídeo 4K (Otimização 1080p LANCZOS & Suporte Ultra 6000D)
+- **Status da Sprint**: [CONCLUÍDO] Solução de arquitetura implementada para resolver o estouro de memória (`Task crashed (OOM_KILLED)`) aos 29 minutos e 30 segundos no RunningHub:
+  1. **Redução de 96.9% da Carga de Memória (Downscaler Anti-OOM)**: Criada a função `optimize_reference_image_for_video()` em `src/factory/runninghub_bot.py`. Imagens de 8K (8192x6144, 50 Megapixels) são convertidas com interpolação LANCZOS para resolução Full HD (1440x1080 para 16:9 ou 1080x1920 para 9:16, múltiplos de 8) em `data/staging/video_inputs/`, reduzindo drasticamente o consumo de VRAM e RAM residente no Nó #164 (`Load Image`) durante o render e upscale 4K.
+  2. **Suporte Nativo ao Hardware Ultra 6000D**: Implementado targeting para o terceiro botão de execução (`Ultra 6000D` em laranja, 48GB VRAM) via `--execute-mode ultra`, ideal para workflows complexos de Minimax H3 com saída direta 4K.
+  3. **Controle Integrado no Dashboard SPA**: Adicionado dropdown seletor de hardware (`Lite/Plus` vs `Ultra 6000D`) na interface web (`/video`) e na API FastAPI `/api/video/run-phase/3`.
+  4. **Cobertura de Testes**: 172 testes automatizados passando com 100% de sucesso.
+- **Última Atualização**: 2026-10-31 04:40
 - **Modo Operacional**: Dual-Mode (Antigravity & Claude Code via SSOT `PROJECT_CONTEXT.md`)
 
 ---
@@ -37,7 +35,7 @@
 | **Conta 2: SeedVR 8K Upscaler** | 🟢 Calibrada & Pronta | **Workflow SeedVR 8K** \| Ingestão ZIP Nó #5 ➔ Preview Nó #55 (1 a 1 Real-Time) ➔ Auto-cancel na última imagem | Integrado no Daemon |
 | **Fase 4: O Catalogador** | 🟢 Concluído | **190 assets catalogados** em `adobe_stock_upload.csv` \| Injeção obrigatória de 300 DPI + IPTC/EXIF | Integrado no Daemon |
 | **Fase 5: O Distribuidor com Cotas** | 🟢 Protegido | **Despacho seletivo por plataforma**: Pausa agências com cotas esgotadas e prossegue nas demais \| Anti-Ban Alamy ativo | Integrado no Daemon |
-| **Suíte de Testes (Pytest)** | 🟢 100% Verde | **169 testes passando (100% verde)** | Regressão zero (19 suítes de teste) | `pytest tests/` |
+| **Suíte de Testes (Pytest)** | 🟢 100% Verde | **172 testes passando (100% verde)** | Regressão zero (19 suítes de teste) | `pytest tests/` |
 
 ---
 

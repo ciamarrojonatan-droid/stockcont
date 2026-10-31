@@ -806,7 +806,17 @@ async function loadVideoTimeline() {
 async function triggerRunVideoPhase(phase, platform) {
   try {
     let url = `/api/video/run-phase/${phase}`;
-    if (platform) url += `?platform=${platform}`;
+    const params = [];
+    if (platform) params.push(`platform=${encodeURIComponent(platform)}`);
+    if (phase === 3) {
+      const modeEl = document.getElementById('video-exec-mode');
+      if (modeEl && modeEl.value) {
+        params.push(`execute_mode=${encodeURIComponent(modeEl.value)}`);
+      }
+    }
+    if (params.length > 0) {
+      url += '?' + params.join('&');
+    }
 
     const res = await fetch(url, { method: 'POST' });
     const data = await res.json();

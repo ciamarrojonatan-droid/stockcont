@@ -345,3 +345,69 @@ class TestNodeUploadRobustness:
         assert len(vids) == 1
         assert "new_render_4k.mp4" in vids[0]
         mock_frame.evaluate.assert_called_once()
+
+
+    def test_optimize_reference_image_for_video_resizes_8k(self, tmp_path):
+        """optimize_reference_image_for_video must downscale 8K images to <= 1920x1080 multiples of 8."""
+        from PIL import Image
+        from src.factory.runninghub_bot import optimize_reference_image_for_video
+
+        # Create synthetic 8K image
+        img_8k = tmp_path / "huge_8k.jpg"
+        im = Image.new("RGB", (8192, 6144), color=(100, 150, 200))
+        im.save(img_8k, "JPEG")
+
+        optimized = optimize_reference_image_for_video(img_8k, aspect_ratio="16:9")
+        assert optimized.exists()
+        assert optimized != img_8k
+
+        with Image.open(optimized) as opt_im:
+            w, h = opt_im.size
+            assert w <= 1920
+            assert h <= 1080
+            assert w % 8 == 0
+            assert h % 8 == 0
+
+    def test_optimize_reference_image_for_video_keeps_1080p(self, tmp_path):
+        """optimize_reference_image_for_video must return original if already <= 1920."""
+        from PIL import Image
+        from src.factory.runninghub_bot import optimize_reference_image_for_video
+
+        img_hd = tmp_path / "normal_1080p.jpg"
+        im = Image.new("RGB", (1920, 1080), color=(50, 50, 50))
+        im.save(img_hd, "JPEG")
+
+        res = optimize_reference_image_for_video(img_hd, aspect_ratio="16:9")
+        assert res == img_hd
+
+    def test_click_runninghub_execute_ultra_mode(self):
+        """Verify click_runninghub_execute with mode='ultra' targets the third button (index 2)."""
+        from unittest.mock import MagicMock
+        from src.factory.runninghub_bot import click_runninghub_execute
+
+        mock_page = MagicMock()
+        mock_page.evaluate.return_value = {"success": False}
+
+        mock_locator = MagicMock()
+        mock_locator.count.return_value = 0
+
+        mock_exec_locator = MagicMock()
+        mock_exec_locator.count.return_value = 3
+        mock_btn_0 = MagicMock()
+        mock_btn_1 = MagicMock()
+        mock_btn_2 = MagicMock()
+        mock_btn_2.is_visible.return_value = True
+
+        def locator_side_effect(sel):
+            if "has-text('Executar')" in sel:
+                return mock_exec_locator
+            return mock_locator
+
+        mock_page.locator.side_effect = locator_side_effect
+        mock_exec_locator.nth.side_effect = lambda idx: [mock_btn_0, mock_btn_1, mock_btn_2][idx]
+
+        res = click_runninghub_execute(mock_page, mode="ultra")
+        assert res is True
+        mock_btn_2.click.assert_called_once()
+        mock_btn_0.click.assert_not_called()
+        mock_btn_1.click.assert_not_called()

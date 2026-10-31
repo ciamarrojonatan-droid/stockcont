@@ -946,6 +946,7 @@ async def run_video_phase_endpoint(
     max_items: Optional[int] = None,
     prores: Optional[bool] = False,
     account: Optional[int] = 3,
+    execute_mode: Optional[str] = None,
 ):
     """Trigger video pipeline phases (1, 2, 3, 4, 5)."""
     if phase not in (1, 2, 3, 4, 5):
@@ -953,6 +954,8 @@ async def run_video_phase_endpoint(
     extra_args = []
     if phase == 3:
         extra_args.extend(["--account", str(account or 3)])
+        if execute_mode:
+            extra_args.extend(["--execute-mode", execute_mode])
     if query:
         extra_args.extend(["--query", query])
     if platform:
