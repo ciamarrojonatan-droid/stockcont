@@ -1,9 +1,15 @@
 # StockCont Pipeline State
 > Sincronizado automaticamente por hooks e comandos do ecossistema.
 
-## Sprint Atual: Calibração Mandatória do Botão de Execução do Meio (Lite/Plus) para Vídeo 4K
-- **Status da Sprint**: [CONCLUÍDO] Corrigido o disparo do botão de execução no RunningHub. Implementada a função inteligente `click_runninghub_execute()` em `src/factory/runninghub_bot.py`: para a Conta 3 (Pipeline de Vídeo 4K), o bot agora localiza especificamente o badge `Lite/Plus`, calcula a proximidade geométrica e seleciona obrigatoriamente o botão do meio (`index 1`), neutralizando o seletor antigo que clicava no botão da esquerda (`Lite/Standard`). Adicionado suporte ao parâmetro `--execute-mode lite_plus` no CLI `main.py` e expandida a suíte com 3 novos testes automatizados (168 testes 100% verdes).
-- **Última Atualização**: 2026-10-31 03:16
+## Sprint Atual: Isolamento do Nó #157 contra Vídeos em Cache & Espera Total pelo Render 4K (~30 min)
+- **Status da Sprint**: [CONCLUÍDO] Diagnosticado e corrigido o comportamento de captura prematura e cancelamento indevido na Fábrica de Vídeo (Conta 3):
+  1. **Neutralização de Vídeo Pré-existente**: O bot agora escaneia e marca previamente qualquer vídeo remanescente no Nó #157 e no DOM com `data-pre-existing="true"` e limpa os ponteiros internos antes de clicar em `Executar`.
+  2. **Bloqueio Ativo por Status 'Gerando'**: Implementado sensor de estado que detecta o timer (`Gerando MM:SS`) e a fila na `Lista de tarefas` do RunningHub. Enquanto a GPU estiver processando, o bot mantém espera contínua e bloqueia qualquer tentativa de captura de vídeo antigo.
+  3. **Janela Estendida de GPU (60 min)**: Aumentado o timeout de espera de 20 min (`1200s`) para 60 min (`3600s`), acomodando com folga o tempo de renderização e upscale 4K (~30 min).
+  4. **Proteção Anti-Cancelamento na Conta 3**: Proibido estritamente o disparo de `cancel_runninghub_task()` para a Conta 3, garantindo que o job na nuvem não seja abortado após o download.
+  5. **Rollback de Prompt & Ledger Limpo**: Removido o arquivo prematuro de 941 KB, restaurado o Prompt #2 para `pending` em `video_prompts.json` e limpo o hash em `video_generation_history.json`.
+  6. **Cobertura de Testes**: 169 testes automatizados passando com 100% de sucesso.
+- **Última Atualização**: 2026-10-31 03:39
 - **Modo Operacional**: Dual-Mode (Antigravity & Claude Code via SSOT `PROJECT_CONTEXT.md`)
 
 ---
@@ -31,7 +37,7 @@
 | **Conta 2: SeedVR 8K Upscaler** | 🟢 Calibrada & Pronta | **Workflow SeedVR 8K** \| Ingestão ZIP Nó #5 ➔ Preview Nó #55 (1 a 1 Real-Time) ➔ Auto-cancel na última imagem | Integrado no Daemon |
 | **Fase 4: O Catalogador** | 🟢 Concluído | **190 assets catalogados** em `adobe_stock_upload.csv` \| Injeção obrigatória de 300 DPI + IPTC/EXIF | Integrado no Daemon |
 | **Fase 5: O Distribuidor com Cotas** | 🟢 Protegido | **Despacho seletivo por plataforma**: Pausa agências com cotas esgotadas e prossegue nas demais \| Anti-Ban Alamy ativo | Integrado no Daemon |
-| **Suíte de Testes (Pytest)** | 🟢 100% Verde | **168 testes passando (100% verde)** | Regressão zero (19 suítes de teste) | `pytest tests/` |
+| **Suíte de Testes (Pytest)** | 🟢 100% Verde | **169 testes passando (100% verde)** | Regressão zero (19 suítes de teste) | `pytest tests/` |
 
 ---
 

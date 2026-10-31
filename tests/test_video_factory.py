@@ -332,3 +332,16 @@ class TestNodeUploadRobustness:
         mock_btn_mid.click.assert_called_once()
         mock_btn_left.click.assert_not_called()
         mock_btn_right.click.assert_not_called()
+
+
+    def test_get_node_videos_ignores_pre_existing_videos(self):
+        """get_node_videos must extract strictly from node 157 and ignore data-pre-existing videos."""
+        mock_page = MagicMock()
+        mock_frame = MagicMock()
+        mock_frame.evaluate.return_value = ["/view?filename=new_render_4k.mp4&type=output"]
+        mock_page.frames = [mock_frame]
+
+        vids = get_node_videos(mock_page, 157)
+        assert len(vids) == 1
+        assert "new_render_4k.mp4" in vids[0]
+        mock_frame.evaluate.assert_called_once()

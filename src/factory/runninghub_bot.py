@@ -678,7 +678,7 @@ def inject_video_prompt_to_node(frame: Frame, node_id: int, prompt_text: str) ->
 
 
 def get_node_videos(page: Page, node_id: int) -> List[str]:
-    """Extrai URLs ou referências de vídeos gerados no nó de saída (#157) do ComfyUI/LiteGraph."""
+    """Extrai URLs ou referências de vídeos gerados estritamente no nó de saída (#157) do ComfyUI/LiteGraph, ignorando elementos marcados como pré-existentes."""
     node_videos = []
     for frame in page.frames:
         try:
@@ -688,7 +688,8 @@ def get_node_videos(page: Page, node_id: int) -> List[str]:
                     let node = window.app.graph.getNodeById(id);
                     if (node) {
                         if (node.video && (node.video.src || node.video.currentSrc)) {
-                            res.push(node.video.src || node.video.currentSrc);
+                            const isOld = node.video.getAttribute && node.video.getAttribute('data-pre-existing') === 'true';
+                            if (!isOld) res.push(node.video.src || node.video.currentSrc);
                         }
                         if (node.imgs && node.imgs.length > 0) {
                             res.push(...node.imgs.map(i => i.src || i.currentSrc).filter(Boolean));
@@ -697,7 +698,10 @@ def get_node_videos(page: Page, node_id: int) -> List[str]:
                             for (let w of node.widgets) {
                                 if (w.element && (w.element.tagName === 'VIDEO' || (w.element.querySelector && w.element.querySelector('video')))) {
                                     let v = w.element.tagName === 'VIDEO' ? w.element : w.element.querySelector('video');
-                                    if (v && (v.src || v.currentSrc)) res.push(v.src || v.currentSrc);
+                                    const isOld = v && v.getAttribute && v.getAttribute('data-pre-existing') === 'true';
+                                    if (v && !isOld && (v.src || v.currentSrc)) {
+                                        res.push(v.src || v.currentSrc);
+                                    }
                                 }
                                 if (w.value && typeof w.value === 'string' && (w.value.endsWith('.mp4') || w.value.endsWith('.webm') || w.value.endsWith('.mov'))) {
                                     res.push('/view?filename=' + encodeURIComponent(w.value) + '&type=output');
@@ -706,17 +710,6 @@ def get_node_videos(page: Page, node_id: int) -> List[str]:
                         }
                     }
                 }
-                try {
-                    const vEls = Array.from(document.querySelectorAll('video'));
-                    for (let v of vEls) {
-                        if (v.src) res.push(v.src);
-                        if (v.currentSrc) res.push(v.currentSrc);
-                        const srcs = Array.from(v.querySelectorAll('source'));
-                        for (let s of srcs) {
-                            if (s.src) res.push(s.src);
-                        }
-                    }
-                } catch(e) {}
                 return Array.from(new Set(res.filter(Boolean)));
             }""", node_id)
             if vids:
@@ -1704,9 +1697,57 @@ def run_factory_bot(
 
                 # Captura pré-existente no nó de saída
                 initial_node_images = get_node_images(page, out_node) if account != 3 else []
-                initial_node_videos = get_node_videos(page, out_node) if account == 3 else []
+                initial_node_videos: List[str] = []
                 if account == 3:
-                    logger.info(f"Ignorando {len(initial_node_videos)} vídeos pré-existentes no Node #{out_node}.")
+                    # Registrar todos os vídeos presentes no nó e no DOM como blacklist permanente antes do disparo
+                    initial_node_videos = get_node_videos(page, out_node)
+                    for f in page.frames:
+                        try:
+                            dom_vids = f.evaluate("""() => {
+                                const vEls = Array.from(document.querySelectorAll('video'));
+                                return vEls.map(v => v.src || v.currentSrc).filter(Boolean);
+                            }""")
+                            if dom_vids:
+                                initial_node_videos.extend(dom_vids)
+                        except Exception:
+                            pass
+                    initial_node_videos = list(dict.fromkeys(initial_node_videos))
+                    logger.info(f"🚫 [Vídeo] Registrados {len(initial_node_videos)} vídeos pré-existentes na blacklist antes da execução no Nó #{out_node}.")
+
+                    # Limpar explicitamente o Nó #157 no ComfyUI e marcar elementos antigos com data-pre-existing='true'
+                    try:
+                        comfy_frame.evaluate("""(id) => {
+                            if (typeof window.app !== 'undefined' && window.app.graph) {
+                                const node = window.app.graph.getNodeById(id);
+                                if (node) {
+                                    if (node.video) {
+                                        if (node.video.setAttribute) node.video.setAttribute('data-pre-existing', 'true');
+                                        node.video.src = '';
+                                    }
+                                    node.video = null;
+                                    node.imgs = [];
+                                    if (node.widgets) {
+                                        for (const w of node.widgets) {
+                                            if (w.element && (w.element.tagName === 'VIDEO' || (w.element.querySelector && w.element.querySelector('video')))) {
+                                                const v = w.element.tagName === 'VIDEO' ? w.element : w.element.querySelector('video');
+                                                if (v) {
+                                                    if (v.setAttribute) v.setAttribute('data-pre-existing', 'true');
+                                                    v.src = '';
+                                                }
+                                            }
+                                            if (w.value && typeof w.value === 'string' && (w.value.endsWith('.mp4') || w.value.endsWith('.webm') || w.value.endsWith('.mov'))) {
+                                                w.value = '';
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            const allVids = Array.from(document.querySelectorAll('video'));
+                            allVids.forEach(v => { if (v.setAttribute) v.setAttribute('data-pre-existing', 'true'); });
+                        }""", out_node)
+                        logger.info(f"🧹 [Vídeo] Nó #{out_node} limpo e isolado no ComfyUI. Nenhum vídeo antigo será aceito.")
+                    except Exception as e:
+                        logger.debug(f"Aviso ao limpar Nó #{out_node}: {e}")
                 else:
                     logger.info(f"Ignorando {len(initial_node_images)} imagens pré-existentes no Node #{out_node}.")
 
@@ -1807,45 +1848,95 @@ def run_factory_bot(
 
                 # ── ESTRATÉGIA C: PIPELINE DE VÍDEO 4K (Save video/video combine) ──
                 elif save_mode == "video_output" or account == 3:
-                    logger.info(f"⏳ [Pipeline de Vídeo 4K] Monitorando renderização e upscale no Nó #{out_node}...")
+                    max_wait_video = int(os.getenv("RUNNINGHUB_VIDEO_MAX_WAIT_SEC", "3600"))  # 60 minutos (para acomodar renders de ~30 min)
+                    logger.info(f"⏳ [Pipeline de Vídeo 4K] Monitorando renderização e upscale no Nó #{out_node} (aguardando conclusão da geração no RunningHub — ~30 min estimados)...")
                     video_saved = False
                     video_wait_start = time.time()
                     last_heartbeat = video_wait_start
+                    generation_started = False
 
                     while True:
                         page.keyboard.press("Escape")
-                        current_node_videos = get_node_videos(page, out_node)
-                        new_vids = [v for v in current_node_videos if v not in initial_node_videos]
 
-                        if new_vids:
-                            target_vid = new_vids[0]
-                            logger.info(f"🎥 Novo vídeo 4K detectado no Nó #{out_node}!")
-                            saved_name = save_video_from_src(page, target_vid, destination_dir=target_dir, prefix=cfg["prefix"])
-                            if saved_name:
-                                images_saved += 1
-                                batch_saved_files.append(saved_name)
-                                video_saved = True
-                                elapsed = time.time() - video_wait_start
-                                logger.info(f"✅ Vídeo 4K gravado com sucesso: {saved_name} ({elapsed:.1f}s decorridos) em {target_dir.name}!")
+                        # 1. Verificar se a tarefa está ativamente 'Gerando' no RunningHub
+                        task_state = {"isGenerating": False, "timer": None, "hasFailed": False}
+                        try:
+                            task_state = page.evaluate(r"""() => {
+                                const bodyText = document.body ? document.body.innerText : '';
+                                const isGenerating = /Gerando\s+\d{1,2}:\d{2}/i.test(bodyText) ||
+                                                     /Gerando\s*\.{0,3}/i.test(bodyText) ||
+                                                     /Fila/i.test(bodyText);
+                                const timerMatch = bodyText.match(/Gerando\s+(\d{1,2}:\d{2})/);
+                                const timer = timerMatch ? timerMatch[1] : null;
+                                const hasFailed = bodyText.includes('TarefaFalha') && !isGenerating;
+                                return { isGenerating, timer, hasFailed };
+                            }""")
+                        except Exception:
+                            pass
 
-                                if v_item:
-                                    queue_mgr.mark_video_prompts_generated([v_item], saved_videos=[saved_name])
-                                break
+                        is_generating = task_state.get("isGenerating", False)
+                        timer_str = task_state.get("timer")
+                        has_failed = task_state.get("hasFailed", False)
+
+                        if is_generating:
+                            generation_started = True
 
                         now = time.time()
+                        elapsed_sec = int(now - video_wait_start)
+
+                        # Heartbeat de log a cada 20 segundos
                         if now - last_heartbeat >= 20:
-                            elapsed_sec = int(now - video_wait_start)
-                            logger.info(f"⏳ [Vídeo 4K] Renderização e upscale em andamento ({elapsed_sec}s decorridos)...")
+                            elapsed_min = elapsed_sec // 60
+                            elapsed_rem = elapsed_sec % 60
+                            if is_generating:
+                                status_info = f"Gerando {timer_str or f'{elapsed_min}m {elapsed_rem}s'}"
+                                logger.info(f"⏳ [Vídeo 4K] Renderização e upscale em andamento no RunningHub ({status_info} | estimativa ~30 min)...")
+                            elif generation_started:
+                                logger.info(f"⏳ [Vídeo 4K] Tarefa finalizada no RunningHub! Coletando novo vídeo 4K no Nó #{out_node} ({elapsed_min}m {elapsed_rem}s decorridos)...")
+                            else:
+                                logger.info(f"⏳ [Vídeo 4K] Aguardando início do processamento no servidor ({elapsed_sec}s decorridos)...")
                             last_heartbeat = now
 
-                        if now - video_wait_start > 1200:
-                            logger.warning("⚠️ Limite máximo de espera por renderização de vídeo atingido (20 min).")
+                        # Se reportou falha na tarefa
+                        if has_failed and generation_started:
+                            logger.error("❌ Tarefa reportou 'TarefaFalha' no painel do RunningHub!")
+                            break
+
+                        # 2. Só verificar e extrair o vídeo NOVO quando NÃO estiver mais 'Gerando'
+                        # E com segurança adicional de que não seja um resíduo pré-existente
+                        if (not is_generating and generation_started) or (elapsed_sec >= 180 and not is_generating):
+                            current_node_videos = get_node_videos(page, out_node)
+                            new_vids = [v for v in current_node_videos if v not in initial_node_videos]
+
+                            if new_vids:
+                                target_vid = new_vids[0]
+                                logger.info(f"🎥 Novo vídeo 4K detectado no Nó #{out_node}! Extraindo arquivo final...")
+                                saved_name = save_video_from_src(page, target_vid, destination_dir=target_dir, prefix=cfg["prefix"])
+                                if saved_name:
+                                    saved_path = target_dir / saved_name
+                                    # Validação de tamanho: vídeo 4K finalizado deve ter tamanho consistente (> 1 MB)
+                                    if saved_path.exists() and saved_path.stat().st_size > 1000000:
+                                        images_saved += 1
+                                        batch_saved_files.append(saved_name)
+                                        video_saved = True
+                                        elapsed_total_min = elapsed_sec // 60
+                                        elapsed_total_sec = elapsed_sec % 60
+                                        logger.info(f"✅ Novo vídeo 4K gravado com sucesso: {saved_name} ({elapsed_total_min}m {elapsed_total_sec}s decorridos, {saved_path.stat().st_size // 1024} KB) em {target_dir.name}!")
+                                        if v_item:
+                                            queue_mgr.mark_video_prompts_generated([v_item], saved_videos=[saved_name])
+                                        break
+                                    else:
+                                        sz = saved_path.stat().st_size // 1024 if saved_path.exists() else 0
+                                        logger.warning(f"⚠️ Vídeo temporário detectado possui tamanho reduzido ({sz} KB). Continuando espera pelo render 4K completo...")
+
+                        # Timeout de segurança de 60 minutos
+                        if elapsed_sec > max_wait_video:
+                            logger.warning(f"⚠️ Limite máximo de espera por renderização de vídeo atingido ({max_wait_video // 60} min).")
                             break
 
                         time.sleep(4)
 
-                    # Cancelar tarefa no RunningHub para poupar GPU
-                    cancel_runninghub_task(page)
+                    # NUNCA cancelar a tarefa no RunningHub para Conta 3 (Vídeo), deixando o render persistir naturalmente
 
                 # ── ESTRATÉGIA B: CONTA 2 (Real-Time Single — 1 a 1 antes de sobrescrever) ──
                 else:
