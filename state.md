@@ -2,8 +2,8 @@
 > Sincronizado automaticamente por hooks e comandos do ecossistema.
 
 ## Sprint Atual: Sistema de Filtros Inteligentes & Scoring de Potencial de Vendas (Microstock Sales Scorer)
-- **Status da Sprint**: [CONCLUÍDO] Análise das 93 imagens do acervo final e implementação do sistema de pontuação preditiva de vendas (Score 0-100, Tiers S/A/B/C, Nichos B2B, Copy-Space, SEO 50 tags). Adicionada toolbar de multi-filtros na Galeria Web SPA com ordenação por Maior Potencial de Vendas, busca dinâmica e painel comercial detalhado no Modal. 160 testes 100% verdes.
-- **Última Atualização**: 2026-10-31 00:25
+- **Status da Sprint**: [CONCLUÍDO] Análise das 93 imagens do acervo final e implementação do sistema de pontuação preditiva de vendas (Score 0-100, Tiers S/A/B/C, Nichos B2B, Copy-Space, SEO 50 tags). Corrigido o travamento no carregamento da galeria master (resolvido SyntaxError no JavaScript por duplicata de `let currentImageFilter`, escape de aspas em `openImageModal` e integração visual do banner de KPIs ao card de filtros). Servidor reiniciado e 100% validado com 93 cards renderizados e 160 testes unitários verdes.
+- **Última Atualização**: 2026-10-31 00:50
 - **Modo Operacional**: Dual-Mode (Antigravity & Claude Code via SSOT `PROJECT_CONTEXT.md`)
 
 ---

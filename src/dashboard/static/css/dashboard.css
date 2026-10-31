@@ -2444,16 +2444,13 @@ body {
 /* ── Commercial Sales Potential & Multi-Filter System ── */
 .gallery-analytics-bar {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 12px;
-  margin-bottom: 16px;
-  padding: 14px 18px;
-  background: var(--bg-card);
-  backdrop-filter: var(--liquid-glass-blur);
-  -webkit-backdrop-filter: var(--liquid-glass-blur);
-  border: 1px solid var(--liquid-glass-border);
+  margin-bottom: 8px;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--radius-lg);
-  box-shadow: var(--liquid-glass-shadow);
 }
 
 .analytics-kpi-item {

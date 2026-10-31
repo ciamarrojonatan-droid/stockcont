@@ -298,7 +298,7 @@ async function loadCurrentTab() {
 }
 
 // ── Gallery State & Filters ────────────────────────
-let currentImageFilter = 'all';       // all, cataloged, uncataloged, uploaded, pending_upload
+// currentImageFilter is defined in global state at top
 let currentImageTier = 'all';         // all, top_sellers, tier_s, tier_a, tier_b, tier_c
 let currentImageNiche = 'all';        // all, podium, biotech, finance, tech_space, abstract
 let currentImageCopyspace = null;     // null, true, false
@@ -366,7 +366,7 @@ async function loadGallery() {
       const title = img.title || img.filename;
 
       return '' +
-        '<div class="gallery-item" onclick="openImageModal('' + esc(img.filename) + '')">' +
+        '<div class="gallery-item" onclick="openImageModal(\'' + esc(img.filename) + '\')">' +
           '<img src="/api/images/' + encodeURIComponent(img.filename) + '/thumb" alt="' + esc(title) + '" loading="lazy">' +
           scoreBadge +
           copySpaceBadge +
@@ -383,6 +383,8 @@ async function loadGallery() {
     }).join('');
   } catch (err) {
     console.error('Error loading gallery:', err);
+    const grid = document.getElementById('gallery-grid');
+    if (grid) grid.innerHTML = '<div class="loading">Erro ao carregar galeria: ' + esc(err.message || String(err)) + '</div>';
   }
 }
 
