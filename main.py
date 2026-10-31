@@ -259,6 +259,7 @@ def run_phase_3(
     is_video: bool = False,
     input_image: Path | None = None,
     prompt_text: str | None = None,
+    upload_wait_sec: int = 30,
 ) -> None:
     """Execute Phase 3: The Factory RPA Bot (Conta 1 - Raw Producer, Conta 2 - SeedVR 8K, ou Conta 3/Vídeo - 4K Video Generator)."""
     if is_video or account == 3:
@@ -275,6 +276,7 @@ def run_phase_3(
         all_batches=all_batches,
         input_image_path=input_image,
         custom_prompt_text=prompt_text,
+        upload_wait_sec=upload_wait_sec,
     )
     logger.info("Phase 3 finished.")
 
@@ -421,6 +423,7 @@ def main() -> None:
     p3_group.add_argument("--batch-size", type=int, default=210, help="Number of prompts per batch (default: 210)")
     p3_group.add_argument("--batches", type=int, default=1, help="Number of consecutive batches to process in Phase 3 (default: 1)")
     p3_group.add_argument("--all-batches", action="store_true", help="Process all remaining pending batches until the prompt queue is exhausted")
+    p3_group.add_argument("--upload-wait-sec", type=int, default=int(os.getenv("RUNNINGHUB_IMAGE_UPLOAD_WAIT_SEC", "30")), help="Seconds to wait after uploading image to Load Image node before clicking execute (default: 30)")
 
     # Options for Phase 4
     p4_group = parser.add_argument_group("Phase 4 Options")
@@ -544,6 +547,7 @@ def main() -> None:
             is_video=is_vid,
             input_image=getattr(args, "input_image", None),
             prompt_text=getattr(args, "video_prompt", None),
+            upload_wait_sec=getattr(args, "upload_wait_sec", 30),
         )
     elif args.phase == 4:
         if args.video or args.asset_type == "video":

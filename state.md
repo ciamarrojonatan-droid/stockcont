@@ -1,9 +1,9 @@
 # StockCont Pipeline State
 > Sincronizado automaticamente por hooks e comandos do ecossistema.
 
-## Sprint Atual: Sistema de Filtros Inteligentes & Scoring de Potencial de Vendas (Microstock Sales Scorer)
-- **Status da Sprint**: [CONCLUÍDO] Análise das 93 imagens do acervo final e implementação do sistema de pontuação preditiva de vendas (Score 0-100, Tiers S/A/B/C, Nichos B2B, Copy-Space, SEO 50 tags). Corrigido o travamento no carregamento da galeria master (resolvido SyntaxError no JavaScript por duplicata de `let currentImageFilter`, escape de aspas em `openImageModal` e integração visual do banner de KPIs ao card de filtros). Servidor reiniciado e 100% validado com 93 cards renderizados e 160 testes unitários verdes.
-- **Última Atualização**: 2026-10-31 00:50
+## Sprint Atual: Calibração da Janela de Upload no Nó #164 Load Image (30s Wait)
+- **Status da Sprint**: [CONCLUÍDO] Calibrado o tempo de espera no Nó #164 (Load Image) para 30 segundos (`RUNNINGHUB_IMAGE_UPLOAD_WAIT_SEC=30`) com contagem regressiva em logs antes do acionamento de 'Executar (Lite/Plus)'. Adicionado auto-dismiss de modais de erro residuais do ComfyUI e flag `--upload-wait-sec`. 161 testes 100% verdes.
+- **Última Atualização**: 2026-10-31 01:40
 - **Modo Operacional**: Dual-Mode (Antigravity & Claude Code via SSOT `PROJECT_CONTEXT.md`)
 
 ---
@@ -31,7 +31,7 @@
 | **Conta 2: SeedVR 8K Upscaler** | 🟢 Calibrada & Pronta | **Workflow SeedVR 8K** \| Ingestão ZIP Nó #5 ➔ Preview Nó #55 (1 a 1 Real-Time) ➔ Auto-cancel na última imagem | Integrado no Daemon |
 | **Fase 4: O Catalogador** | 🟢 Concluído | **190 assets catalogados** em `adobe_stock_upload.csv` \| Injeção obrigatória de 300 DPI + IPTC/EXIF | Integrado no Daemon |
 | **Fase 5: O Distribuidor com Cotas** | 🟢 Protegido | **Despacho seletivo por plataforma**: Pausa agências com cotas esgotadas e prossegue nas demais \| Anti-Ban Alamy ativo | Integrado no Daemon |
-| **Suíte de Testes (Pytest)** | 🟢 100% Verde | **160 testes passando (100% verde)** | Regressão zero (19 suítes de teste) | `pytest tests/` |
+| **Suíte de Testes (Pytest)** | 🟢 100% Verde | **161 testes passando (100% verde)** | Regressão zero (19 suítes de teste) | `pytest tests/` |
 
 ---
 

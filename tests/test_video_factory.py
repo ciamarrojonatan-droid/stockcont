@@ -38,6 +38,12 @@ class TestVideoFactoryTopology:
         assert cfg["output_node"] == 157
         assert cfg["role"] == "video_generator_4k"
         assert cfg["save_mode"] == "video_output"
+        assert cfg.get("upload_wait_sec") == 30
+
+    def test_account_3_upload_wait_sec_default(self):
+        """Account 3 must default to 30 seconds wait for Node #164 Load Image upload."""
+        cfg = get_account_config(3)
+        assert cfg.get("upload_wait_sec") == 30
 
     def test_account_video_string_alias(self):
         """String aliases 'video' or 'video_4k' must resolve to CONTA_VIDEO_CONFIG."""

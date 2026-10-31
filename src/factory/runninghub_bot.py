@@ -95,11 +95,13 @@ CONTA_VIDEO_CONFIG = {
     "prefix": "final_4k_video",
     "save_mode": "video_output",
     "session_dir_name": "playwright_session_video",
+    "upload_wait_sec": int(os.getenv("RUNNINGHUB_IMAGE_UPLOAD_WAIT_SEC", "30")),
 }
 
 # Default Active Configuration (Padrão: Conta 1 - Raw Producer)
 DEFAULT_ACCOUNT: int = int(os.getenv("RUNNINGHUB_ACCOUNT", "1"))
 DEFAULT_BATCH_SIZE: int = 210
+DEFAULT_IMAGE_UPLOAD_WAIT_SEC: int = int(os.getenv("RUNNINGHUB_IMAGE_UPLOAD_WAIT_SEC", "30"))
 DEFAULT_OUTPUT_NODE: int = 121
 DEFAULT_PROMPT_NODES: List[int] = CONTA_1_PROMPT_NODES
 VIEWPORT_WIDTH: int = 1280
@@ -799,6 +801,10 @@ def dismiss_runninghub_popups(page: Page) -> bool:
         "[class*='closeBtn']",
         "[class*='dialog-close']",
         "[class*='modal-close']",
+        ".comfy-modal-close",
+        ".comfy-modal button",
+        ".comfy-modal svg",
+        "xpath=//*[contains(text(), 'Node threw an error')]/ancestor::div//button",
     ]
 
     for sel in close_selectors:
@@ -865,6 +871,7 @@ def run_factory_bot(
     session_dir: Optional[Path] = None,
     input_image_path: Optional[Path] = None,
     custom_prompt_text: Optional[str] = None,
+    upload_wait_sec: Optional[int] = None,
 ) -> Dict[str, Any]:
     """
     Executa a Fábrica RPA adaptando o comportamento entre Conta 1, Conta 2 e Pipeline de Vídeo 4K:
@@ -1170,12 +1177,20 @@ def run_factory_bot(
                     if ref_img and ref_img.exists():
                         logger.info(f"📤 [Vídeo] Injetando imagem de referência ({ref_img.name}) no Nó #{input_node} (Load Image)...")
                         upload_image_to_node(page, comfy_frame, input_node, ref_img)
-                        time.sleep(1.0)
                     if p_text_video:
                         p_node = cfg.get("prompt_node", 17)
                         logger.info(f"📝 [Vídeo] Injetando prompt temporal de vídeo no Nó #{p_node}...")
                         inject_video_prompt_to_node(comfy_frame, p_node, p_text_video)
-                        time.sleep(0.5)
+                        time.sleep(1.0)
+
+                    # Espera mandatória de ~30s para o RunningHub carregar e salvar a imagem no servidor remoto
+                    effective_wait = upload_wait_sec if upload_wait_sec is not None else cfg.get("upload_wait_sec", DEFAULT_IMAGE_UPLOAD_WAIT_SEC)
+                    logger.info(f"⏳ [Vídeo] Aguardando {effective_wait}s para o servidor carregar a imagem no Nó #{input_node} (Load Image) antes de acionar Executar (Lite/Plus)...")
+                    for s in range(effective_wait, 0, -5):
+                        chunk = min(5, s)
+                        logger.info(f"⏳ [Nó #{input_node} Load Image] Carregando imagem no servidor... {s}s restantes antes de liberar o botão Executar")
+                        time.sleep(chunk)
+                    logger.info(f"✅ [Nó #{input_node} Load Image] Janela de {effective_wait}s concluída com sucesso! Imagem pronta.")
 
                 # Captura pré-existente no nó de saída
                 initial_node_images = get_node_images(page, out_node) if account != 3 else []
