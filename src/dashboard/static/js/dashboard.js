@@ -297,46 +297,213 @@ async function loadCurrentTab() {
   }
 }
 
-// ── Gallery ────────────────────────────────────────
+// ── Gallery State & Filters ────────────────────────
+let currentImageFilter = 'all';       // all, cataloged, uncataloged, uploaded, pending_upload
+let currentImageTier = 'all';         // all, top_sellers, tier_s, tier_a, tier_b, tier_c
+let currentImageNiche = 'all';        // all, podium, biotech, finance, tech_space, abstract
+let currentImageCopyspace = null;     // null, true, false
+let currentImageSort = 'sales_score'; // sales_score, date_desc, name_asc, size_desc
+let currentImageSearch = '';
+let searchDebounceTimer = null;
+
 async function loadGallery() {
-  const res = await fetch(API + '/api/images?filter=' + currentImageFilter);
-  const data = await res.json();
-
-  document.getElementById('gallery-stat').textContent =
-    data.total + ' imagens | ' + data.cataloged + ' catalogados | ' + data.uncataloged + ' pendentes';
-
-  const grid = document.getElementById('gallery-grid');
-  if (!data.images || data.images.length === 0) {
-    grid.innerHTML = '<div class="loading">Nenhuma imagem encontrada</div>';
-    return;
+  let url = API + '/api/images?filter=' + encodeURIComponent(currentImageFilter) +
+            '&sort=' + encodeURIComponent(currentImageSort);
+  if (currentImageTier && currentImageTier !== 'all') {
+    url += '&tier=' + encodeURIComponent(currentImageTier);
+  }
+  if (currentImageNiche && currentImageNiche !== 'all') {
+    url += '&niche=' + encodeURIComponent(currentImageNiche);
+  }
+  if (currentImageCopyspace !== null) {
+    url += '&copyspace=' + encodeURIComponent(currentImageCopyspace);
+  }
+  if (currentImageSearch && currentImageSearch.trim()) {
+    url += '&q=' + encodeURIComponent(currentImageSearch.trim());
   }
 
-  grid.innerHTML = data.images.map(function(img) {
-    const badge = img.is_cataloged
-      ? '<span class="gallery-item-badge badge-cataloged">✓ IPTC</span>'
-      : '<span class="gallery-item-badge badge-uncataloged">⏳</span>';
-    const uploadBadge = (img.uploaded_agencies && img.uploaded_agencies.length > 0)
-      ? '<span class="gallery-item-badge" style="right:auto; left:8px; background:var(--color-system-teal); color:#ffffff; font-size:0.65rem; padding:2px 8px; border-radius:var(--radius-pill); font-weight:600;">DISPARADO: ' + img.uploaded_agencies.length + ' enviada' + (img.uploaded_agencies.length > 1 ? 's' : '') + '</span>'
-      : '';
-    const title = img.title || img.filename;
-    return '' +
-      '<div class="gallery-item" onclick="openImageModal(\'' + esc(img.filename) + '\')">' +
-        '<img src="/api/images/' + encodeURIComponent(img.filename) + '/thumb" alt="' + esc(title) + '" loading="lazy">' +
-        badge +
-        uploadBadge +
-        '<div class="gallery-item-overlay">' +
-          '<div class="gallery-item-title">' + esc(title) + '</div>' +
-          '<div class="gallery-item-size">' + img.size_mb + ' MB</div>' +
-        '</div>' +
-      '</div>';
-  }).join('');
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
+
+    updateGalleryKpis(data);
+
+    const statEl = document.getElementById('gallery-stat');
+    if (statEl) {
+      statEl.textContent = data.total + ' exibidos de ' + (data.total_unfiltered || data.total) + ' ativos';
+    }
+
+    const grid = document.getElementById('gallery-grid');
+    if (!grid) return;
+
+    if (!data.images || data.images.length === 0) {
+      grid.innerHTML = '<div class="loading">Nenhum ativo encontrado para os filtros selecionados.</div>';
+      return;
+    }
+
+    grid.innerHTML = data.images.map(function(img) {
+      let tierClass = 'badge-tier-s';
+      if (img.sales_tier_key === 'tier_a') tierClass = 'badge-tier-a';
+      else if (img.sales_tier_key === 'tier_b') tierClass = 'badge-tier-b';
+      else if (img.sales_tier_key === 'tier_c') tierClass = 'badge-tier-c';
+
+      const scoreBadge = '<span class="gallery-item-badge ' + tierClass + '" title="Score de Conversão Comercial">' +
+        '⚡ ' + (img.sales_score ? img.sales_score.toFixed(1) : '—') + ' • ' + (img.sales_tier || 'Tier') +
+        '</span>';
+
+      const copySpaceBadge = img.has_copyspace
+        ? '<span class="gallery-item-badge badge-copyspace" title="Área de respiro para texto/logo">🎯 Copy-Space</span>'
+        : '';
+
+      const uploadBadge = (img.uploaded_agencies && img.uploaded_agencies.length > 0)
+        ? '<span class="gallery-item-badge badge-uploaded">✓ ' + img.uploaded_agencies.length + ' Agência' + (img.uploaded_agencies.length > 1 ? 's' : '') + '</span>'
+        : '';
+
+      const nichePill = img.niche
+        ? '<span class="gallery-item-niche">' + esc(img.niche) + '</span>'
+        : '';
+
+      const title = img.title || img.filename;
+
+      return '' +
+        '<div class="gallery-item" onclick="openImageModal('' + esc(img.filename) + '')">' +
+          '<img src="/api/images/' + encodeURIComponent(img.filename) + '/thumb" alt="' + esc(title) + '" loading="lazy">' +
+          scoreBadge +
+          copySpaceBadge +
+          uploadBadge +
+          '<div class="gallery-item-overlay">' +
+            '<div class="gallery-item-header">' + nichePill + '</div>' +
+            '<div class="gallery-item-title" title="' + esc(title) + '">' + esc(title) + '</div>' +
+            '<div class="gallery-item-meta-row">' +
+              '<span class="gallery-item-size">' + img.size_mb + ' MB</span>' +
+              '<span class="gallery-item-buyer">' + esc(img.buyer_intent ? img.buyer_intent.split(',')[0] : '') + '</span>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+    }).join('');
+  } catch (err) {
+    console.error('Error loading gallery:', err);
+  }
 }
 
-function filterImages(f) {
-  currentImageFilter = f;
-  document.querySelectorAll('#tab-gallery .filter-btn').forEach(function(b) { b.classList.remove('active'); });
-  if (event && event.target) event.target.classList.add('active');
+async function updateGalleryKpis(data) {
+  try {
+    const res = await fetch(API + '/api/images/analytics');
+    const an = await res.json();
+    if (!an) return;
+
+    const elTotal = document.getElementById('kpi-total-images');
+    if (elTotal) elTotal.textContent = an.total_images;
+
+    const elAvg = document.getElementById('kpi-avg-score');
+    if (elAvg) elAvg.textContent = '⚡ ' + an.average_score;
+
+    const elTierSA = document.getElementById('kpi-tier-sa');
+    if (elTierSA && an.tiers) {
+      const saCount = (an.tiers.tier_s || 0) + (an.tiers.tier_a || 0);
+      const saPct = an.total_images > 0 ? Math.round((saCount / an.total_images) * 100) : 0;
+      elTierSA.textContent = saCount + ' (' + saPct + '%)';
+    }
+
+    const elCopy = document.getElementById('kpi-copyspace');
+    if (elCopy) {
+      elCopy.textContent = an.copyspace_count + ' (' + an.copyspace_percentage + '%)';
+    }
+
+    const elCat = document.getElementById('kpi-cataloged');
+    if (elCat) {
+      elCat.textContent = (data.cataloged || an.total_images) + ' IPTC';
+    }
+  } catch (e) {
+    console.warn('Failed to load gallery analytics:', e);
+  }
+}
+
+function setGalleryTier(tier) {
+  currentImageTier = tier;
+  document.querySelectorAll('#filter-group-tier .filter-btn').forEach(function(b) {
+    if (b.id !== 'btn-filter-copyspace') {
+      b.classList.toggle('active', b.getAttribute('data-tier') === tier);
+    }
+  });
   loadGallery();
+}
+
+function setGalleryNiche(niche) {
+  currentImageNiche = niche;
+  document.querySelectorAll('#filter-group-niche .filter-btn').forEach(function(b) {
+    b.classList.toggle('active', b.getAttribute('data-niche') === niche);
+  });
+  loadGallery();
+}
+
+function setGalleryStatus(status) {
+  currentImageFilter = status;
+  document.querySelectorAll('#filter-group-status .filter-btn').forEach(function(b) {
+    b.classList.toggle('active', b.getAttribute('data-status') === status);
+  });
+  loadGallery();
+}
+
+function toggleGalleryCopyspace() {
+  const btn = document.getElementById('btn-filter-copyspace');
+  if (currentImageCopyspace === true) {
+    currentImageCopyspace = null;
+    if (btn) btn.classList.remove('active');
+  } else {
+    currentImageCopyspace = true;
+    if (btn) btn.classList.add('active');
+  }
+  loadGallery();
+}
+
+function setGallerySort(val) {
+  currentImageSort = val;
+  loadGallery();
+}
+
+function debounceGallerySearch() {
+  clearTimeout(searchDebounceTimer);
+  searchDebounceTimer = setTimeout(function() {
+    const input = document.getElementById('gallery-search');
+    currentImageSearch = input ? input.value : '';
+    loadGallery();
+  }, 250);
+}
+
+function resetAllGalleryFilters() {
+  currentImageFilter = 'all';
+  currentImageTier = 'all';
+  currentImageNiche = 'all';
+  currentImageCopyspace = null;
+  currentImageSort = 'sales_score';
+  currentImageSearch = '';
+
+  const input = document.getElementById('gallery-search');
+  if (input) input.value = '';
+
+  const sortSelect = document.getElementById('gallery-sort');
+  if (sortSelect) sortSelect.value = 'sales_score';
+
+  const btnCopy = document.getElementById('btn-filter-copyspace');
+  if (btnCopy) btnCopy.classList.remove('active');
+
+  document.querySelectorAll('#filter-group-tier .filter-btn').forEach(function(b) {
+    if (b.id !== 'btn-filter-copyspace') b.classList.toggle('active', b.getAttribute('data-tier') === 'all');
+  });
+  document.querySelectorAll('#filter-group-niche .filter-btn').forEach(function(b) {
+    b.classList.toggle('active', b.getAttribute('data-niche') === 'all');
+  });
+  document.querySelectorAll('#filter-group-status .filter-btn').forEach(function(b) {
+    b.classList.toggle('active', b.getAttribute('data-status') === 'all');
+  });
+
+  loadGallery();
+}
+
+// Backward compatibility alias
+function filterImages(f) {
+  setGalleryStatus(f);
 }
 
 // ── Image Modal ────────────────────────────────────
@@ -362,6 +529,43 @@ function renderModalMeta(meta) {
 
   if (meta.iptc && meta.iptc.title) {
     document.getElementById('modal-title').textContent = meta.iptc.title;
+  }
+
+  // Commercial Sales Potential Section
+  if (meta.commercial) {
+    const c = meta.commercial;
+    let scoreColor = '#FFD700';
+    if (c.sales_tier_key === 'tier_a') scoreColor = '#30D158';
+    else if (c.sales_tier_key === 'tier_b') scoreColor = '#0A84FF';
+    else if (c.sales_tier_key === 'tier_c') scoreColor = '#BF5AF2';
+
+    html += '' +
+      '<div class="commercial-sales-card">' +
+        '<div class="commercial-header">' +
+          '<div class="commercial-score-display">' +
+            '<span class="commercial-score-num" style="color:' + scoreColor + '">' + c.sales_score + '</span>' +
+            '<span class="commercial-score-denom">/100</span>' +
+          '</div>' +
+          '<div class="commercial-tier-info">' +
+            '<div class="commercial-tier-label">' + esc(c.sales_tier_label || c.sales_tier) + '</div>' +
+            '<div class="commercial-niche-pill">Nicho: ' + esc(c.niche) + '</div>' +
+          '</div>' +
+          '<div class="commercial-copyspace-pill ' + (c.has_copyspace ? 'copyspace-yes' : 'copyspace-no') + '">' +
+            (c.has_copyspace ? '🎯 Copy-Space Disponível' : '— Sem Copy-Space Amplo') +
+          '</div>' +
+        '</div>' +
+        '<div class="commercial-bar-bg">' +
+          '<div class="commercial-bar-fill" style="width:' + c.sales_score + '%; background:' + scoreColor + '"></div>' +
+        '</div>' +
+        '<div class="commercial-buyer">' +
+          '<strong>Público-Alvo B2B:</strong> ' + esc(c.buyer_intent) +
+        '</div>' +
+        (c.insights && c.insights.length > 0 ?
+          '<div class="commercial-insights">' +
+            '<strong>Drivers Comerciais:</strong>' +
+            '<ul>' + c.insights.map(function(ins) { return '<li>' + esc(ins) + '</li>'; }).join('') + '</ul>' +
+          '</div>' : '') +
+      '</div>';
   }
 
   if (meta.iptc && meta.iptc.caption) {

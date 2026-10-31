@@ -2439,3 +2439,369 @@ body {
   color: var(--label-secondary);
   border: 1px solid var(--liquid-glass-border-subtle);
 }
+
+
+/* ── Commercial Sales Potential & Multi-Filter System ── */
+.gallery-analytics-bar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 14px 18px;
+  background: var(--bg-card);
+  backdrop-filter: var(--liquid-glass-blur);
+  -webkit-backdrop-filter: var(--liquid-glass-blur);
+  border: 1px solid var(--liquid-glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--liquid-glass-shadow);
+}
+
+.analytics-kpi-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.analytics-kpi-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--label-tertiary);
+  font-weight: 600;
+}
+
+.analytics-kpi-value {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--label-primary);
+}
+
+.text-gold {
+  color: #FFD700 !important;
+  text-shadow: 0 0 12px rgba(255, 215, 0, 0.4);
+}
+
+.text-emerald {
+  color: #30D158 !important;
+  text-shadow: 0 0 12px rgba(48, 209, 88, 0.35);
+}
+
+.text-cyan {
+  color: #64D2FF !important;
+  text-shadow: 0 0 12px rgba(100, 210, 255, 0.35);
+}
+
+.text-purple {
+  color: #BF5AF2 !important;
+}
+
+.gallery-controls-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  background: var(--bg-card);
+  backdrop-filter: var(--liquid-glass-blur);
+  -webkit-backdrop-filter: var(--liquid-glass-blur);
+  border: 1px solid var(--liquid-glass-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--liquid-glass-shadow);
+}
+
+.controls-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.controls-row-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--label-secondary);
+  min-width: 170px;
+}
+
+.controls-row-flex {
+  justify-content: space-between;
+  align-items: center;
+}
+
+.controls-subgroup {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.controls-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 260px;
+}
+
+.search-icon {
+  position: absolute;
+  left: 10px;
+  font-size: 0.85rem;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+#gallery-search {
+  width: 100%;
+  padding: 7px 12px 7px 32px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--liquid-glass-border);
+  border-radius: var(--radius-pill);
+  color: var(--label-primary);
+  font-size: 0.78rem;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+#gallery-search:focus {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.35);
+  box-shadow: 0 0 0 3px rgba(100, 210, 255, 0.2);
+}
+
+.sort-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sort-label {
+  font-size: 0.72rem;
+  color: var(--label-secondary);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.select-glass {
+  background: rgba(20, 24, 38, 0.85);
+  color: var(--label-primary);
+  border: 1px solid var(--liquid-glass-border);
+  border-radius: var(--radius-pill);
+  padding: 6px 14px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.select-glass:focus, .select-glass:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.controls-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* ── Enhanced Gallery Badges ── */
+.badge-tier-s {
+  background: linear-gradient(135deg, #FFD700 0%, #FF9500 100%) !important;
+  color: #000000 !important;
+  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.45);
+  font-weight: 800 !important;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+.badge-tier-a {
+  background: linear-gradient(135deg, #30D158 0%, #00B894 100%) !important;
+  color: #000000 !important;
+  box-shadow: 0 4px 12px rgba(48, 209, 88, 0.35);
+  font-weight: 700 !important;
+}
+
+.badge-tier-b {
+  background: linear-gradient(135deg, #0A84FF 0%, #0055D4 100%) !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+}
+
+.badge-tier-c {
+  background: linear-gradient(135deg, #BF5AF2 0%, #8E44AD 100%) !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+}
+
+.badge-copyspace {
+  top: 8px !important;
+  left: 8px !important;
+  right: auto !important;
+  background: rgba(10, 132, 255, 0.25) !important;
+  color: #64D2FF !important;
+  border: 1px solid rgba(100, 210, 255, 0.45) !important;
+  font-size: 0.62rem !important;
+  font-weight: 700 !important;
+}
+
+.badge-uploaded {
+  top: 34px !important;
+  left: 8px !important;
+  right: auto !important;
+  background: rgba(48, 209, 88, 0.2) !important;
+  color: #30D158 !important;
+  border: 1px solid rgba(48, 209, 88, 0.4) !important;
+  font-size: 0.62rem !important;
+  font-weight: 700 !important;
+}
+
+.gallery-item-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
+.gallery-item-niche {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--label-secondary);
+  font-size: 0.62rem;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+  backdrop-filter: blur(6px);
+}
+
+.gallery-item-meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+}
+
+.gallery-item-buyer {
+  font-size: 0.62rem;
+  color: var(--label-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Commercial Analysis Modal Card ── */
+.commercial-sales-card {
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.commercial-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.commercial-score-display {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+}
+
+.commercial-score-num {
+  font-size: 1.8rem;
+  font-weight: 800;
+  font-family: var(--font-mono);
+}
+
+.commercial-score-denom {
+  font-size: 0.85rem;
+  color: var(--label-tertiary);
+}
+
+.commercial-tier-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.commercial-tier-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--label-primary);
+}
+
+.commercial-niche-pill {
+  font-size: 0.72rem;
+  color: var(--color-system-blue);
+  font-weight: 600;
+}
+
+.commercial-copyspace-pill {
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.copyspace-yes {
+  background: rgba(100, 210, 255, 0.18);
+  color: #64D2FF;
+  border: 1px solid rgba(100, 210, 255, 0.4);
+}
+
+.copyspace-no {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--label-tertiary);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.commercial-bar-bg {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.commercial-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+.commercial-buyer {
+  font-size: 0.75rem;
+  color: var(--label-secondary);
+  line-height: 1.4;
+}
+
+.commercial-insights {
+  font-size: 0.75rem;
+  color: var(--label-secondary);
+  line-height: 1.4;
+}
+
+.commercial-insights ul {
+  margin: 4px 0 0 16px;
+  padding: 0;
+}
+
+.commercial-insights li {
+  margin-bottom: 2px;
+}

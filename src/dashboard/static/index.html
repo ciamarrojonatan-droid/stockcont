@@ -384,14 +384,93 @@
 
   <!-- ── Tab Content: Gallery ────────────────────── -->
   <section class="tab-content active" id="tab-gallery">
-    <div class="tab-toolbar">
-      <div class="filter-group">
-        <button class="filter-btn active" onclick="filterImages('all')">Todos</button>
-        <button class="filter-btn" onclick="filterImages('cataloged')">Catalogados</button>
-        <button class="filter-btn" onclick="filterImages('uncataloged')">Não Catalogados</button>
+    <!-- Commercial Analytics KPI Bar -->
+    <div class="gallery-analytics-bar" id="gallery-analytics-bar">
+      <div class="analytics-kpi-item">
+        <span class="analytics-kpi-label">Ativos Analisados</span>
+        <span class="analytics-kpi-value mono" id="kpi-total-images">93</span>
       </div>
-      <span class="tab-stat mono" id="gallery-stat">—</span>
+      <div class="analytics-kpi-item">
+        <span class="analytics-kpi-label">Score Médio Portfólio</span>
+        <span class="analytics-kpi-value mono text-gold" id="kpi-avg-score">⚡ 91.2</span>
+      </div>
+      <div class="analytics-kpi-item">
+        <span class="analytics-kpi-label">Tier S / A (Alto Impacto)</span>
+        <span class="analytics-kpi-value mono text-emerald" id="kpi-tier-sa">93 (100%)</span>
+      </div>
+      <div class="analytics-kpi-item">
+        <span class="analytics-kpi-label">Com Copy-Space (B2B)</span>
+        <span class="analytics-kpi-value mono text-cyan" id="kpi-copyspace">49 (53%)</span>
+      </div>
+      <div class="analytics-kpi-item">
+        <span class="analytics-kpi-label">Pronto p/ Agências</span>
+        <span class="analytics-kpi-value mono text-purple" id="kpi-cataloged">93 IPTC</span>
+      </div>
     </div>
+
+    <!-- Filter Control Center -->
+    <div class="gallery-controls-card">
+      <!-- Fileira 1: Potencial de Vendas & Tiers -->
+      <div class="controls-row">
+        <span class="controls-row-label">🔥 Potencial de Vendas:</span>
+        <div class="filter-group" id="filter-group-tier">
+          <button class="filter-btn active" data-tier="all" onclick="setGalleryTier('all')">Todos</button>
+          <button class="filter-btn" data-tier="top_sellers" onclick="setGalleryTier('top_sellers')">⚡ Top Sellers (Score 85+)</button>
+          <button class="filter-btn" data-tier="tier_s" onclick="setGalleryTier('tier_s')">👑 Tier S (Altíssimo)</button>
+          <button class="filter-btn" data-tier="tier_a" onclick="setGalleryTier('tier_a')">💎 Tier A (Alto)</button>
+          <button class="filter-btn" id="btn-filter-copyspace" onclick="toggleGalleryCopyspace()">🎯 Com Copy-Space</button>
+        </div>
+      </div>
+
+      <!-- Fileira 2: Nichos Comerciais B2B -->
+      <div class="controls-row">
+        <span class="controls-row-label">🏢 Nicho Comercial B2B:</span>
+        <div class="filter-group" id="filter-group-niche">
+          <button class="filter-btn active" data-niche="all" onclick="setGalleryNiche('all')">Todos os Nichos</button>
+          <button class="filter-btn" data-niche="podium" onclick="setGalleryNiche('podium')">📦 Podiums & Mockups</button>
+          <button class="filter-btn" data-niche="biotech" onclick="setGalleryNiche('biotech')">🔬 Biotech & Saúde</button>
+          <button class="filter-btn" data-niche="finance" onclick="setGalleryNiche('finance')">📈 Finanças & Trading</button>
+          <button class="filter-btn" data-niche="tech_space" onclick="setGalleryNiche('tech_space')">🚀 Tech, IA & Espaço</button>
+          <button class="filter-btn" data-niche="abstract" onclick="setGalleryNiche('abstract')">🎨 Texturas & Abstrato</button>
+        </div>
+      </div>
+
+      <!-- Fileira 3: Status, Ordenação e Busca -->
+      <div class="controls-row controls-row-flex">
+        <div class="controls-subgroup">
+          <span class="controls-row-label">📋 Status:</span>
+          <div class="filter-group" id="filter-group-status">
+            <button class="filter-btn active" data-status="all" onclick="setGalleryStatus('all')">Todas</button>
+            <button class="filter-btn" data-status="cataloged" onclick="setGalleryStatus('cataloged')">✓ Catalogadas</button>
+            <button class="filter-btn" data-status="uploaded" onclick="setGalleryStatus('uploaded')">🚀 Enviadas</button>
+            <button class="filter-btn" data-status="pending_upload" onclick="setGalleryStatus('pending_upload')">⏳ Pendentes Upload</button>
+          </div>
+        </div>
+
+        <div class="controls-subgroup controls-right">
+          <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="gallery-search" placeholder="Buscar por título, tag ou conceito…" oninput="debounceGallerySearch()">
+          </div>
+          <div class="sort-box">
+            <label for="gallery-sort" class="sort-label">Ordenar por:</label>
+            <select id="gallery-sort" class="select-glass" onchange="setGallerySort(this.value)">
+              <option value="sales_score" selected>⚡ Maior Potencial de Vendas (Score ↓)</option>
+              <option value="date_desc">🕒 Mais Recentes</option>
+              <option value="name_asc">🔤 Nome (A-Z)</option>
+              <option value="size_desc">💾 Tamanho do Arquivo</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="controls-footer">
+        <span class="tab-stat mono" id="gallery-stat">—</span>
+        <button class="btn btn-sm btn-ghost" onclick="resetAllGalleryFilters()">↺ Limpar Filtros</button>
+      </div>
+    </div>
+
+    <!-- Gallery Grid -->
     <div class="gallery-grid" id="gallery-grid">
       <div class="loading">Carregando galeria master…</div>
     </div>

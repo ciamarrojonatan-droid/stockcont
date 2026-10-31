@@ -518,6 +518,7 @@ Quando interagir com o código ou executar tarefas no StockCont, utilize este ma
 | Upload SFTP/FTP | `src/uploader/`, `src/backup/` | `security-reviewer` | `python-patterns` |
 
 | Dashboard Web SPA | `src/dashboard/` | `architect` | `frontend-patterns`, `api-design` |
+| Scoring Comercial & Filtros | `src/analyzer/commercial_scorer.py` | `python-reviewer` | `python-patterns` |
 | Pipeline de Vídeo Cinematográfico | `src/video/`, `video_director.py`, `video_cataloger.py` | `architect` | `python-patterns`, `error-handling` |
 | Daemon 24/7 & Cotas Semanais | `src/orchestrator/`, `src/uploader/quota_manager.py` | `e2e-runner` | `error-handling`, `orchestrator` |
 

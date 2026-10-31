@@ -221,7 +221,7 @@ def list_final_images() -> List[Dict[str, Any]]:
         file_history = upload_map.get(f.name, {})
         uploaded_agencies = list(file_history.keys()) if isinstance(file_history, dict) else []
 
-        images.append({
+        img_item = {
             "filename": f.name,
             "path": str(f),
             "size_bytes": stat.st_size,
@@ -234,8 +234,38 @@ def list_final_images() -> List[Dict[str, Any]]:
             "title": row.get("Title") if row else None,
             "keywords": row.get("Keywords") if row else None,
             "category": row.get("Category") if row else None,
-        })
+        }
+        try:
+            from src.analyzer.commercial_scorer import evaluate_sales_potential
+            sales_eval = evaluate_sales_potential(img_item)
+            img_item.update(sales_eval)
+        except Exception as e:
+            logger.warning("Error evaluating sales potential for %s: %s", f.name, e)
+            img_item.update({
+                "sales_score": 50.0,
+                "sales_tier": "Tier B",
+                "sales_tier_label": "Tier B (Moderado)",
+                "sales_tier_key": "tier_b",
+                "badge_color": "blue",
+                "niche": "General",
+                "niche_key": "general",
+                "buyer_intent": "General Stock Media",
+                "has_copyspace": False,
+                "insights": [],
+            })
+        images.append(img_item)
     return images
+
+
+def get_images_sales_analytics() -> Dict[str, Any]:
+    """Calculates consolidated sales analytics across all final images."""
+    try:
+        from src.analyzer.commercial_scorer import get_portfolio_sales_analytics
+        images = list_final_images()
+        return get_portfolio_sales_analytics(images)
+    except Exception as e:
+        logger.warning("Error computing sales analytics: %s", e)
+        return {"total_images": 0, "average_score": 0.0, "tiers": {}, "niches": {}, "top_performers": []}
 
 
 def get_prompt_queue_stats() -> Dict[str, Any]:

@@ -171,21 +171,90 @@ async def mark_prompts_pending(req: schemas.MarkPendingRequest):
 # ── Image Gallery ────────────────────────────────────
 
 @app.get("/api/images")
-async def get_images(filter: str = "all"):
-    """List images in data/final/images/ with catalog info."""
-    images = readers.list_final_images()
-    if filter == "cataloged":
-        images = [i for i in images if i["is_cataloged"]]
-    elif filter == "uncataloged":
-        images = [i for i in images if not i["is_cataloged"]]
+async def get_images(
+    filter: str = "all",
+    tier: Optional[str] = None,
+    niche: Optional[str] = None,
+    copyspace: Optional[bool] = None,
+    sort: str = "sales_score",
+    q: Optional[str] = None,
+):
+    """List images with multi-factor sales potential filtering, sorting, and search."""
+    all_images = readers.list_final_images()
+    images = all_images
 
-    cataloged = sum(1 for i in images if i["is_cataloged"])
+    # 1. Status Filter (cataloged / uncataloged / uploaded / pending_upload)
+    if filter == "cataloged":
+        images = [i for i in images if i.get("is_cataloged")]
+    elif filter == "uncataloged":
+        images = [i for i in images if not i.get("is_cataloged")]
+    elif filter == "uploaded":
+        images = [i for i in images if i.get("is_uploaded")]
+    elif filter == "pending_upload":
+        images = [i for i in images if i.get("is_cataloged") and not i.get("is_uploaded")]
+
+    # 2. Sales Tier Filter
+    if tier and tier != "all":
+        t = tier.lower()
+        if t == "top_sellers":
+            images = [i for i in images if i.get("sales_score", 0.0) >= 80.0]
+        elif t in {"tier_s", "s"}:
+            images = [i for i in images if i.get("sales_tier_key") == "tier_s"]
+        elif t in {"tier_a", "a"}:
+            images = [i for i in images if i.get("sales_tier_key") == "tier_a"]
+        elif t in {"tier_b", "b"}:
+            images = [i for i in images if i.get("sales_tier_key") == "tier_b"]
+        elif t in {"tier_c", "c"}:
+            images = [i for i in images if i.get("sales_tier_key") == "tier_c"]
+
+    # 3. Commercial Niche Filter
+    if niche and niche != "all":
+        n = niche.lower()
+        images = [
+            i for i in images
+            if i.get("niche_key") == n or n in str(i.get("niche", "")).lower()
+        ]
+
+    # 4. Copy-Space Filter
+    if copyspace is not None:
+        images = [i for i in images if bool(i.get("has_copyspace")) == copyspace]
+
+    # 5. Free Text Search (q)
+    if q and q.strip():
+        query_words = q.strip().lower().split()
+        def matches_query(img):
+            corpus = f"{img.get('filename', '')} {img.get('title', '')} {img.get('keywords', '')} {img.get('niche', '')} {img.get('buyer_intent', '')}".lower()
+            return all(w in corpus for w in query_words)
+        images = [i for i in images if matches_query(i)]
+
+    # 6. Sorting
+    if sort == "sales_score":
+        images.sort(key=lambda i: (i.get("sales_score", 0.0), i.get("created_at", "")), reverse=True)
+    elif sort == "date_desc":
+        images.sort(key=lambda i: i.get("created_at", ""), reverse=True)
+    elif sort == "name_asc":
+        images.sort(key=lambda i: str(i.get("filename", "")).lower())
+    elif sort == "size_desc":
+        images.sort(key=lambda i: i.get("size_bytes", 0), reverse=True)
+
+    cataloged_count = sum(1 for i in all_images if i.get("is_cataloged"))
+    uploaded_count = sum(1 for i in all_images if i.get("is_uploaded"))
+
     return {
         "images": images,
         "total": len(images),
-        "cataloged": cataloged,
-        "uncataloged": len(images) - cataloged,
+        "total_unfiltered": len(all_images),
+        "cataloged": cataloged_count,
+        "uncataloged": len(all_images) - cataloged_count,
+        "uploaded": uploaded_count,
+        "pending_upload": cataloged_count - uploaded_count,
     }
+
+
+@app.get("/api/images/analytics")
+async def get_images_analytics():
+    """Returns consolidated commercial sales potential breakdown across final images."""
+    return readers.get_images_sales_analytics()
 
 
 ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
@@ -299,6 +368,17 @@ async def get_image_metadata(filename: str):
     file_hist = upload_dict.get(filename, {})
     meta["uploaded_agencies"] = list(file_hist.keys()) if isinstance(file_hist, dict) else []
     meta["platforms"] = file_hist
+
+    try:
+        from src.analyzer.commercial_scorer import evaluate_sales_potential
+        cand_dict = {
+            "filename": filename,
+            "title": meta.get("iptc", {}).get("title") or meta.get("exif", {}).get("xp_title"),
+            "keywords": meta.get("iptc", {}).get("keywords", []),
+        }
+        meta["commercial"] = evaluate_sales_potential(cand_dict)
+    except Exception as e:
+        logger.warning("Error evaluating commercial metadata for %s: %s", filename, e)
 
     return meta
 
