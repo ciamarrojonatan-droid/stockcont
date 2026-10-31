@@ -1,4 +1,8 @@
-# StockCont 📈🤖
+# StockCont
+
+<p align="center">
+  <img src="src/dashboard/static/logo.svg" alt="StockCont Logo — 5-Stage Mass Production Rig" width="460" />
+</p>
 
 > **Plataforma Autônoma Industrial de Inteligência Preditiva de Mercado, Engenharia Reversa Multimodal, Produção Generativa 4K/8K, Pipeline de Vídeo Cinematográfico, Catalogação Binária IPTC/EXIF/MP4, Gestão de Cotas Deslizantes (Rolling 7D), Daemon 24/7 com Auto-Purga de SSD, Distribuição Multi-Agência e Dashboard Web SPA iOS 27 Liquid Glass.**
 
