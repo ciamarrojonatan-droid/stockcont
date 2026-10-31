@@ -1,9 +1,9 @@
 # StockCont Pipeline State
 > Sincronizado automaticamente por hooks e comandos do ecossistema.
 
-## Sprint Atual: Configuração do Pipeline de Vídeo 4K na Fábrica RPA (RunningHub ComfyUI)
-- **Status da Sprint**: [CONCLUÍDO] Pipeline de Vídeo 4K totalmente configurado e integrado: Workflow `2115926169974812674`, Ingestão de Imagem no Nó `#164` (Load Image), Prompt no Nó `#17`, Output Final em 4K no Nó `#157` (Save video/video combine), Profile 3 Playwright Stealth isolado, suporte no CLI (`--phase 3 --video` ou `--account 3`) e na API/UI do Dashboard (`/video`). 147 testes 100% verdes.
-- **Última Atualização**: 2026-10-30 23:35
+## Sprint Atual: Correção da Síntese I2V via Dashboard & Pipeline de Vídeo 4K
+- **Status da Sprint**: [CONCLUÍDO] Corrigido o erro de sintaxe (`SyntaxError: invalid syntax`) no disparo de síntese de vídeo a partir de imagem 8K no Estúdio I2V. Substituída a string inline de subprocesso pelo comando limpo `python main.py --phase 2 --video --image-stem <stem>` e implementação nativa de `synthesize_prompts_for_image_stem` em `src/analyzer/video_director.py`. 148 testes 100% verdes.
+- **Última Atualização**: 2026-10-30 23:58
 - **Modo Operacional**: Dual-Mode (Antigravity & Claude Code via SSOT `PROJECT_CONTEXT.md`)
 
 ---
@@ -30,7 +30,7 @@
 | **Conta 2: SeedVR 8K Upscaler** | 🟢 Calibrada & Pronta | **Workflow SeedVR 8K** \| Ingestão ZIP Nó #5 ➔ Preview Nó #55 (1 a 1 Real-Time) ➔ Auto-cancel na última imagem | Integrado no Daemon |
 | **Fase 4: O Catalogador** | 🟢 Concluído | **190 assets catalogados** em `adobe_stock_upload.csv` \| Injeção obrigatória de 300 DPI + IPTC/EXIF | Integrado no Daemon |
 | **Fase 5: O Distribuidor com Cotas** | 🟢 Protegido | **Despacho seletivo por plataforma**: Pausa agências com cotas esgotadas e prossegue nas demais \| Anti-Ban Alamy ativo | Integrado no Daemon |
-| **Suíte de Testes (Pytest)** | 🟢 100% Verde | **147 testes passando (100% verde)** \| Regressão zero (18 suítes de teste) | `pytest tests/` |
+| **Suíte de Testes (Pytest)** | 🟢 100% Verde | **148 testes passando (100% verde)** | Regressão zero (18 suítes de teste) | `pytest tests/` |
 
 ---
 

@@ -264,5 +264,70 @@ def run_video_director(max_items: Optional[int] = None) -> List[Dict[str, Any]]:
     return new_results
 
 
+
+def synthesize_prompts_for_image_stem(image_stem: str) -> Optional[Dict[str, Any]]:
+    """Synthesize 4D video prompts for a specific image stem from data/final/images/."""
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        logger.critical("GEMINI_API_KEY not configured in .env")
+        return None
+
+    clean_stem = Path(image_stem).stem
+    cand: Optional[Path] = None
+
+    for ext in (".jpg", ".jpeg", ".png", ".webp"):
+        potential = FINAL_IMAGES_DIR / f"{clean_stem}{ext}"
+        if potential.exists():
+            cand = potential
+            break
+
+    if not cand and FINAL_IMAGES_DIR.exists():
+        for f in FINAL_IMAGES_DIR.iterdir():
+            if f.stem.lower() == clean_stem.lower():
+                cand = f
+                break
+
+    if not cand and STAGING_IMAGES_DIR.exists():
+        for f in STAGING_IMAGES_DIR.iterdir():
+            if f.stem.lower() == clean_stem.lower():
+                cand = f
+                break
+
+    if not cand or not cand.exists():
+        logger.error(f"Image not found for stem '{clean_stem}' in {FINAL_IMAGES_DIR}")
+        return None
+
+    logger.info(f"Synthesizing 4D video prompts from {cand.name}...")
+    concept_title = clean_stem.replace("_", " ").replace("-", " ").title()
+    res = generate_video_prompts_from_reference(
+        reference_path=cand,
+        concept_title=concept_title,
+        source_id=clean_stem,
+        api_key=api_key,
+    )
+    if not res:
+        logger.error(f"Failed to generate prompts via Gemini for {clean_stem}")
+        return None
+
+    PROCESSED_VIDEO_PROMPTS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    existing_prompts = []
+    if PROCESSED_VIDEO_PROMPTS_FILE.is_file():
+        try:
+            with open(PROCESSED_VIDEO_PROMPTS_FILE, "r", encoding="utf-8") as f:
+                existing_prompts = json.load(f)
+        except Exception:
+            existing_prompts = []
+
+    existing_prompts = [x for x in existing_prompts if str(x.get("source_id")) != clean_stem]
+    existing_prompts.append(res)
+
+    tmp_file = PROCESSED_VIDEO_PROMPTS_FILE.with_suffix(f".tmp.{os.getpid()}")
+    with open(tmp_file, "w", encoding="utf-8") as f:
+        json.dump(existing_prompts, f, indent=2, ensure_ascii=False)
+    tmp_file.replace(PROCESSED_VIDEO_PROMPTS_FILE)
+    logger.info(f"✅ Successfully generated 4 commercial video prompts for {clean_stem}!")
+    return res
+
+
 if __name__ == "__main__":
     run_video_director(max_items=5)

@@ -228,3 +228,17 @@ def test_video_run_phase_endpoint(client, monkeypatch):
     data = res.json()
     assert data["success"] is True
     assert "mock-video-2" in data["task_id"]
+
+
+def test_synthesize_video_from_image_endpoint(client, monkeypatch):
+    """Test POST /api/video/director/from-image triggers I2V synthesis cleanly."""
+    async def mock_run_i2v(image_stem):
+        return {"success": True, "message": f"I2V started for {image_stem}", "task_id": f"i2v-{image_stem[:12]}"}
+
+    monkeypatch.setattr(runner, "run_video_i2v_synthesis", mock_run_i2v)
+
+    res = client.post("/api/video/director/from-image", json={"image_stem": "sample_test_image"})
+    assert res.status_code == 200
+    data = res.json()
+    assert data["success"] is True
+    assert "i2v-sample_test_" in data["task_id"]

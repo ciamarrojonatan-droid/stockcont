@@ -302,11 +302,14 @@ def run_backup(dry_run: bool = False, force: bool = False) -> None:
     run_gdrive_backup(dry_run=dry_run, force=force)
     logger.info("Google Drive Backup finished.")
 
-def run_video_phase_2(max_items: int | None = None) -> None:
+def run_video_phase_2(max_items: int | None = None, image_stem: str | None = None) -> None:
     """Execute Video Phase 2: Video Director of Photography."""
     logger.info("--- Starting Video Phase 2: Video Director (Gemini Vision 4D Temporal Prompts) ---")
-    from src.analyzer.video_director import run_video_director
-    run_video_director(max_items=max_items)
+    from src.analyzer.video_director import run_video_director, synthesize_prompts_for_image_stem
+    if image_stem:
+        synthesize_prompts_for_image_stem(image_stem)
+    else:
+        run_video_director(max_items=max_items)
     logger.info("Video Phase 2 finished.")
 
 def run_video_phase_4(videos_dir: Path | None = None, max_items: int | None = None, generate_prores: bool = False) -> None:
@@ -445,6 +448,7 @@ def main() -> None:
     video_group.add_argument("--videos-dir", type=Path, default=None, help="Custom directory containing videos to catalog")
     video_group.add_argument("--input-image", type=Path, default=None, help="Reference image path for video generation (Node #164)")
     video_group.add_argument("--video-prompt", type=str, default=None, help="Custom prompt text for video generation (Node #17)")
+    video_group.add_argument("--image-stem", type=str, default=None, help="Specific image stem for I2V prompt synthesis")
 
     args = parser.parse_args()
 
@@ -526,7 +530,7 @@ def main() -> None:
         )
     elif args.phase == 2:
         if args.video or args.asset_type == "video":
-            run_video_phase_2(max_items=args.max_items)
+            run_video_phase_2(max_items=args.max_items, image_stem=getattr(args, "image_stem", None))
         else:
             run_phase_2()
     elif args.phase == 3:

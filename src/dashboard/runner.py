@@ -451,31 +451,8 @@ async def run_video_i2v_synthesis(image_stem: str) -> Dict[str, Any]:
     if task_key in _running_tasks and _running_tasks[task_key].returncode is None:
         return {"success": False, "message": f"I2V synthesis already running for {clean_stem}", "task_id": task_key}
 
-    script = (
-        "import os, sys, json, time; from pathlib import Path; "
-        "from dotenv import load_dotenv; from src.analyzer.video_director import generate_video_prompts_from_reference, BASE_DIR, PROCESSED_VIDEO_PROMPTS_FILE, FINAL_IMAGES_DIR; "
-        "load_dotenv(BASE_DIR / '.env', override=True); "
-        "api_key = os.getenv('GEMINI_API_KEY'); "
-        f"stem = '{clean_stem}'; "
-        "cand = FINAL_IMAGES_DIR / f'{stem}.jpg'; "
-        "if not cand.exists(): cand = FINAL_IMAGES_DIR / f'{stem}.png'; "
-        "if not cand.exists(): print(f'Image not found: {stem}'); sys.exit(1); "
-        "print(f'Synthesizing 4D video prompts from {cand.name}...'); "
-        "res = generate_video_prompts_from_reference(cand, stem.replace('_', ' ').title(), stem, api_key); "
-        "if not res: print('Failed to generate prompts via Gemini'); sys.exit(2); "
-        "existing = []; "
-        "if PROCESSED_VIDEO_PROMPTS_FILE.exists(): "
-        "    try: existing = json.loads(PROCESSED_VIDEO_PROMPTS_FILE.read_text(encoding='utf-8')) "
-        "    except: existing = []; "
-        "existing = [x for x in existing if str(x.get('source_id')) != stem]; "
-        "existing.append(res); "
-        "tmp = PROCESSED_VIDEO_PROMPTS_FILE.with_suffix(f'.tmp.{os.getpid()}'); "
-        "tmp.write_text(json.dumps(existing, indent=2, ensure_ascii=False), encoding='utf-8'); "
-        "tmp.replace(PROCESSED_VIDEO_PROMPTS_FILE); "
-        "print(f'Successfully generated 4 commercial video prompts for {stem}!');"
-    )
-
-    cmd = [PYTHON, "-u", "-c", script]
+    cmd = [PYTHON, "-u", str(MAIN_PY), "--phase", "2", "--video", "--image-stem", clean_stem]
+    logger.info("Starting I2V Synthesis: %s", " ".join(cmd))
 
     _task_records[task_key] = {
         "task_id": task_key,
