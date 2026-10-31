@@ -26,6 +26,9 @@ load_dotenv(BASE_DIR / ".env", override=True)
 PROMPTS_FILE: Path = BASE_DIR / "data" / "processed" / "prompts.json"
 STAGING_IMAGES_DIR: Path = BASE_DIR / "data" / "staging" / "images"
 FINAL_IMAGES_DIR: Path = BASE_DIR / "data" / "final" / "images"
+FINAL_VIDEOS_DIR: Path = BASE_DIR / "data" / "final" / "videos"
+STAGING_VIDEOS_DIR: Path = BASE_DIR / "data" / "staging" / "videos"
+VIDEO_PROMPTS_FILE: Path = BASE_DIR / "data" / "processed" / "video_prompts.json"
 
 # ══════════════════════════════════════════════════════
 # Dual-Account Topologies & Configurations
@@ -75,6 +78,25 @@ CONTA_2_CONFIG = {
     "session_dir_name": "playwright_session_upscale",
 }
 
+# Video Pipeline: Geração e Upscale com Output Final em 4K
+CONTA_VIDEO_CONFIG = {
+    "account": 3,
+    "role": "video_generator_4k",
+    "workflow_url": os.getenv("RUNNINGHUB_VIDEO_WORKFLOW_URL", "https://www.runninghub.ai/pt-br/workflow/2115926169974812674?source=workspace"),
+    "workflow_id": os.getenv("RUNNINGHUB_VIDEO_WORKFLOW_ID", "2115926169974812674"),
+    "input_image_node": int(os.getenv("RUNNINGHUB_VIDEO_INPUT_NODE", "164")),  # Load Image: node #164
+    "input_node": int(os.getenv("RUNNINGHUB_VIDEO_INPUT_NODE", "164")),
+    "prompt_node": int(os.getenv("RUNNINGHUB_VIDEO_PROMPT_NODE", "17")),       # Prompt: node #17
+    "output_video_node": int(os.getenv("RUNNINGHUB_VIDEO_OUTPUT_NODE", "157")),# Save video/video combine: node #157
+    "output_node": int(os.getenv("RUNNINGHUB_VIDEO_OUTPUT_NODE", "157")),
+    "prompt_nodes": [int(os.getenv("RUNNINGHUB_VIDEO_PROMPT_NODE", "17"))],
+    "default_batch_size": 1,
+    "destination_dir": FINAL_VIDEOS_DIR,
+    "prefix": "final_4k_video",
+    "save_mode": "video_output",
+    "session_dir_name": "playwright_session_video",
+}
+
 # Default Active Configuration (Padrão: Conta 1 - Raw Producer)
 DEFAULT_ACCOUNT: int = int(os.getenv("RUNNINGHUB_ACCOUNT", "1"))
 DEFAULT_BATCH_SIZE: int = 210
@@ -87,10 +109,13 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - [%(levelname)s] - 
 logger: logging.Logger = logging.getLogger(__name__)
 
 
-def get_account_config(account: int = 1) -> Dict[str, Any]:
-    """Retorna o dicionário de configuração da conta selecionada."""
-    if account == 2:
+def get_account_config(account: Union[int, str] = 1) -> Dict[str, Any]:
+    """Retorna o dicionário de configuração da conta selecionada ou do pipeline de vídeo."""
+    acc_str = str(account).lower()
+    if acc_str in ("2", "upscale", "seedvr"):
         return dict(CONTA_2_CONFIG)
+    elif acc_str in ("3", "video", "video_4k", "video_generator_4k"):
+        return dict(CONTA_VIDEO_CONFIG)
     return dict(CONTA_1_CONFIG)
 
 
@@ -292,6 +317,300 @@ def cancel_runninghub_task(page: Page, max_wait_sec: int = 45) -> bool:
 
     return False
 
+
+
+def upload_image_to_node(page: Page, frame: Optional[Frame], node_id: int, image_path: Path) -> bool:
+    """
+    Injeta uma imagem de referência no Nó ComfyUI especificado (ex: Nó #164 'Load Image').
+    Aplica 3 estratégias de injeção para máxima confiabilidade:
+    1. DOM input[type='file'] no frame
+    2. FileChooser hook via Playwright com acionamento do widget
+    3. Multipart upload direto via fetch('/upload/image') e atualização do widget LiteGraph
+    """
+    logger.info(f"📤 Injetando imagem de referência ({image_path.name}) no Nó #{node_id}...")
+    target_frame = frame or page.main_frame
+    uploaded = False
+
+    # Estratégia 1: Input file no DOM
+    try:
+        for f in page.frames:
+            inputs = f.locator("input[type='file']")
+            cnt = inputs.count()
+            if cnt > 0:
+                for i in range(cnt):
+                    try:
+                        inputs.nth(i).set_input_files(str(image_path))
+                        logger.info("🎯 Imagem injetada via input[type='file'] no DOM.")
+                        uploaded = True
+                    except Exception:
+                        pass
+    except Exception as e:
+        logger.debug(f"Aviso no input file do DOM: {e}")
+
+    # Estratégia 2: File Chooser trigger
+    try:
+        with page.expect_file_chooser(timeout=2500) as fc_info:
+            target_frame.evaluate("""(nodeId) => {
+                if (typeof window.app === 'undefined' || !window.app.graph) return false;
+                const node = window.app.graph.getNodeById(nodeId);
+                if (node) {
+                    if (window.app.canvas) {
+                        window.app.canvas.centerOnNode(node);
+                        window.app.canvas.selectNode(node);
+                    }
+                    if (node.widgets) {
+                        for (let w of node.widgets) {
+                            if (w.type === 'button' || (w.name && w.name.toLowerCase().includes('upload'))) {
+                                if (typeof w.callback === 'function') {
+                                    w.callback();
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                }
+                return false;
+            }""", node_id)
+        fc = fc_info.value
+        fc.set_files(str(image_path))
+        logger.info(f"🎯 Imagem injetada via FileChooser no Nó #{node_id}.")
+        uploaded = True
+    except Exception:
+        pass
+
+    # Estratégia 3: Multipart upload direto via API ComfyUI & atualização do widget
+    try:
+        mime = "image/png" if image_path.suffix.lower() == ".png" else "image/jpeg"
+        with open(image_path, "rb") as f:
+            b64_img = base64.b64encode(f.read()).decode("utf-8")
+        api_res = target_frame.evaluate("""async ({ nodeId, filename, b64Data, mimeType }) => {
+            let uploadedName = filename;
+            try {
+                const byteCharacters = atob(b64Data);
+                const byteNumbers = new Array(byteCharacters.length);
+                for (let i = 0; i < byteCharacters.length; i++) {
+                    byteNumbers[i] = byteCharacters.charCodeAt(i);
+                }
+                const byteArray = new Uint8Array(byteNumbers);
+                const blob = new Blob([byteArray], { type: mimeType });
+                const file = new File([blob], filename, { type: mimeType });
+
+                const formData = new FormData();
+                formData.append('image', file);
+                formData.append('overwrite', 'true');
+                formData.append('type', 'input');
+
+                const resp = await fetch('/upload/image', {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'include'
+                });
+                if (resp.ok) {
+                    const data = await resp.json();
+                    if (data && data.name) uploadedName = data.name;
+                }
+            } catch (err) {}
+
+            if (typeof window.app !== 'undefined' && window.app.graph) {
+                const node = window.app.graph.getNodeById(nodeId);
+                if (node) {
+                    if (window.app.canvas) {
+                        window.app.canvas.centerOnNode(node);
+                        window.app.canvas.selectNode(node);
+                    }
+                    if (node.widgets) {
+                        for (let w of node.widgets) {
+                            if (w.name && (w.name.toLowerCase().includes('image') || w.name.toLowerCase().includes('file') || w.type === 'combo' || w.type === 'customtext')) {
+                                w.value = uploadedName;
+                                if (w.inputEl) {
+                                    w.inputEl.value = uploadedName;
+                                    w.inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+                                    w.inputEl.dispatchEvent(new Event('change', { bubbles: true }));
+                                }
+                                if (typeof w.callback === 'function') {
+                                    try { w.callback(uploadedName); } catch(e) {}
+                                }
+                            }
+                        }
+                    }
+                    if (window.app.graph.setDirtyCanvas) window.app.graph.setDirtyCanvas(true, true);
+                    if (window.app.canvas && window.app.canvas.draw) window.app.canvas.draw(true, true);
+                    return { success: true, uploadedName: uploadedName };
+                }
+            }
+            return { success: false };
+        }""", {"nodeId": node_id, "filename": image_path.name, "b64Data": b64_img, "mimeType": mime})
+
+        if api_res and api_res.get("success"):
+            logger.info("🎯 Widget de Imagem do Nó #%d atualizado com sucesso (%s).", node_id, api_res.get("uploadedName"))
+            uploaded = True
+    except Exception as e:
+        logger.debug(f"Aviso no fallback de API de Imagem do Nó #{node_id}: {e}")
+
+    return uploaded
+
+
+def inject_video_prompt_to_node(frame: Frame, node_id: int, prompt_text: str) -> bool:
+    """Injeta o texto do prompt no nó de texto especificado (Nó #17)."""
+    try:
+        res = frame.evaluate("""({nodeId, text}) => {
+            if (typeof window.app === 'undefined' || !window.app.graph) return false;
+            const node = window.app.graph.getNodeById(nodeId);
+            if (!node || !node.widgets) return false;
+            if (window.app.canvas) {
+                window.app.canvas.centerOnNode(node);
+                window.app.canvas.selectNode(node);
+            }
+            let targetWidget = node.widgets.find(w => w.name && (w.name.startsWith('prompt') || w.name.startsWith('text') || w.type === 'customtext'));
+            if (!targetWidget && node.widgets.length > 0) targetWidget = node.widgets[0];
+            if (targetWidget) {
+                targetWidget.value = text;
+                if (targetWidget.inputEl) {
+                    if (targetWidget.inputEl.parentElement) {
+                        targetWidget.inputEl.parentElement.style.display = 'block';
+                        targetWidget.inputEl.parentElement.style.visibility = 'visible';
+                    }
+                    targetWidget.inputEl.value = text;
+                    targetWidget.inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+                    targetWidget.inputEl.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+                if (typeof targetWidget.callback === 'function') {
+                    try { targetWidget.callback(text); } catch(e) {}
+                }
+                if (window.app.graph.setDirtyCanvas) window.app.graph.setDirtyCanvas(true, true);
+                if (window.app.canvas && window.app.canvas.draw) window.app.canvas.draw(true, true);
+                return true;
+            }
+            return false;
+        }""", {"nodeId": node_id, "text": prompt_text})
+        return bool(res)
+    except Exception as e:
+        logger.warning(f"Erro ao injetar prompt no nó #{node_id}: {e}")
+        return False
+
+
+def get_node_videos(page: Page, node_id: int) -> List[str]:
+    """Extrai URLs ou referências de vídeos gerados no nó de saída (#157) do ComfyUI/LiteGraph."""
+    node_videos = []
+    for frame in page.frames:
+        try:
+            vids = frame.evaluate("""(id) => {
+                let res = [];
+                if (typeof window.app !== 'undefined' && window.app.graph) {
+                    let node = window.app.graph.getNodeById(id);
+                    if (node) {
+                        if (node.video && (node.video.src || node.video.currentSrc)) {
+                            res.push(node.video.src || node.video.currentSrc);
+                        }
+                        if (node.imgs && node.imgs.length > 0) {
+                            res.push(...node.imgs.map(i => i.src || i.currentSrc).filter(Boolean));
+                        }
+                        if (node.widgets) {
+                            for (let w of node.widgets) {
+                                if (w.element && (w.element.tagName === 'VIDEO' || (w.element.querySelector && w.element.querySelector('video')))) {
+                                    let v = w.element.tagName === 'VIDEO' ? w.element : w.element.querySelector('video');
+                                    if (v && (v.src || v.currentSrc)) res.push(v.src || v.currentSrc);
+                                }
+                                if (w.value && typeof w.value === 'string' && (w.value.endsWith('.mp4') || w.value.endsWith('.webm') || w.value.endsWith('.mov'))) {
+                                    res.push('/view?filename=' + encodeURIComponent(w.value) + '&type=output');
+                                }
+                            }
+                        }
+                    }
+                }
+                try {
+                    const vEls = Array.from(document.querySelectorAll('video'));
+                    for (let v of vEls) {
+                        if (v.src) res.push(v.src);
+                        if (v.currentSrc) res.push(v.currentSrc);
+                        const srcs = Array.from(v.querySelectorAll('source'));
+                        for (let s of srcs) {
+                            if (s.src) res.push(s.src);
+                        }
+                    }
+                } catch(e) {}
+                return Array.from(new Set(res.filter(Boolean)));
+            }""", node_id)
+            if vids:
+                node_videos.extend(vids)
+        except Exception:
+            pass
+    return list(dict.fromkeys(node_videos))
+
+
+def save_video_from_src(
+    page: Page,
+    src: str,
+    destination_dir: Optional[Path] = None,
+    prefix: str = "final_4k_video",
+) -> Optional[str]:
+    """Salva o vídeo do canvas/DOM/blob em disco de forma transacional (.tmp) (ADR-02)."""
+    target_dir = destination_dir or FINAL_VIDEOS_DIR
+    target_dir.mkdir(parents=True, exist_ok=True)
+    filename = target_dir / f"{prefix}_{uuid.uuid4().hex[:8]}.mp4"
+    while filename.exists():
+        filename = target_dir / f"{prefix}_{uuid.uuid4().hex[:8]}.mp4"
+    tmp_filename = filename.with_suffix(".tmp")
+
+    try:
+        data: Optional[bytes] = None
+        if src.startswith("data:video"):
+            header, encoded = src.split(",", 1)
+            raw_data = base64.b64decode(encoded)
+            if len(raw_data) > 50000:
+                data = raw_data
+        elif src.startswith("blob:") or src.startswith("http") or src.startswith("/"):
+            # Extrair dentro do contexto autenticado do navegador
+            for frame in page.frames:
+                try:
+                    b64_url = frame.evaluate("""async (url) => {
+                        try {
+                            const resp = await fetch(url, { credentials: 'include' });
+                            if (!resp.ok) return null;
+                            const blob = await resp.blob();
+                            return new Promise((resolve) => {
+                                const reader = new FileReader();
+                                reader.onloadend = () => resolve(reader.result);
+                                reader.onerror = () => resolve(null);
+                                reader.readAsDataURL(blob);
+                            });
+                        } catch (e) {
+                            return null;
+                        }
+                    }""", src)
+                    if b64_url and "," in b64_url:
+                        header, encoded = b64_url.split(",", 1)
+                        raw_data = base64.b64decode(encoded)
+                        if len(raw_data) > 50000:
+                            data = raw_data
+                            break
+                except Exception:
+                    pass
+
+            if data is None and src.startswith("http"):
+                try:
+                    req = urllib.request.Request(src, headers={"User-Agent": "Mozilla/5.0"})
+                    with urllib.request.urlopen(req, timeout=30) as response:
+                        http_data = response.read()
+                        if len(http_data) > 50000:
+                            data = http_data
+                except Exception:
+                    pass
+
+        if data:
+            with open(tmp_filename, "wb") as f:
+                f.write(data)
+            tmp_filename.replace(filename)
+            logger.info("🎬 Vídeo 4K gravado com sucesso: %s (%d KB)", filename.name, len(data) // 1024)
+            return filename.name
+    except Exception as e:
+        logger.error("Erro ao salvar vídeo de '%s': %s", src[:60], e)
+        if tmp_filename.exists():
+            try:
+                tmp_filename.unlink()
+            except Exception:
+                pass
+    return None
 
 def upload_zip_to_node(page: Page, frame: Optional[Frame], node_id: int, zip_path: Path) -> bool:
     """
@@ -536,7 +855,7 @@ def dismiss_runninghub_popups(page: Page) -> bool:
 
 
 def run_factory_bot(
-    account: int = DEFAULT_ACCOUNT,
+    account: Union[int, str] = DEFAULT_ACCOUNT,
     output_node_id: Optional[int] = None,
     max_batches: int = 1,
     all_batches: bool = False,
@@ -544,12 +863,20 @@ def run_factory_bot(
     prompt_nodes: Optional[List[int]] = None,
     destination_dir: Optional[Path] = None,
     session_dir: Optional[Path] = None,
+    input_image_path: Optional[Path] = None,
+    custom_prompt_text: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
-    Executa a Fábrica RPA adaptando o comportamento entre Conta 1 e Conta 2:
-    - Conta 1 (Raw Producer): Injeta prompts (#128-#254) e salva todas as até 210 imagens brutas de uma vez no Nó #121 (janela de 40 min).
-    - Conta 2 (SeedVR 8K Upscaler): Monitora o Nó #55 em tempo real (1 a 1 instantâneo) antes que a imagem seja sobrescrita!
+    Executa a Fábrica RPA adaptando o comportamento entre Conta 1, Conta 2 e Pipeline de Vídeo 4K:
+    - Conta 1 (Raw Producer): Injeta prompts (#128-#254) e salva todas as imagens brutas no Nó #121.
+    - Conta 2 (SeedVR 8K Upscaler): Ingestão zip no Nó #5 e monitoramento tempo real 1 a 1 no Nó #55.
+    - Pipeline de Vídeo 4K (Conta 3): Ingestão de imagem no Nó #164, Prompt no Nó #17 e saída de vídeo 4K no Nó #157.
     """
+    if isinstance(account, str):
+        if account.isdigit():
+            account = int(account)
+        elif account.lower() in ("video", "video_4k"):
+            account = 3
     cfg = get_account_config(account)
     out_node = output_node_id if output_node_id is not None else cfg["output_node"]
     input_node = cfg.get("input_node", 5)
@@ -596,11 +923,17 @@ def run_factory_bot(
         logger.info(f"  • Modo de Salvamento: BATCH ALL (Todas de uma vez após render)")
         logger.info(f"  • Nós PromptList:     {target_nodes} (5 prompts/nó = até {len(target_nodes)*5} prompts)")
         logger.info(f"  • Nó de Preview Raw:  #{out_node}")
-    else:
+    elif account == 2:
         logger.info("💎 INICIANDO FÁBRICA RPA — CONTA 2 (SEEDVR 2.5 8K UPSCALER)")
         logger.info(f"  • Modo de Salvamento: TEMPO REAL 1 A 1 (Salva instantâneo no Nó #{out_node})")
         logger.info(f"  • Alerta Anti-Overwrite: Captura imediata antes da próxima imagem substituir o nó!")
         logger.info(f"  • Nó Preview 8K:      #{out_node}")
+    else:
+        logger.info("🎬 INICIANDO FÁBRICA RPA — PIPELINE DE VÍDEO (GERAÇÃO & UPSCALE 4K)")
+        logger.info(f"  • Modo de Salvamento: VÍDEO OUTPUT 4K (Nó #{out_node})")
+        logger.info(f"  • Nó Ingestão Imagem: #{input_node} (Load Image)")
+        logger.info(f"  • Nó Injeção Prompt:  #{cfg.get('prompt_node', 17)} (Prompt / Text)")
+        logger.info(f"  • Nó de Saída Vídeo:  #{out_node} (Save video/video combine)")
     gpu_label = fp.webgl_renderer.split('(')[1].split(')')[0] if '(' in fp.webgl_renderer else 'Spoofed GPU'
     logger.info(f"  • Stealth Fingerprint: GPU {gpu_label}")
     logger.info(f"  • Stealth Hardware:    {fp.hardware_concurrency} cores | {fp.device_memory} GB RAM | {fp.screen_width}x{fp.screen_height}")
@@ -732,10 +1065,30 @@ def run_factory_bot(
                 if not all_batches and batch_count >= max_batches:
                     break
 
-                current_pending = queue_mgr.get_pending_prompts(batch_size=b_size)
+                current_pending = queue_mgr.get_pending_prompts(batch_size=b_size) if account != 3 else []
+                v_item = None
+                ref_img = None
+                p_text_video = ""
+
                 if account == 1 and not current_pending:
                     logger.info("🎉 Fila de prompts zerada! Nenhum prompt pendente.")
                     break
+                elif account == 3:
+                    pending_v = queue_mgr.get_pending_video_prompts(batch_size=1)
+                    if pending_v:
+                        v_item = pending_v[0]
+                    p_text_video = custom_prompt_text or (v_item.prompt_text if v_item else "")
+
+                    if input_image_path and Path(input_image_path).exists():
+                        ref_img = Path(input_image_path)
+                    elif v_item and v_item.reference_image:
+                        cand = BASE_DIR / v_item.reference_image if not Path(v_item.reference_image).is_absolute() else Path(v_item.reference_image)
+                        if cand.exists():
+                            ref_img = cand
+                    if not ref_img and FINAL_IMAGES_DIR.exists():
+                        cand_imgs = sorted(list(FINAL_IMAGES_DIR.glob("*.jpg")) + list(FINAL_IMAGES_DIR.glob("*.png")), key=lambda f: f.stat().st_mtime, reverse=True)
+                        if cand_imgs:
+                            ref_img = cand_imgs[0]
 
                 batch_count += 1
                 batch_prompts = [p.prompt_text for p in current_pending]
@@ -813,10 +1166,24 @@ def run_factory_bot(
                     else:
                         logger.warning(f"⚠️ Upload do ZIP concluído no Nó #{input_node}.")
                     time.sleep(2.0)
+                elif account == 3:
+                    if ref_img and ref_img.exists():
+                        logger.info(f"📤 [Vídeo] Injetando imagem de referência ({ref_img.name}) no Nó #{input_node} (Load Image)...")
+                        upload_image_to_node(page, comfy_frame, input_node, ref_img)
+                        time.sleep(1.0)
+                    if p_text_video:
+                        p_node = cfg.get("prompt_node", 17)
+                        logger.info(f"📝 [Vídeo] Injetando prompt temporal de vídeo no Nó #{p_node}...")
+                        inject_video_prompt_to_node(comfy_frame, p_node, p_text_video)
+                        time.sleep(0.5)
 
                 # Captura pré-existente no nó de saída
-                initial_node_images = get_node_images(page, out_node)
-                logger.info(f"Ignorando {len(initial_node_images)} imagens pré-existentes no Node #{out_node}.")
+                initial_node_images = get_node_images(page, out_node) if account != 3 else []
+                initial_node_videos = get_node_videos(page, out_node) if account == 3 else []
+                if account == 3:
+                    logger.info(f"Ignorando {len(initial_node_videos)} vídeos pré-existentes no Node #{out_node}.")
+                else:
+                    logger.info(f"Ignorando {len(initial_node_images)} imagens pré-existentes no Node #{out_node}.")
 
                 # 3. Disparar Execução
                 logger.info("Acionando 'Executar' (Lite/Plus)...")
@@ -913,6 +1280,48 @@ def run_factory_bot(
                                 qc_inspector.register_staging_image(filename=saved_name, prompt_hash=p_hash, prompt_text=p_text)
                             except Exception:
                                 pass
+
+                # ── ESTRATÉGIA C: PIPELINE DE VÍDEO 4K (Save video/video combine) ──
+                elif save_mode == "video_output" or account == 3:
+                    logger.info(f"⏳ [Pipeline de Vídeo 4K] Monitorando renderização e upscale no Nó #{out_node}...")
+                    video_saved = False
+                    video_wait_start = time.time()
+                    last_heartbeat = video_wait_start
+
+                    while True:
+                        page.keyboard.press("Escape")
+                        current_node_videos = get_node_videos(page, out_node)
+                        new_vids = [v for v in current_node_videos if v not in initial_node_videos]
+
+                        if new_vids:
+                            target_vid = new_vids[0]
+                            logger.info(f"🎥 Novo vídeo 4K detectado no Nó #{out_node}!")
+                            saved_name = save_video_from_src(page, target_vid, destination_dir=target_dir, prefix=cfg["prefix"])
+                            if saved_name:
+                                images_saved += 1
+                                batch_saved_files.append(saved_name)
+                                video_saved = True
+                                elapsed = time.time() - video_wait_start
+                                logger.info(f"✅ Vídeo 4K gravado com sucesso: {saved_name} ({elapsed:.1f}s decorridos) em {target_dir.name}!")
+
+                                if v_item:
+                                    queue_mgr.mark_video_prompts_generated([v_item], saved_videos=[saved_name])
+                                break
+
+                        now = time.time()
+                        if now - last_heartbeat >= 20:
+                            elapsed_sec = int(now - video_wait_start)
+                            logger.info(f"⏳ [Vídeo 4K] Renderização e upscale em andamento ({elapsed_sec}s decorridos)...")
+                            last_heartbeat = now
+
+                        if now - video_wait_start > 1200:
+                            logger.warning("⚠️ Limite máximo de espera por renderização de vídeo atingido (20 min).")
+                            break
+
+                        time.sleep(4)
+
+                    # Cancelar tarefa no RunningHub para poupar GPU
+                    cancel_runninghub_task(page)
 
                 # ── ESTRATÉGIA B: CONTA 2 (Real-Time Single — 1 a 1 antes de sobrescrever) ──
                 else:

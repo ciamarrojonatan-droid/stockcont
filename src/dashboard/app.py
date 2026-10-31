@@ -864,19 +864,22 @@ async def run_video_phase_endpoint(
     query: Optional[str] = None,
     platform: Optional[str] = None,
     max_items: Optional[int] = None,
-    prores: Optional[bool] = False
+    prores: Optional[bool] = False,
+    account: Optional[int] = 3,
 ):
-    """Trigger video pipeline phases (1, 2, 4, 5)."""
-    if phase not in (1, 2, 4, 5):
-        raise HTTPException(status_code=400, detail="Video phase must be 1, 2, 4, or 5")
+    """Trigger video pipeline phases (1, 2, 3, 4, 5)."""
+    if phase not in (1, 2, 3, 4, 5):
+        raise HTTPException(status_code=400, detail="Video phase must be 1, 2, 3, 4, or 5")
     extra_args = []
+    if phase == 3:
+        extra_args.extend(["--account", str(account or 3)])
     if query:
         extra_args.extend(["--query", query])
     if platform:
         extra_args.extend(["--platform", platform])
     if max_items:
         extra_args.extend(["--max-items", str(max_items)])
-    if prores:
+    if prores and phase == 4:
         extra_args.append("--prores")
     return await runner.run_video_phase(phase, extra_args=extra_args)
 

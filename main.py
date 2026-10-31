@@ -147,7 +147,8 @@ def check_status() -> None:
                 v_prompts_count = sum(len(p.get("derivative_prompts", [])) for p in v_data)
         except Exception:
             pass
-    print(f"  [V] Video Pipeline:      {v_prompts_count} video prompts prontos | {len(final_videos)} vídeos em data/final/videos/")
+    print(f"  [V] Video Pipeline (4K):  Workflow: 2115926169974812674 (Load Image #164 -> Prompt #17 -> Video Combine #157)")
+    print(f"                            {v_prompts_count} video prompts prontos | {len(final_videos)} vídeos em data/final/videos/")
 
     # Cloud Backup: Google Drive
     from src.backup.gdrive_backup import GoogleDriveBackup
@@ -249,11 +250,32 @@ def run_phase_2() -> None:
     director_main()
     logger.info("Phase 2 finished.")
 
-def run_phase_3(account: int = 1, node: int | None = None, batches: int = 1, all_batches: bool = False, batch_size: int = 210) -> None:
-    """Execute Phase 3: The Factory RPA Bot (Conta 1 - Raw Producer ou Conta 2 - SeedVR 8K)."""
-    logger.info(f"--- Starting Phase 3: The Factory (Conta {account}, Output Node: {node or 'default'}, Batch Size: {batch_size}, Batches: {batches}) ---")
+def run_phase_3(
+    account: int = 1,
+    node: int | None = None,
+    batches: int = 1,
+    all_batches: bool = False,
+    batch_size: int = 210,
+    is_video: bool = False,
+    input_image: Path | None = None,
+    prompt_text: str | None = None,
+) -> None:
+    """Execute Phase 3: The Factory RPA Bot (Conta 1 - Raw Producer, Conta 2 - SeedVR 8K, ou Conta 3/Vídeo - 4K Video Generator)."""
+    if is_video or account == 3:
+        account = 3
+        logger.info("--- Starting Phase 3: The Factory Video Pipeline (Workflow 4K: Load Image #164, Prompt #17, Video Combine #157) ---")
+    else:
+        logger.info(f"--- Starting Phase 3: The Factory (Conta {account}, Output Node: {node or 'default'}, Batch Size: {batch_size}, Batches: {batches}) ---")
     from src.factory.runninghub_bot import run_factory_bot
-    run_factory_bot(account=account, output_node_id=node, batch_size=batch_size, max_batches=batches, all_batches=all_batches)
+    run_factory_bot(
+        account=account,
+        output_node_id=node,
+        batch_size=batch_size,
+        max_batches=batches,
+        all_batches=all_batches,
+        input_image_path=input_image,
+        custom_prompt_text=prompt_text,
+    )
     logger.info("Phase 3 finished.")
 
 def run_phase_4(images_dir: Path | None = None, output_dir: Path | None = None) -> None:
@@ -391,7 +413,7 @@ def main() -> None:
 
     # Options for Phase 3
     p3_group = parser.add_argument_group("Phase 3 Options")
-    p3_group.add_argument("--account", type=int, default=1, choices=[1, 2], help="RunningHub Account: 1 (Raw Producer) or 2 (SeedVR 8K Upscaler)")
+    p3_group.add_argument("--account", type=int, default=1, choices=[1, 2, 3], help="RunningHub Account: 1 (Raw Producer), 2 (SeedVR 8K Upscaler), or 3 (Video 4K Generator & Upscaler)")
     p3_group.add_argument("--node", type=int, default=None, help="Output Node ID (default: 121 for Conta 1, 55 for Conta 2)")
     p3_group.add_argument("--batch-size", type=int, default=210, help="Number of prompts per batch (default: 210)")
     p3_group.add_argument("--batches", type=int, default=1, help="Number of consecutive batches to process in Phase 3 (default: 1)")
@@ -421,6 +443,8 @@ def main() -> None:
     video_group.add_argument("--asset-type", choices=["image", "video", "all"], default="image", help="Asset type for pipeline processing (default: image)")
     video_group.add_argument("--prores", action="store_true", help="Generate Apple ProRes 422 HQ MOV for Pond5 in Phase 4")
     video_group.add_argument("--videos-dir", type=Path, default=None, help="Custom directory containing videos to catalog")
+    video_group.add_argument("--input-image", type=Path, default=None, help="Reference image path for video generation (Node #164)")
+    video_group.add_argument("--video-prompt", type=str, default=None, help="Custom prompt text for video generation (Node #17)")
 
     args = parser.parse_args()
 
@@ -506,7 +530,17 @@ def main() -> None:
         else:
             run_phase_2()
     elif args.phase == 3:
-        run_phase_3(account=args.account, node=args.node, batches=args.batches, all_batches=args.all_batches, batch_size=args.batch_size)
+        is_vid = bool(args.video or args.asset_type == "video" or args.account == 3)
+        run_phase_3(
+            account=3 if is_vid else args.account,
+            node=args.node,
+            batches=args.batches,
+            all_batches=args.all_batches,
+            batch_size=args.batch_size,
+            is_video=is_vid,
+            input_image=getattr(args, "input_image", None),
+            prompt_text=getattr(args, "video_prompt", None),
+        )
     elif args.phase == 4:
         if args.video or args.asset_type == "video":
             run_video_phase_4(videos_dir=args.videos_dir, max_items=args.max_items, generate_prores=args.prores)

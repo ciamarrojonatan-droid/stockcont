@@ -171,10 +171,13 @@ Diferente de fluxos manuais de geração com IA generativa, o StockCont opera co
   python main.py --phase 3 --account 1 --batch-size 210
   python main.py --phase 3 --account 2
   python main.py --phase 3 --account 1 --all-batches
+  python main.py --phase 3 --video
+  python main.py --phase 3 --account 3
   `
 - **Padrões de Engenharia**:
   - Topologia Conta 1 (Raw Producer): 42 nós PromptList (#128, #129, #130, #131, #204, #218, #224, #223, #222, #221, #219, #220, #230, #229, #228, #227, #225, #226, #236, #235, #234, #233, #231, #232, #242, #241, #240, #239, #237, #238, #254, #253, #252, #251, #249, #250, #248, #247, #246, #245, #243, #244), 5 prompts por nó = até 210 prompts por lote na janela de 40 minutos do RunningHub, saída no nó #121.
   - Topologia Conta 2 (SeedVR 8K): Ingestão zip no nó #5, saída preview instantânea 1 a 1 no nó #55.
+  - Topologia Pipeline de Vídeo 4K (Conta 3): Workflow 2115926169974812674, Ingestão de Imagem no nó #164 (Load Image), Prompt temporal no nó #17, Saída final de vídeo 4K no nó #157 (Save video/video combine), salvamento em data/final/videos/.
   - Hashing SHA-256 canônico de cada prompt para garantir idempotência.
   - Cancelamento atômico pós-última imagem renderizada para economizar créditos de GPU.
 

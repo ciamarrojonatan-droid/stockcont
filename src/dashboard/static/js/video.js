@@ -155,6 +155,8 @@ function renderVideoPipelineTrack(phases) {
       actionBtn = `<button class="btn btn-xs btn-outline" onclick="triggerRunVideoPhase(1)">Scout</button>`;
     } else if (p.phase === 2) {
       actionBtn = `<button class="btn btn-xs btn-primary" onclick="triggerRunVideoPhase(2)">Sintetizar</button>`;
+    } else if (p.phase === 3) {
+      actionBtn = `<button class="btn btn-xs btn-warning" onclick="triggerRunVideoPhase(3)" title="Gerar e Upscale 4K no RunningHub (Img #164, Prompt #17, Vídeo #157)">Gerar 4K</button>`;
     } else if (p.phase === 4) {
       actionBtn = `<button class="btn btn-xs btn-warning" onclick="triggerRunVideoPhase(4)">Catalogar</button>`;
     } else if (p.phase === 5) {

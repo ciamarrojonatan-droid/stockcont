@@ -78,11 +78,37 @@ CONTA_2_FINGERPRINT = StealthFingerprint(
     session_dir="playwright_session_upscale",
 )
 
+# Profile 3: Windows 11 Pro | Studio RTX 4090 Video Workstation | 24 Cores | 4K Display
+CONTA_3_FINGERPRINT = StealthFingerprint(
+    account=3,
+    user_agent=(
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/130.0.6723.92 Safari/537.36"
+    ),
+    sec_ch_ua='"Chromium";v="130", "Not?A_Brand";v="99", "Google Chrome";v="130"',
+    sec_ch_ua_platform='"Windows"',
+    platform="Win32",
+    hardware_concurrency=24,
+    device_memory=64,
+    screen_width=3840,
+    screen_height=2160,
+    device_pixel_ratio=1.5,
+    webgl_vendor="Google Inc. (NVIDIA)",
+    webgl_renderer="ANGLE (NVIDIA, NVIDIA GeForce RTX 4090 Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    languages=["pt-BR", "en-US", "pt", "en"],
+    timezone="America/Sao_Paulo",
+    canvas_noise_offset=0.00033,
+    session_dir="playwright_session_video",
+)
+
 
 def get_stealth_fingerprint(account: int = 1) -> StealthFingerprint:
     """Return the designated stealth profile for the account."""
     if account == 2:
         return CONTA_2_FINGERPRINT
+    elif account == 3:
+        return CONTA_3_FINGERPRINT
     return CONTA_1_FINGERPRINT
 
 

@@ -5,6 +5,7 @@ and atomic updates to prompts.json and generation_history.json.
 """
 
 import hashlib
+import os
 import json
 import logging
 from dataclasses import dataclass
@@ -24,6 +25,8 @@ STAGING_VIDEOS_DIR: Path = BASE_DIR / "data" / "staging" / "videos"
 DEFAULT_PROMPTS_FILE: Path = PROCESSED_DIR / "prompts.json"
 DEFAULT_HISTORY_FILE: Path = PROCESSED_DIR / "generation_history.json"
 DEFAULT_TRENDS_FILE: Path = RAW_DIR / "trends.json"
+DEFAULT_VIDEO_PROMPTS_FILE: Path = PROCESSED_DIR / "video_prompts.json"
+DEFAULT_VIDEO_HISTORY_FILE: Path = PROCESSED_DIR / "video_generation_history.json"
 
 
 @dataclass
@@ -40,6 +43,7 @@ class PromptItem:
     asset_type: str = "image"
     video_file: Optional[str] = None
     aspect_ratio: str = "16:9"
+    reference_image: Optional[str] = None
 
     def __str__(self) -> str:
         return self.prompt_text
@@ -57,6 +61,7 @@ class PromptItem:
             "asset_type": self.asset_type,
             "video_file": self.video_file,
             "aspect_ratio": self.aspect_ratio,
+            "reference_image": self.reference_image,
         }
 
 
@@ -70,13 +75,20 @@ class PromptQueueManager:
         trends_file: Path = DEFAULT_TRENDS_FILE,
         images_dir: Path = FINAL_IMAGES_DIR,
         auto_reconcile: bool = True,
+        video_prompts_file: Path = DEFAULT_VIDEO_PROMPTS_FILE,
+        video_history_file: Path = DEFAULT_VIDEO_HISTORY_FILE,
+        videos_dir: Path = FINAL_VIDEOS_DIR,
     ) -> None:
         self.prompts_file = Path(prompts_file)
         self.history_file = Path(history_file)
         self.trends_file = Path(trends_file)
         self.images_dir = Path(images_dir)
+        self.video_prompts_file = Path(video_prompts_file)
+        self.video_history_file = Path(video_history_file)
+        self.videos_dir = Path(videos_dir)
 
         self._history: Dict[str, Dict[str, Any]] = self._load_history()
+        self._video_history: Dict[str, Dict[str, Any]] = self._load_video_history()
 
         if auto_reconcile:
             self.reconcile_existing_images()
@@ -498,3 +510,155 @@ class PromptQueueManager:
             "progress_percent": pct,
             "final_videos": videos_count,
         }
+
+    def _load_video_history(self) -> Dict[str, Dict[str, Any]]:
+        """Load video history ledger from disk."""
+        if not self.video_history_file.exists():
+            return {}
+        try:
+            with open(self.video_history_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                return data if isinstance(data, dict) else {}
+        except Exception as e:
+            logger.warning(f"Não foi possível ler {self.video_history_file.name}: {e}. Inicializando ledger de vídeo vazio.")
+            return {}
+
+    def _save_video_history(self) -> None:
+        """Atomically persist video history ledger via temporary file (ADR-02)."""
+        self.video_history_file.parent.mkdir(parents=True, exist_ok=True)
+        tmp_file = self.video_history_file.with_suffix(f".tmp.{os.getpid()}")
+        try:
+            with open(tmp_file, "w", encoding="utf-8") as f:
+                json.dump(self._video_history, f, indent=2, ensure_ascii=False)
+            tmp_file.replace(self.video_history_file)
+        except Exception as e:
+            logger.error(f"Erro ao salvar histórico de geração de vídeo ({self.video_history_file}): {e}")
+            if tmp_file.exists():
+                try:
+                    tmp_file.unlink()
+                except Exception:
+                    pass
+
+    def _load_video_prompts_data(self) -> List[Dict[str, Any]]:
+        """Load raw video prompts dataset from video_prompts.json."""
+        if not self.video_prompts_file.exists():
+            return []
+        try:
+            with open(self.video_prompts_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                return data if isinstance(data, list) else []
+        except Exception as e:
+            logger.error(f"Erro ao ler arquivo de prompts de vídeo ({self.video_prompts_file}): {e}")
+            return []
+
+    def _save_video_prompts_data(self, data: List[Dict[str, Any]]) -> None:
+        """Atomically persist video prompts dataset via temporary file (ADR-02)."""
+        self.video_prompts_file.parent.mkdir(parents=True, exist_ok=True)
+        tmp_file = self.video_prompts_file.with_suffix(f".tmp.{os.getpid()}")
+        try:
+            with open(tmp_file, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+            tmp_file.replace(self.video_prompts_file)
+        except Exception as e:
+            logger.error(f"Erro ao salvar dados de prompts de vídeo ({self.video_prompts_file}): {e}")
+            if tmp_file.exists():
+                try:
+                    tmp_file.unlink()
+                except Exception:
+                    pass
+
+    def get_all_video_prompts(self) -> List[PromptItem]:
+        """Return all video prompts parsed as PromptItems with status and ledger tracking."""
+        raw_data = self._load_video_prompts_data()
+        items: List[PromptItem] = []
+        for container in raw_data:
+            if not isinstance(container, dict):
+                continue
+            source_id = str(container.get("source_id", ""))
+            ref_img = container.get("reference_image", "")
+            for p in container.get("derivative_prompts", []):
+                if not isinstance(p, dict):
+                    continue
+                p_text = (p.get("prompt") or "").strip()
+                if not p_text:
+                    continue
+                p_hash = self.compute_hash(p_text)
+                history_entry = self._video_history.get(p_hash)
+                is_generated = (p.get("status") == "generated") or (history_entry is not None)
+                status = "generated" if is_generated else "pending"
+                gen_at = history_entry.get("generated_at") if history_entry else p.get("generated_at")
+                v_file = history_entry.get("video_file") if history_entry else p.get("video_file")
+                items.append(
+                    PromptItem(
+                        prompt_text=p_text,
+                        prompt_hash=p_hash,
+                        source_id=source_id,
+                        prompt_id=p.get("id"),
+                        concept=p.get("concept", ""),
+                        status=status,
+                        generated_at=gen_at,
+                        asset_type="video",
+                        video_file=v_file,
+                        aspect_ratio=p.get("aspect_ratio", "16:9"),
+                        reference_image=ref_img,
+                    )
+                )
+        return items
+
+    def get_pending_video_prompts(self, batch_size: Optional[int] = 1) -> List[PromptItem]:
+        """Return pending video prompts."""
+        all_v = self.get_all_video_prompts()
+        pending = [p for p in all_v if p.status == "pending"]
+        if batch_size is not None and batch_size > 0:
+            return pending[:batch_size]
+        return pending
+
+    def mark_video_prompts_generated(
+        self,
+        prompts: List[PromptItem],
+        saved_videos: Optional[List[str]] = None,
+        batch_id: Optional[str] = None,
+    ) -> int:
+        """Mark video prompts as generated and update video_prompts.json and ledger."""
+        if not prompts:
+            return 0
+        now_iso = datetime.now(timezone.utc).isoformat()
+        b_id = batch_id or f"vbatch_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
+        v_files = saved_videos or []
+        for idx, p in enumerate(prompts):
+            p.status = "generated"
+            p.generated_at = now_iso
+            v_name = v_files[idx] if idx < len(v_files) else None
+            p.video_file = v_name
+            self._video_history[p.prompt_hash] = {
+                "prompt_text": p.prompt_text,
+                "prompt_hash": p.prompt_hash,
+                "source_id": p.source_id,
+                "concept": p.concept,
+                "aspect_ratio": p.aspect_ratio,
+                "generated_at": now_iso,
+                "batch_id": b_id,
+                "video_file": v_name,
+                "output_file": str(self.videos_dir / v_name) if v_name else None,
+            }
+        self._save_video_history()
+        target_hashes = {p.prompt_hash.lower() for p in prompts}
+        raw_data = self._load_video_prompts_data()
+        updated = False
+        for container in raw_data:
+            for p in container.get("derivative_prompts", []):
+                p_text = (p.get("prompt") or "").strip()
+                if not p_text:
+                    continue
+                p_hash = self.compute_hash(p_text).lower()
+                if p_hash in target_hashes or any(p_hash.startswith(h) for h in target_hashes):
+                    p["status"] = "generated"
+                    p["generated_at"] = now_iso
+                    matching_item = next((item for item in prompts if item.prompt_hash.lower() == p_hash), None)
+                    if matching_item and matching_item.video_file:
+                        p["video_file"] = matching_item.video_file
+                    updated = True
+        if updated:
+            self._save_video_prompts_data(raw_data)
+        logger.info(f"✅ {len(prompts)} prompts de vídeo marcados como generated no ledger e video_prompts.json.")
+        return len(prompts)
