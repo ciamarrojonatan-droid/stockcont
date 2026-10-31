@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 110" width="100%" height="100%">
+  <defs>
+    <!-- Cyan to Electric Blue Gradient -->
+    <linearGradient id="scHexCyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00F2FE" />
+      <stop offset="50%" stop-color="#4FACFE" />
+      <stop offset="100%" stop-color="#0072FF" />
+    </linearGradient>
+
+    <!-- Specular Glass Border Gradient -->
+    <linearGradient id="scHexBorderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="rgba(255, 255, 255, 0.45)" />
+      <stop offset="50%" stop-color="rgba(0, 242, 254, 0.35)" />
+      <stop offset="100%" stop-color="rgba(255, 255, 255, 0.08)" />
+    </linearGradient>
+
+    <!-- Translucent Shutter Facet -->
+    <linearGradient id="scGlassFacet" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="rgba(255, 255, 255, 0.22)" />
+      <stop offset="100%" stop-color="rgba(0, 0, 0, 0.45)" />
+    </linearGradient>
+
+    <!-- Core Neon Glow Filter -->
+    <filter id="scNeonCoreGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="5" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- ICON SYMBOL -->
+  <g transform="translate(15, 10)">
+    <!-- Outer Hexagonal Rig (Liquid Glass Frame) -->
+    <polygon points="45,5 82,26 82,69 45,90 8,69 8,26" fill="#0C1322" stroke="url(#scHexBorderGrad)" stroke-width="1.8" />
+    
+    <!-- Dynamic Shutter Blades (Industrial Camera Aperture) -->
+    <polygon points="45,5 82,26 45,47.5" fill="url(#scGlassFacet)" stroke="url(#scHexCyanGrad)" stroke-width="1.2" opacity="0.85" />
+    <polygon points="82,26 82,69 50,55" fill="url(#scGlassFacet)" stroke="url(#scHexCyanGrad)" stroke-width="1.2" opacity="0.75" />
+    <polygon points="82,69 45,90 40,55" fill="url(#scGlassFacet)" stroke="url(#scHexCyanGrad)" stroke-width="1.2" opacity="0.9" />
+    <polygon points="45,90 8,69 45,47.5" fill="url(#scGlassFacet)" stroke="url(#scHexCyanGrad)" stroke-width="1.2" opacity="0.8" />
+    <polygon points="8,69 8,26 38,40" fill="url(#scGlassFacet)" stroke="url(#scHexCyanGrad)" stroke-width="1.2" opacity="0.7" />
+    <polygon points="8,26 45,5 50,40" fill="url(#scGlassFacet)" stroke="url(#scHexCyanGrad)" stroke-width="1.2" opacity="0.95" />
+
+    <!-- Cybernetic Microstock Core (AI Spark / Central Focal Point) -->
+    <circle cx="45" cy="47.5" r="7" fill="#00F2FE" opacity="0.25" />
+    <circle cx="45" cy="47.5" r="4.2" fill="#00F2FE" filter="url(#scNeonCoreGlow)" />
+    <circle cx="45" cy="47.5" r="1.8" fill="#FFFFFF" />
+
+    <!-- Specular Corner Glints -->
+    <circle cx="45" cy="5" r="1.5" fill="#FFFFFF" opacity="0.9" />
+    <circle cx="82" cy="26" r="1.5" fill="#00F2FE" opacity="0.7" />
+    <circle cx="8" cy="69" r="1.5" fill="#4FACFE" opacity="0.7" />
+  </g>
+
+  <!-- LOGOTYPE -->
+  <g transform="translate(120, 58)">
+    <!-- Main Brandmark -->
+    <text font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif" font-size="36" font-weight="800" fill="#FFFFFF" letter-spacing="-0.03em">
+      STOCK<tspan fill="url(#scHexCyanGrad)">CONT</tspan>
+    </text>
+    <!-- Subtitle Tagline -->
+    <text y="24" font-family="'SF Mono', Menlo, Consolas, monospace" font-size="9.5" font-weight="600" fill="rgba(255, 255, 255, 0.45)" letter-spacing="0.28em">
+      AUTONOMOUS MICROSTOCK ENGINE
+    </text>
+    <!-- Technical Precision Indicator Line -->
+    <rect x="0" y="32" width="220" height="1" fill="url(#scHexCyanGrad)" opacity="0.25" />
+    <circle cx="220" cy="32.5" r="1.5" fill="#00F2FE" />
+  </g>
+</svg>
