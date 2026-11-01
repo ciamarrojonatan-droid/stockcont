@@ -26,7 +26,7 @@ Regras e padrões obrigatórios para o módulo RPA do ComfyUI e gestão de fila:
    - Workflow ID: `2115926169974812674`
    - Ingestão de Imagem / First Frame: Nó `#164` (`Load Image`).
    - Injeção de Prompt Temporal: Nó `#17` (`Prompt` / `Text`).
-   - Saída / Output Final em 4K: Nó `#157` (`Save video/video combine`).
+   - Saída / Output Final em 4K: Nó `#185` (`Feihou Preview Video` sem marca d'água).
    - Destino dos Vídeos 4K: `data/final/videos/`.
    - Isolamento de Sessão Playwright: `playwright_session_video/`.
 

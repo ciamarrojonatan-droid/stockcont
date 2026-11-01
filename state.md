@@ -16,7 +16,7 @@
 
 | Fase / Módulo | Status | Contagem / Métricas | Próxima Ação Recomendada |
 | :--- | :--- | :--- | :--- |
-| **Pipeline de Vídeo (Fase 3: RunningHub)** | 🟢 Calibrado (Lite/Plus) | **Workflow 2115926169974812674**: Img #164 ➔ Prompt #17 ➔ Vídeo 4K #157 \| Botão do Meio (Lite/Plus) Ativo \| Playwright Stealth Conta 3 | `python main.py --phase 3 --video` |
+| **Pipeline de Vídeo (Fase 3: RunningHub)** | 🟢 Calibrado (Lite/Plus) | **Workflow 2115926169974812674**: Img #164 ➔ Prompt #17 ➔ Vídeo 4K #185 (Feihou Preview sem watermark) | Botão do Meio (Lite/Plus) Ativo | Playwright Stealth Conta 3 | `python main.py --phase 3 --video` |
 | **Scoring Comercial & Filtros** | 🟢 Ativo & Operacional | **Motor Comercial (`src/analyzer/commercial_scorer.py`)**: 93 ativos analisados \| Score médio: 91.2 pts \| 70 Tier S, 23 Tier A \| 49 com Copy-Space (53%) | Explorar via Dashboard (`/`) |
 | **Dashboard Vídeo SPA (`/video`)** | 🟢 Ativo | **Dedicated Cinema Command Center**: URL dedicada `http://localhost:8501/video`, Player Cinema HTML5, Fila 4D, Ação Fase 3 Direta e Estúdio I2V | Acessar via browser |
 | **Dashboard Imagens SPA (`/`)** | 🟢 Ativo | **Design System iOS 27 Liquid Glass**: Filtros de Potencial de Vendas, Nichos B2B, Copy-Space, Ordenação Inteligente e KPIs de Portfólio | `python main.py --dashboard` |
@@ -44,7 +44,7 @@
 - **Workflow ID**: `2115926169974812674`
 - **Load Image**: Nó `#164` (Ingestão de imagem de referência ou First Frame)
 - **Prompt**: Nó `#17` (Injeção de prompt temporal cinematográfico 500-800 palavras)
-- **Save video/video combine**: Nó `#157` (Saída final do vídeo renderizado e upscalado em 4K)
+- **Preview Video (Feihou Anti-Watermark)**: Nó `#185` (Captura direta de preview sem marca d'água da plataforma)
 - **Botão de Execução**: `Lite/Plus` (Botão do meio - cor amarela/laranja)
 - **Destino dos Vídeos 4K**: `data/final/videos/`
 - **Playwright Stealth Profile 3**: RTX 4090 Workstation, 4K Display, sessão isolada `playwright_session_video/`

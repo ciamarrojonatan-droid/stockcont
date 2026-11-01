@@ -1,5 +1,9 @@
 """Tests for the Commercial Sales Potential Scorer and Portfolio Analytics."""
 
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -13,7 +17,45 @@ from src.dashboard.app import app
 
 
 @pytest.fixture
-def client():
+def client(monkeypatch):
+    sample_images = [
+        {
+            "filename": "stone-pedestal-cosmetic-display-clean-white.jpg",
+            "title": "Minimalist stone pedestal podium for cosmetic product presentation with clean copy space",
+            "keywords": "podium, pedestal, product display, mockup, cosmetics, clean background, copy space, ai generated, generative ai",
+            "is_cataloged": True,
+            "uploaded": False,
+            "agencies_uploaded": [],
+            "size_mb": 4.2,
+            "modified": "2026-10-31 00:00:00",
+            "in_cloud": False,
+        },
+        {
+            "filename": "candlestick-chart-financial-growth-trading.jpg",
+            "title": "Stock market trading candlestick chart showing investment growth and economic forecast",
+            "keywords": "trading, finance, candlestick, stock market, investment, growth, analytics, ai generated",
+            "is_cataloged": True,
+            "uploaded": False,
+            "agencies_uploaded": [],
+            "size_mb": 3.8,
+            "modified": "2026-10-31 00:00:00",
+            "in_cloud": False,
+        },
+        {
+            "filename": "laboratory-pipetting-cleanroom-dna.jpg",
+            "title": "Biotechnology cleanroom researcher pipetting chemical liquid for scientific dna testing",
+            "keywords": "biotech, laboratory, cleanroom, pipetting, science, dna, pharma, ai generated",
+            "is_cataloged": True,
+            "uploaded": False,
+            "agencies_uploaded": [],
+            "size_mb": 5.1,
+            "modified": "2026-10-31 00:00:00",
+            "in_cloud": False,
+        },
+    ]
+    for img in sample_images:
+        img.update(evaluate_sales_potential(img))
+    monkeypatch.setattr("src.dashboard.readers.list_final_images", lambda: sample_images)
     return TestClient(app)
 
 

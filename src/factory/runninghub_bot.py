@@ -89,8 +89,8 @@ CONTA_VIDEO_CONFIG = {
     "input_image_node": int(os.getenv("RUNNINGHUB_VIDEO_INPUT_NODE", "164")),  # Load Image: node #164
     "input_node": int(os.getenv("RUNNINGHUB_VIDEO_INPUT_NODE", "164")),
     "prompt_node": int(os.getenv("RUNNINGHUB_VIDEO_PROMPT_NODE", "17")),       # Prompt: node #17
-    "output_video_node": int(os.getenv("RUNNINGHUB_VIDEO_OUTPUT_NODE", "157")),# Save video/video combine: node #157
-    "output_node": int(os.getenv("RUNNINGHUB_VIDEO_OUTPUT_NODE", "157")),
+    "output_video_node": int(os.getenv("RUNNINGHUB_VIDEO_OUTPUT_NODE", "185")),  # Feihou Preview Video: node #185 (sem watermark)
+    "output_node": int(os.getenv("RUNNINGHUB_VIDEO_OUTPUT_NODE", "185")),
     "prompt_nodes": [int(os.getenv("RUNNINGHUB_VIDEO_PROMPT_NODE", "17"))],
     "default_batch_size": 1,
     "destination_dir": FINAL_VIDEOS_DIR,
@@ -726,7 +726,7 @@ def inject_video_prompt_to_node(frame: Frame, node_id: int, prompt_text: str) ->
 
 
 def get_node_videos(page: Page, node_id: int) -> List[str]:
-    """Extrai URLs ou referências de vídeos gerados estritamente no nó de saída (#157) do ComfyUI/LiteGraph, ignorando elementos marcados como pré-existentes."""
+    """Extrai URLs ou referências de vídeos gerados estritamente no nó de saída (#185 Feihou Preview Video) do ComfyUI/LiteGraph, ignorando elementos marcados como pré-existentes."""
     node_videos = []
     for frame in page.frames:
         try:
@@ -739,20 +739,48 @@ def get_node_videos(page: Page, node_id: int) -> List[str]:
                             const isOld = node.video.getAttribute && node.video.getAttribute('data-pre-existing') === 'true';
                             if (!isOld) res.push(node.video.src || node.video.currentSrc);
                         }
+                        if (node.preview && (node.preview.src || node.preview.currentSrc)) {
+                            const isOld = node.preview.getAttribute && node.preview.getAttribute('data-pre-existing') === 'true';
+                            if (!isOld) res.push(node.preview.src || node.preview.currentSrc);
+                        }
                         if (node.imgs && node.imgs.length > 0) {
                             res.push(...node.imgs.map(i => i.src || i.currentSrc).filter(Boolean));
                         }
                         if (node.widgets) {
                             for (let w of node.widgets) {
-                                if (w.element && (w.element.tagName === 'VIDEO' || (w.element.querySelector && w.element.querySelector('video')))) {
-                                    let v = w.element.tagName === 'VIDEO' ? w.element : w.element.querySelector('video');
-                                    const isOld = v && v.getAttribute && v.getAttribute('data-pre-existing') === 'true';
-                                    if (v && !isOld && (v.src || v.currentSrc)) {
-                                        res.push(v.src || v.currentSrc);
+                                if (w.video && (w.video.src || w.video.currentSrc)) {
+                                    const isOld = w.video.getAttribute && w.video.getAttribute('data-pre-existing') === 'true';
+                                    if (!isOld) res.push(w.video.src || w.video.currentSrc);
+                                }
+                                if (w.element) {
+                                    let vEls = [];
+                                    if (w.element.tagName === 'VIDEO') vEls.push(w.element);
+                                    if (w.element.querySelectorAll) {
+                                        vEls.push(...Array.from(w.element.querySelectorAll('video')));
+                                        const sources = Array.from(w.element.querySelectorAll('source'));
+                                        sources.forEach(s => { if (s.src) res.push(s.src); });
+                                    }
+                                    for (let v of vEls) {
+                                        const isOld = v && v.getAttribute && v.getAttribute('data-pre-existing') === 'true';
+                                        if (v && !isOld && (v.src || v.currentSrc)) {
+                                            res.push(v.src || v.currentSrc);
+                                        }
                                     }
                                 }
-                                if (w.value && typeof w.value === 'string' && (w.value.endsWith('.mp4') || w.value.endsWith('.webm') || w.value.endsWith('.mov'))) {
-                                    res.push('/view?filename=' + encodeURIComponent(w.value) + '&type=output');
+                                if (w.value) {
+                                    if (typeof w.value === 'string' && (w.value.endsWith('.mp4') || w.value.endsWith('.webm') || w.value.endsWith('.mov'))) {
+                                        res.push('/view?filename=' + encodeURIComponent(w.value) + '&type=temp');
+                                        res.push('/view?filename=' + encodeURIComponent(w.value) + '&type=output');
+                                    } else if (typeof w.value === 'object' && w.value !== null) {
+                                        const fn = w.value.filename || w.value.name;
+                                        if (fn && typeof fn === 'string') {
+                                            const t = w.value.type || 'temp';
+                                            const sub = w.value.subfolder ? '&subfolder=' + encodeURIComponent(w.value.subfolder) : '';
+                                            res.push('/view?filename=' + encodeURIComponent(fn) + '&type=' + t + sub);
+                                            res.push('/view?filename=' + encodeURIComponent(fn) + '&type=temp' + sub);
+                                            res.push('/view?filename=' + encodeURIComponent(fn) + '&type=output' + sub);
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -1465,7 +1493,7 @@ def run_factory_bot(
     Executa a Fábrica RPA adaptando o comportamento entre Conta 1, Conta 2 e Pipeline de Vídeo 4K:
     - Conta 1 (Raw Producer): Injeta prompts (#128-#254) e salva todas as imagens brutas no Nó #121.
     - Conta 2 (SeedVR 8K Upscaler): Ingestão zip no Nó #5 e monitoramento tempo real 1 a 1 no Nó #55.
-    - Pipeline de Vídeo 4K (Conta 3): Ingestão de imagem no Nó #164, Prompt no Nó #17 e saída de vídeo 4K no Nó #157.
+    - Pipeline de Vídeo 4K (Conta 3): Ingestão de imagem no Nó #164, Prompt no Nó #17 e saída de vídeo 4K no Nó #185 (Feihou Preview Video sem watermark).
     """
     if isinstance(account, str):
         if account.isdigit():
@@ -1802,7 +1830,7 @@ def run_factory_bot(
                     initial_node_videos = list(dict.fromkeys(initial_node_videos))
                     logger.info(f"🚫 [Vídeo] Registrados {len(initial_node_videos)} vídeos pré-existentes na blacklist antes da execução no Nó #{out_node}.")
 
-                    # Limpar explicitamente o Nó #157 no ComfyUI e marcar elementos antigos com data-pre-existing='true'
+                    # Limpar explicitamente o Nó #185 no ComfyUI e marcar elementos antigos com data-pre-existing='true'
                     try:
                         comfy_frame.evaluate("""(id) => {
                             if (typeof window.app !== 'undefined' && window.app.graph) {
@@ -1997,25 +2025,27 @@ def run_factory_bot(
                             new_vids = [v for v in current_node_videos if v not in initial_node_videos]
 
                             if new_vids:
-                                target_vid = new_vids[0]
-                                logger.info(f"🎥 Novo vídeo 4K detectado no Nó #{out_node}! Extraindo arquivo final...")
-                                saved_name = save_video_from_src(page, target_vid, destination_dir=target_dir, prefix=cfg["prefix"])
-                                if saved_name:
-                                    saved_path = target_dir / saved_name
-                                    # Validação de tamanho: vídeo 4K finalizado deve ter tamanho consistente (> 1 MB)
-                                    if saved_path.exists() and saved_path.stat().st_size > 1000000:
-                                        images_saved += 1
-                                        batch_saved_files.append(saved_name)
-                                        video_saved = True
-                                        elapsed_total_min = elapsed_sec // 60
-                                        elapsed_total_sec = elapsed_sec % 60
-                                        logger.info(f"✅ Novo vídeo 4K gravado com sucesso: {saved_name} ({elapsed_total_min}m {elapsed_total_sec}s decorridos, {saved_path.stat().st_size // 1024} KB) em {target_dir.name}!")
-                                        if v_item:
-                                            queue_mgr.mark_video_prompts_generated([v_item], saved_videos=[saved_name])
-                                        break
-                                    else:
-                                        sz = saved_path.stat().st_size // 1024 if saved_path.exists() else 0
-                                        logger.warning(f"⚠️ Vídeo temporário detectado possui tamanho reduzido ({sz} KB). Continuando espera pelo render 4K completo...")
+                                for candidate_vid in new_vids:
+                                    logger.info(f"🎥 Novo vídeo 4K detectado no Nó #{out_node} ({candidate_vid})! Extraindo arquivo final...")
+                                    saved_name = save_video_from_src(page, candidate_vid, destination_dir=target_dir, prefix=cfg["prefix"])
+                                    if saved_name:
+                                        saved_path = target_dir / saved_name
+                                        # Validação de tamanho: vídeo 4K finalizado deve ter tamanho consistente (> 1 MB)
+                                        if saved_path.exists() and saved_path.stat().st_size > 1000000:
+                                            images_saved += 1
+                                            batch_saved_files.append(saved_name)
+                                            video_saved = True
+                                            elapsed_total_min = elapsed_sec // 60
+                                            elapsed_total_sec = elapsed_sec % 60
+                                            logger.info(f"✅ Novo vídeo 4K gravado com sucesso: {saved_name} ({elapsed_total_min}m {elapsed_total_sec}s decorridos, {saved_path.stat().st_size // 1024} KB) em {target_dir.name}!")
+                                            if v_item:
+                                                queue_mgr.mark_video_prompts_generated([v_item], saved_videos=[saved_name])
+                                            break
+                                        else:
+                                            sz = saved_path.stat().st_size // 1024 if saved_path.exists() else 0
+                                            logger.warning(f"⚠️ Vídeo temporário detectado possui tamanho reduzido ({sz} KB). Continuando espera pelo render 4K completo...")
+                                if video_saved:
+                                    break
 
                         # Timeout de segurança de 60 minutos
                         if elapsed_sec > max_wait_video:

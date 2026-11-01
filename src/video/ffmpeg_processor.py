@@ -59,6 +59,13 @@ def get_ffmpeg_binary() -> str:
     """Return the path to the ffmpeg executable."""
     ffmpeg_path = shutil.which("ffmpeg")
     if not ffmpeg_path:
+        for candidate in [
+            r"C:\ffmpeg\bin\ffmpeg.exe",
+            r"C:\Program Files\ffmpeg\bin\ffmpeg.exe",
+            os.path.expandvars(r"%LOCALAPPDATA%\ffmpeg\bin\ffmpeg.exe"),
+        ]:
+            if os.path.isfile(candidate):
+                return candidate
         raise FileNotFoundError("FFmpeg executable not found in system PATH.")
     return ffmpeg_path
 
@@ -67,6 +74,13 @@ def get_ffprobe_binary() -> str:
     """Return the path to the ffprobe executable."""
     ffprobe_path = shutil.which("ffprobe")
     if not ffprobe_path:
+        for candidate in [
+            r"C:\ffmpeg\bin\ffprobe.exe",
+            r"C:\Program Files\ffmpeg\bin\ffprobe.exe",
+            os.path.expandvars(r"%LOCALAPPDATA%\ffmpeg\bin\ffprobe.exe"),
+        ]:
+            if os.path.isfile(candidate):
+                return candidate
         raise FileNotFoundError("FFprobe executable not found in system PATH.")
     return ffprobe_path
 

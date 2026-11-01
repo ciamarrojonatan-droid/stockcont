@@ -32,14 +32,14 @@ class TestVideoFactoryTopology:
     """Verify ComfyUI Node topology and RunningHub bot configuration for Video 4K."""
 
     def test_account_3_config_values(self):
-        """Account 3 must match user specifications for Workflow, Node 164, Node 17, Node 157."""
+        """Account 3 must match user specifications for Workflow, Node 164, Node 17, Node 185."""
         cfg = get_account_config(3)
         assert cfg["workflow_id"] == "2115926169974812674"
         assert "2115926169974812674" in cfg["workflow_url"]
         assert cfg["input_image_node"] == 164  # Load Image: node #164
         assert cfg["prompt_node"] == 17        # Prompt: node #17
-        assert cfg["output_video_node"] == 157 # Save video/video combine: node #157
-        assert cfg["output_node"] == 157
+        assert cfg["output_video_node"] == 185 # Feihou Preview Video: node #185 (sem watermark)
+        assert cfg["output_node"] == 185
         assert cfg["role"] == "video_generator_4k"
         assert cfg["save_mode"] == "video_output"
         assert cfg.get("upload_wait_sec") == 30
@@ -175,7 +175,7 @@ class TestDashboardVideoPhase3:
         assert f_cfg["workflow_id"] == "2115926169974812674"
         assert f_cfg["input_image_node"] == 164
         assert f_cfg["prompt_node"] == 17
-        assert f_cfg["output_video_node"] == 157
+        assert f_cfg["output_video_node"] == 185
         assert f_cfg["account"] == 3
 
     def test_api_video_run_phase_3_endpoint(self):
@@ -335,17 +335,29 @@ class TestNodeUploadRobustness:
 
 
     def test_get_node_videos_ignores_pre_existing_videos(self):
-        """get_node_videos must extract strictly from node 157 and ignore data-pre-existing videos."""
+        """get_node_videos must extract strictly from node 185 (Feihou Preview) and ignore data-pre-existing videos."""
         mock_page = MagicMock()
         mock_frame = MagicMock()
         mock_frame.evaluate.return_value = ["/view?filename=new_render_4k.mp4&type=output"]
         mock_page.frames = [mock_frame]
 
-        vids = get_node_videos(mock_page, 157)
+        vids = get_node_videos(mock_page, 185)
         assert len(vids) == 1
         assert "new_render_4k.mp4" in vids[0]
         mock_frame.evaluate.assert_called_once()
 
+
+    def test_get_node_videos_feihou_preview_extracts_temp_videos(self):
+        """get_node_videos must extract preview video URLs with type=temp from Feihou node."""
+        mock_page = MagicMock()
+        mock_frame = MagicMock()
+        mock_frame.evaluate.return_value = ["/view?filename=feihou_preview_001.mp4&type=temp"]
+        mock_page.frames = [mock_frame]
+
+        vids = get_node_videos(mock_page, 185)
+        assert len(vids) == 1
+        assert "feihou_preview_001.mp4" in vids[0]
+        assert "type=temp" in vids[0]
 
     def test_optimize_reference_image_for_video_resizes_8k(self, tmp_path):
         """optimize_reference_image_for_video must downscale 8K images to <= 1920x1080 multiples of 8."""

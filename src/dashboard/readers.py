@@ -1120,7 +1120,7 @@ def build_full_video_status() -> Dict[str, Any]:
         "workflow_id": os.getenv("RUNNINGHUB_VIDEO_WORKFLOW_ID", "2115926169974812674"),
         "input_image_node": int(os.getenv("RUNNINGHUB_VIDEO_INPUT_NODE", "164")),
         "prompt_node": int(os.getenv("RUNNINGHUB_VIDEO_PROMPT_NODE", "17")),
-        "output_video_node": int(os.getenv("RUNNINGHUB_VIDEO_OUTPUT_NODE", "157")),
+        "output_video_node": int(os.getenv("RUNNINGHUB_VIDEO_OUTPUT_NODE", "185")),
         "account": 3,
         "role": "video_generator_4k",
         "resolution": "4K UHD (3840x2160)",
