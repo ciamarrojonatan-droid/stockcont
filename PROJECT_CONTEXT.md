@@ -180,6 +180,7 @@ Diferente de fluxos manuais de geração com IA generativa, o StockCont opera co
   - Topologia Pipeline de Vídeo 4K (Conta 3): Workflow 2115926169974812674, Ingestão de Imagem no nó #164 (Load Image), Prompt temporal no nó #17, Saída final de vídeo 4K no nó #185 (Feihou Preview Video sem watermark), salvamento em data/final/videos/.
   - Hashing SHA-256 canônico de cada prompt para garantir idempotência.
   - Cancelamento atômico pós-última imagem renderizada para economizar créditos de GPU.
+  - **Botão de Execução Mandatório (Lite/Plus)**: Em TODOS os workflows (Conta 1 Raw Producer, Conta 2 SeedVR 8K Upscaler e Conta 3/Vídeo 4K), o botão de execução acionado no RunningHub é SEMPRE o **Lite/Plus** (botão do meio). O botão **Standard** é terminantemente proibido e desabilitado em todo o código.
 
 ### Fase 4: O Catalogador & Metadados Binários
 
@@ -304,6 +305,10 @@ Diferente de fluxos manuais de geração com IA generativa, o StockCont opera co
 ### ADR-07: Auto-Purga Segura de SSD com Cofre Híbrido
 - **Contexto**: A produção industrial contínua de renders 8K e arquivos de vídeo consome dezenas de gigabytes de SSD local em poucos dias.
 - **Decisão**: Implementação de política transacional estrita em `src/orchestrator/daemon.py`: a purga física do ativo no disco local ocorre EXCLUSIVAMENTE após a confirmação simultânea de: (1) backup completo no Google Drive e (2) upload com sucesso em TODAS as agências configuradas e ativas.
+
+### ADR-08: Execução Mandatória via Botão Lite/Plus no RunningHub
+- **Contexto**: O botão 'Standard' no RunningHub possui limitações de recursos e alocação inadequada de nós para esteiras de produção em escala de microstock.
+- **Decisão**: Todos os workflows (Conta 1 Raw Producer, Conta 2 SeedVR 8K Upscaler e Conta 3/Vídeo 4K) devem acionar EXCLUSIVAMENTE o botão 'Lite/Plus' (botão do meio). O botão 'Standard' é terminantemente proibido; qualquer tentativa de acioná-lo é interceptada e redirecionada em nível de código para 'Lite/Plus'.
 
 
 

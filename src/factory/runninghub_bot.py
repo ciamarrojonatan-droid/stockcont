@@ -60,7 +60,7 @@ CONTA_1_CONFIG = {
     "prefix": "raw",
     "save_mode": "batch_all",  # Salva todas de uma vez após a conclusão
     "session_dir_name": "playwright_session_raw",
-    "execute_mode": "standard",
+    "execute_mode": "lite_plus",  # Lite/Plus mandatório em todos os workflows
 }
 
 # Conta 2: Consumidora SeedVR 2.5 8K Upscale (Nó #55 -> Salva 1 a 1 em tempo real)
@@ -77,7 +77,7 @@ CONTA_2_CONFIG = {
     "prefix": "upscaled_8k",
     "save_mode": "realtime_single",  # Salva 1 a 1 instantaneamente antes de sobrescrever
     "session_dir_name": "playwright_session_upscale",
-    "execute_mode": "standard",
+    "execute_mode": "lite_plus",  # Lite/Plus mandatório em todos os workflows
 }
 
 # Video Pipeline: Geração e Upscale com Output Final em 4K
@@ -98,7 +98,7 @@ CONTA_VIDEO_CONFIG = {
     "save_mode": "video_output",
     "session_dir_name": "playwright_session_video",
     "upload_wait_sec": int(os.getenv("RUNNINGHUB_IMAGE_UPLOAD_WAIT_SEC", "30")),
-    "execute_mode": "lite_plus",  # Botão do meio (Lite/Plus - cor amarela/ouro) mandatário para Vídeo 4K
+    "execute_mode": "lite_plus",  # Botão do meio (Lite/Plus - cor amarela/ouro) mandatário em todos os workflows
 }
 
 # Default Active Configuration (Padrão: Conta 1 - Raw Producer)
@@ -1241,21 +1241,30 @@ def dismiss_runninghub_popups(page: Page) -> bool:
 def click_runninghub_execute(page: Page, mode: str = "lite_plus") -> bool:
     """
     Localiza e aciona o botão de execução correto no RunningHub:
-    - 'lite_plus': Botão do meio (Lite/Plus - cor dourada/laranja), mandatário para o Pipeline de Vídeo 4K.
-    - 'standard': Botão da esquerda (Lite/Standard - cor verde/ciano).
-    - 'ultra': Botão da direita (Ultra-6000D - cor vermelha).
+    - 'lite_plus': Botão do meio (Lite/Plus - cor dourada/ouro), mandatório para TODOS os workflows (Contas 1, 2 e 3/Vídeo).
+    - 'ultra': Botão da direita (Ultra-6000D - cor vermelha/laranja - 48GB VRAM).
+    - 'standard': TERMINANTEMENTE PROIBIDO. Se fornecido, é automaticamente redirecionado para 'lite_plus'.
     """
+    # Proteção operacional estrita: Standard é proibido, Lite/Plus é mandatório em todos os workflows
+    if not mode or mode.strip().lower() == "standard":
+        if mode and mode.strip().lower() == "standard":
+            logger.warning("⚠️ Botão 'Standard' está PROIBIDO por diretriz operacional. Forçando 'Lite/Plus' para o workflow.")
+        mode = "lite_plus"
+
     logger.info(f"🎯 Acionando botão de execução RunningHub [Modo: {mode.upper()}]...")
     clicked = False
 
     # 1. Tentar via JavaScript inteligente no contexto da página:
-    # Identifica o label/badge do modo ('Lite/Plus', 'Lite/Standard', etc.) e associa geometricamente ao botão
+    # Identifica o label/badge do modo ('Lite/Plus', 'Ultra', etc.) e associa geometricamente ao botão
     try:
         res = page.evaluate("""(targetMode) => {
-            const mode = (targetMode || 'lite_plus').toLowerCase();
+            let mode = (targetMode || 'lite_plus').toLowerCase().trim();
+            if (mode === 'standard') {
+                mode = 'lite_plus';
+            }
             const isUltra = mode.includes('ultra');
-            const isPlus = mode === 'lite_plus' || mode.includes('plus');
-            const targetBadgeText = isPlus ? 'Lite/Plus' : (isUltra ? 'Ultra' : 'Standard');
+            const isPlus = mode === 'lite_plus' || mode.includes('plus') || !isUltra;
+            const targetBadgeText = isUltra ? 'Ultra' : 'Lite/Plus';
 
             // 1. Localizar elemento badge com o texto do modo
             const allElements = Array.from(document.querySelectorAll("*"));
@@ -1316,27 +1325,28 @@ def click_runninghub_execute(page: Page, mode: str = "lite_plus") -> bool:
                 }
             }
 
-            // 2. Se for 'lite_plus' (botão do MEIO) e tivermos botões na barra superior:
+            // 2. Se tivermos botões na barra superior:
             // Ordenar da esquerda para a direita
             if (runBtns.length >= 3) {
                 runBtns.sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left);
-                // runBtns[0] = Standard (esquerda)
-                // runBtns[1] = Lite/Plus (MEIO)
+                // runBtns[0] = Standard (esquerda) - TERMINANTEMENTE PROIBIDO
+                // runBtns[1] = Lite/Plus (MEIO) - MANDATÓRIO
                 // runBtns[2] = Ultra 6000D (DIREITA)
-                const targetBtn = isPlus ? runBtns[1] : (isUltra ? runBtns[2] : runBtns[0]);
+                const targetBtn = isUltra ? runBtns[2] : runBtns[1];
                 targetBtn.click();
                 const r = targetBtn.getBoundingClientRect();
-                return { success: true, method: 'segmented_order_' + mode, index: isPlus ? 1 : (isUltra ? 2 : 0), x: r.left + r.width / 2, y: r.top + r.height / 2 };
-            } else if (runBtns.length === 2 && mode === 'lite_plus') {
-                // Se só tem 2, o Lite/Plus é o segundo
+                return { success: true, method: 'segmented_order_' + (isUltra ? 'ultra' : 'lite_plus'), index: isUltra ? 2 : 1, x: r.left + r.width / 2, y: r.top + r.height / 2 };
+            } else if (runBtns.length === 2) {
+                // Se só tem 2 (Standard na esq e Lite/Plus na dir/meio), Lite/Plus é o segundo (runBtns[1])
                 runBtns.sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left);
-                runBtns[1].click();
-                const r = runBtns[1].getBoundingClientRect();
-                return { success: true, method: 'second_of_two', x: r.left + r.width / 2, y: r.top + r.height / 2 };
+                const targetBtn = runBtns[1];
+                targetBtn.click();
+                const r = targetBtn.getBoundingClientRect();
+                return { success: true, method: 'second_of_two_lite_plus', x: r.left + r.width / 2, y: r.top + r.height / 2 };
             }
 
-            // 3. Classes específicas do RunningHub
-            if (mode === 'lite_plus') {
+            // 3. Classes específicas do RunningHub para Lite/Plus (botão do meio)
+            if (!isUltra) {
                 for (const sel of [
                     '.beveled-btn-center',
                     '.beveled-btn-middle',
@@ -1369,53 +1379,9 @@ def click_runninghub_execute(page: Page, mode: str = "lite_plus") -> bool:
     except Exception as e:
         logger.debug(f"Aviso no clique evaluate do botão de execução: {e}")
 
-    # 2. Fallback via seletores Playwright específicos para Lite/Plus (botão do meio)
+    # 2. Fallback via seletores Playwright
     if not clicked:
-        if mode == "lite_plus":
-            plus_selectors = [
-                # Botão que contém ou sucede diretamente o texto Lite/Plus
-                "xpath=//*[contains(text(), 'Lite/Plus')]/ancestor::*[contains(@class, 'btn') or self::button]",
-                "xpath=//*[contains(text(), 'Lite/Plus')]/following::button[1]",
-                "xpath=//*[contains(text(), 'Lite/Plus')]/parent::*//button",
-                "xpath=//*[contains(text(), 'Lite/Plus')]/ancestor::*[position()<=3]//button",
-                "button.beveled-btn-center.run-btn",
-                "button.beveled-btn-middle.run-btn",
-                "button.beveled-btn-center",
-                "button.beveled-btn-middle",
-            ]
-            for sel in plus_selectors:
-                try:
-                    candidates = page.locator(sel)
-                    for c_idx in range(candidates.count()):
-                        item = candidates.nth(c_idx)
-                        if item.is_visible():
-                            item.click(timeout=3000)
-                            logger.info(f"✅ Botão Executar Lite/Plus (do meio) acionado via seletor: {sel}")
-                            clicked = True
-                            break
-                except Exception:
-                    pass
-                if clicked:
-                    break
-
-            # Se ainda não clicou, pegar os botões 'Executar' visíveis e clicar no SEGUNDO (índice 1 = meio)
-            if not clicked:
-                try:
-                    exec_btns = page.locator("button:has-text('Executar'), [role='button']:has-text('Executar')")
-                    cnt = exec_btns.count()
-                    if cnt >= 2:
-                        # O botão do meio (Lite/Plus) é o de índice 1!
-                        middle_btn = exec_btns.nth(1)
-                        if middle_btn.is_visible():
-                            middle_btn.click(timeout=3000)
-                            logger.info("✅ Botão Executar Lite/Plus (do meio - índice 1) acionado com sucesso!")
-                            clicked = True
-                    elif cnt == 1:
-                        exec_btns.first.click(timeout=3000)
-                        clicked = True
-                except Exception as e:
-                    logger.debug(f"Aviso no fallback de índice para Lite/Plus: {e}")
-        elif "ultra" in mode:
+        if "ultra" in mode:
             ultra_selectors = [
                 "xpath=//*[contains(text(), 'Ultra')]/ancestor::*[contains(@class, 'btn') or self::button]",
                 "xpath=//*[contains(text(), 'Ultra')]/following::button[1]",
@@ -1452,19 +1418,50 @@ def click_runninghub_execute(page: Page, mode: str = "lite_plus") -> bool:
                 except Exception:
                     pass
         else:
-            std_selectors = [
-                "button.beveled-btn-left.run-btn",
-                "button:has-text('Executar')",
+            # Padrão Mandatório: Lite/Plus (botão do meio)
+            plus_selectors = [
+                # Botão que contém ou sucede diretamente o texto Lite/Plus
+                "xpath=//*[contains(text(), 'Lite/Plus')]/ancestor::*[contains(@class, 'btn') or self::button]",
+                "xpath=//*[contains(text(), 'Lite/Plus')]/following::button[1]",
+                "xpath=//*[contains(text(), 'Lite/Plus')]/parent::*//button",
+                "xpath=//*[contains(text(), 'Lite/Plus')]/ancestor::*[position()<=3]//button",
+                "button.beveled-btn-center.run-btn",
+                "button.beveled-btn-middle.run-btn",
+                "button.beveled-btn-center",
+                "button.beveled-btn-middle",
             ]
-            for sel in std_selectors:
+            for sel in plus_selectors:
                 try:
                     candidates = page.locator(sel)
-                    if candidates.count() > 0 and candidates.first.is_visible():
-                        candidates.first.click(timeout=3000)
-                        clicked = True
-                        break
+                    for c_idx in range(candidates.count()):
+                        item = candidates.nth(c_idx)
+                        if item.is_visible():
+                            item.click(timeout=3000)
+                            logger.info(f"✅ Botão Executar Lite/Plus (do meio) acionado via seletor: {sel}")
+                            clicked = True
+                            break
                 except Exception:
                     pass
+                if clicked:
+                    break
+
+            # Se ainda não clicou, pegar os botões 'Executar' visíveis e clicar no SEGUNDO (índice 1 = meio)
+            if not clicked:
+                try:
+                    exec_btns = page.locator("button:has-text('Executar'), [role='button']:has-text('Executar')")
+                    cnt = exec_btns.count()
+                    if cnt >= 2:
+                        # O botão do meio (Lite/Plus) é o de índice 1! Nunca acionar o índice 0 (Standard)
+                        middle_btn = exec_btns.nth(1)
+                        if middle_btn.is_visible():
+                            middle_btn.click(timeout=3000)
+                            logger.info("✅ Botão Executar Lite/Plus (do meio - índice 1) acionado com sucesso!")
+                            clicked = True
+                    elif cnt == 1:
+                        exec_btns.first.click(timeout=3000)
+                        clicked = True
+                except Exception as e:
+                    logger.debug(f"Aviso no fallback de índice para Lite/Plus: {e}")
 
     # 3. Fallback de emergência (Control+Enter)
     if not clicked:
@@ -1508,7 +1505,10 @@ def run_factory_bot(
     target_dir = destination_dir if destination_dir is not None else cfg["destination_dir"]
     target_dir.mkdir(parents=True, exist_ok=True)
     save_mode = cfg["save_mode"]  # 'batch_all' ou 'realtime_single'
-    effective_execute_mode = execute_mode or cfg.get("execute_mode", "lite_plus" if account == 3 else "standard")
+    effective_execute_mode = execute_mode or cfg.get("execute_mode", "lite_plus")
+    if effective_execute_mode.strip().lower() == "standard":
+        logger.warning("⚠️ Modo 'standard' bloqueado por diretriz: Lite/Plus é mandatório em todos os workflows do RunningHub. Redirecionando para 'lite_plus'.")
+        effective_execute_mode = "lite_plus"
     workflow_url = cfg["workflow_url"]
     workflow_id = cfg["workflow_id"]
 

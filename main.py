@@ -269,6 +269,9 @@ def run_phase_3(
     else:
         logger.info(f"--- Starting Phase 3: The Factory (Conta {account}, Output Node: {node or 'default'}, Batch Size: {batch_size}, Batches: {batches}) ---")
     from src.factory.runninghub_bot import run_factory_bot
+    if execute_mode and execute_mode.lower() == "standard":
+        logger.warning("⚠️ Opção --execute-mode standard foi redirecionada para 'lite_plus' (Lite/Plus é mandatório em todos os workflows).")
+        execute_mode = "lite_plus"
     run_factory_bot(
         account=account,
         output_node_id=node,
@@ -426,7 +429,7 @@ def main() -> None:
     p3_group.add_argument("--batches", type=int, default=1, help="Number of consecutive batches to process in Phase 3 (default: 1)")
     p3_group.add_argument("--all-batches", action="store_true", help="Process all remaining pending batches until the prompt queue is exhausted")
     p3_group.add_argument("--upload-wait-sec", type=int, default=int(os.getenv("RUNNINGHUB_IMAGE_UPLOAD_WAIT_SEC", "30")), help="Seconds to wait after uploading image to Load Image node before clicking execute (default: 30)")
-    p3_group.add_argument("--execute-mode", default=None, choices=["lite_plus", "standard", "ultra"], help="Execution tier button: lite_plus (middle - default for video), standard (left), or ultra (right)")
+    p3_group.add_argument("--execute-mode", default=None, choices=["lite_plus", "ultra", "standard"], help="Execution tier button: lite_plus (middle - default for all workflows) or ultra (right). Note: standard is prohibited and automatically redirected to lite_plus.")
 
     # Options for Phase 4
     p4_group = parser.add_argument_group("Phase 4 Options")
