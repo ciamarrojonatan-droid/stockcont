@@ -22,6 +22,15 @@
       }
     ]
   },
+  "wwyd-advisor": {
+    "PreInvocation": [
+      {
+        "type": "command",
+        "command": "python scripts/wwyd_hook.py",
+        "timeout": 10
+      }
+    ]
+  },
   "session-welcome": {
     "SessionStart": [
       {
