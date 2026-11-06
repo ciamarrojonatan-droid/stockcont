@@ -1,13 +1,15 @@
 # StockCont Pipeline State
 > Sincronizado automaticamente por hooks e comandos do ecossistema.
 
-## Sprint Atual: Padronização Mandatória de Execução RunningHub (Lite/Plus Universal)
-- **Status da Sprint**: [CONCLUÍDO] Padronização operacional estrita no RunningHub: o botão de execução para TODOS os workflows (Conta 1 Raw Producer, Conta 2 SeedVR 8K Upscaler e Conta 3/Vídeo 4K) é exclusivamente o **Lite/Plus** (botão do meio).
-  1. **Bloqueio Ativo do Botão Standard**: O botão Standard foi terminantemente desabilitado e eliminado dos caminhos de execução da fábrica (`click_runninghub_execute` e `run_factory_bot`). Qualquer chamada explícita ou tentativa de acionamento de "standard" é interceptada e automaticamente redirecionada para "lite_plus" com aviso de conformidade.
-  2. **Configuração Global Unificada**: `CONTA_1_CONFIG["execute_mode"] = "lite_plus"`, `CONTA_2_CONFIG["execute_mode"] = "lite_plus"` e `CONTA_VIDEO_CONFIG["execute_mode"] = "lite_plus"`.
-  3. **Proteção Geométrica DOM no Playwright**: Algoritmo JS evaluate no browser associa diretamente ao badge `Lite/Plus` e aciona o botão central (índice 1 entre 3 botões ou índice 1 entre 2 botões), sem jamais tocar no botão à esquerda (Standard).
-  4. **Cobertura de Testes**: 187 testes automatizados passando com 100% de sucesso (20 suítes de teste).
-- **Última Atualização**: 2026-11-02 10:27
+## Sprint Atual: DarkFactory Cinema Engine & Speed-Matching Adaptativo (Zero-Loop)
+- **Status da Sprint**: [CONCLUÍDO] Calibração de Produção Master para o DarkFactory / Documentários Históricos:
+  1. **Speed-Matching Adaptativo (Eliminação do Loop Seco)**: Substituição mandatória de `-stream_loop -1` por cálculo dinâmico de `setpts = (target_duration / source_duration) * PTS`, preservando a fluidez contínua da câmera sem saltos repetitivos amadores.
+  2. **Arquitetura Dual-Shot (Cena 1A + 1B)**: Suporte a múltiplos planos por cena longa. Cena 1 estruturada em Shot 1A (bunker/sirene, 0-8.44s) e Shot 1B (radar macro com as 5 ogivas balísticas americanas, 8.44-17.89s).
+  3. **3D LUT de Documentário Histórico (Kodak 2383 / Bleach-Bypass)**: Mapeamento de cor em cubo 33x33x33 (`cold_war_documentary.cube`) com curva S de filme analógico, desaturação suave a 88%, sombras frias (verde-ciano militar soviético) e altas luzes âmbar.
+  4. **Letterbox Anamórfico 2.39:1 & Legendas Broadcast**: Máscaras pretas de 140px superior e inferior sobre canvas 1080p, com legendas em 2 linhas máximas ancoradas com `MarginV=30` dentro da barra preta inferior (zero obstrução de personagens).
+  5. **Sound Design Procedural (Impacto Braam Sub-Bass)**: Varredura exponencial de 85 Hz a 36 Hz ($t=0.0$ a $1.2$s) com saturação analógica (`tanh`) + batimentos cardíacos, relógio mecânico e clique de chave industrial.
+  6. **Cobertura de Testes**: 187 testes automatizados passando com 100% de sucesso (20 suítes de teste).
+- **Última Atualização**: 2026-11-06 04:15
 - **Modo Operacional**: Dual-Mode (Antigravity & Claude Code via SSOT `PROJECT_CONTEXT.md`)
 
 ---
