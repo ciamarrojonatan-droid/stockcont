@@ -150,6 +150,15 @@ def check_status() -> None:
     print(f"  [V] Video Pipeline (4K):  Workflow: 2115926169974812674 (Load Image #164 -> Prompt #17 -> Video Combine #157)")
     print(f"                            {v_prompts_count} video prompts prontos | {len(final_videos)} vídeos em data/final/videos/")
 
+    # DarkFactory Cinema Engine (T2V) Status
+    try:
+        from src.video.darkfactory_t2v import DarkFactoryT2VDirector
+        df_director = DarkFactoryT2VDirector()
+        df_stats = df_director.get_stats()
+        print(f"  [DF-T2V] DarkFactory Cinema:  {df_stats['total_scenes']} scenes ({df_stats['total_shots']} dual-shots) | Targets: MiniMax H3 & Google Veo 2")
+    except Exception:
+        pass
+
     # Cloud Backup: Google Drive
     from src.backup.gdrive_backup import GoogleDriveBackup
     gdrive = GoogleDriveBackup()
@@ -309,6 +318,58 @@ def run_backup(dry_run: bool = False, force: bool = False) -> None:
     run_gdrive_backup(dry_run=dry_run, force=force)
     logger.info("Google Drive Backup finished.")
 
+def run_darkfactory_t2v(
+    archetype: str = "all",
+    export_only: bool = False,
+    custom_title: str | None = None,
+    custom_beat: str | None = None
+) -> None:
+    """Execute DarkFactory T2V Cinema Engine: synthesize high-retention dual-shots."""
+    logger.info("--- Starting DarkFactory Cinema Engine (T2V Narrative Architect) ---")
+    from src.video.darkfactory_t2v import DarkFactoryT2VDirector, NARRATIVE_ARCHETYPES, initialize_default_darkfactory_pipeline
+    director = DarkFactoryT2VDirector()
+    if export_only:
+        minimax_f, veo_f = director.export_model_queues()
+        print(f"\n✅ Filas exportadas com sucesso:")
+        print(f"  • MiniMax H3 (Hailuo): {minimax_f}")
+        print(f"  • Google Flow (Veo 2): {veo_f}\n")
+        return
+
+    if custom_title and custom_beat:
+        logger.info(f"Generating custom dual-shot scene: '{custom_title}'")
+        res = director.create_custom_dual_shot(
+            scene_title=custom_title,
+            narrative_beat=custom_beat,
+            shot_a_subject=f"Dramatic medium close-up of protagonist in {custom_title}, {custom_beat}. Tense breathing, subtle light glinting in eyes, authentic emotion.",
+            shot_a_camera="Slow forward push-in dolly movement, eye-level, 35mm anamorphic",
+            shot_b_subject=f"Visceral macro cutaway detail supporting {custom_title}. Atmospheric environment, dynamic kinetic motion.",
+            shot_b_camera="Handheld visceral drift with macro rack-focus, shallow depth of field"
+        )
+        print(f"\n🎬 Bespoke Scene Created: {res['title']} (Scene #{res['scene_id']})")
+        for sh in res['shots']:
+            print(f"  • [{sh['shot_type'].upper()}] {sh['focus']}: {sh['camera_movement']}")
+        return
+
+    if archetype == "all":
+        director = initialize_default_darkfactory_pipeline()
+    else:
+        if archetype in NARRATIVE_ARCHETYPES:
+            arch = NARRATIVE_ARCHETYPES[archetype]
+            for idx in range(len(arch.get("scenes", []))):
+                director.create_scene_from_archetype(archetype, scene_index=idx)
+        else:
+            logger.error(f"Archetype '{archetype}' not recognized. Available: {list(NARRATIVE_ARCHETYPES.keys())}")
+            return
+
+    stats = director.get_stats()
+    print("\n=== DARKFACTORY CINEMA ENGINE (T2V) SUMMARY:")
+    print(f"  • Total de Cenas Narrativas: {stats['total_scenes']}")
+    print(f"  • Total de Planos Dual-Shot: {stats['total_shots']} (Shot A: Tensão / Shot B: Macro)")
+    print(f"  • Modelos Alvo Calibrados:   MiniMax H3 (Hailuo) & Google Flow (Veo 2)")
+    print(f"  • Filas Prontas em:          data/processed/minimax_t2v_queue.json")
+    print(f"                               data/processed/google_veo_queue.json\n")
+
+
 def run_video_phase_2(max_items: int | None = None, image_stem: str | None = None) -> None:
     """Execute Video Phase 2: Video Director of Photography."""
     logger.info("--- Starting Video Phase 2: Video Director (Gemini Vision 4D Temporal Prompts) ---")
@@ -458,6 +519,11 @@ def main() -> None:
     video_group.add_argument("--input-image", type=Path, default=None, help="Reference image path for video generation (Node #164)")
     video_group.add_argument("--video-prompt", type=str, default=None, help="Custom prompt text for video generation (Node #17)")
     video_group.add_argument("--image-stem", type=str, default=None, help="Specific image stem for I2V prompt synthesis")
+    video_group.add_argument("--t2v", action="store_true", help="Execute DarkFactory Text-to-Video (T2V) Cinema Engine for YouTube Dark channels")
+    video_group.add_argument("--t2v-archetype", choices=["cold_war_espionage", "cyber_warfare", "deep_space_scifi", "all"], default="all", help="Narrative archetype for T2V synthesis (default: all)")
+    video_group.add_argument("--t2v-export", action="store_true", help="Export formatted queues for MiniMax H3 and Google Veo 2")
+    video_group.add_argument("--t2v-title", type=str, default=None, help="Title for custom dual-shot scene")
+    video_group.add_argument("--t2v-beat", type=str, default=None, help="Narrative story beat for custom dual-shot scene")
 
     args = parser.parse_args()
 
@@ -501,6 +567,15 @@ def main() -> None:
 
     if args.sync_raw:
         run_sync_raw(force=args.force)
+        return
+
+    if getattr(args, "t2v", False):
+        run_darkfactory_t2v(
+            archetype=getattr(args, "t2v_archetype", "all"),
+            export_only=getattr(args, "t2v_export", False),
+            custom_title=getattr(args, "t2v_title", None),
+            custom_beat=getattr(args, "t2v_beat", None),
+        )
         return
 
     if args.seasonal:

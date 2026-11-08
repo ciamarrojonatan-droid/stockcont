@@ -1,15 +1,24 @@
 # StockCont Pipeline State
 > Sincronizado automaticamente por hooks e comandos do ecossistema.
 
-## Sprint Atual: DarkFactory Cinema Engine & Speed-Matching Adaptativo (Zero-Loop)
-- **Status da Sprint**: [CONCLUÍDO] Calibração de Produção Master para o DarkFactory / Documentários Históricos:
-  1. **Speed-Matching Adaptativo (Eliminação do Loop Seco)**: Substituição mandatória de `-stream_loop -1` por cálculo dinâmico de `setpts = (target_duration / source_duration) * PTS`, preservando a fluidez contínua da câmera sem saltos repetitivos amadores.
-  2. **Arquitetura Dual-Shot (Cena 1A + 1B)**: Suporte a múltiplos planos por cena longa. Cena 1 estruturada em Shot 1A (bunker/sirene, 0-8.44s) e Shot 1B (radar macro com as 5 ogivas balísticas americanas, 8.44-17.89s).
-  3. **3D LUT de Documentário Histórico (Kodak 2383 / Bleach-Bypass)**: Mapeamento de cor em cubo 33x33x33 (`cold_war_documentary.cube`) com curva S de filme analógico, desaturação suave a 88%, sombras frias (verde-ciano militar soviético) e altas luzes âmbar.
-  4. **Letterbox Anamórfico 2.39:1 & Legendas Broadcast**: Máscaras pretas de 140px superior e inferior sobre canvas 1080p, com legendas em 2 linhas máximas ancoradas com `MarginV=30` dentro da barra preta inferior (zero obstrução de personagens).
-  5. **Sound Design Procedural (Impacto Braam Sub-Bass)**: Varredura exponencial de 85 Hz a 36 Hz ($t=0.0$ a $1.2$s) com saturação analógica (`tanh`) + batimentos cardíacos, relógio mecânico e clique de chave industrial.
-  6. **Cobertura de Testes**: 187 testes automatizados passando com 100% de sucesso (20 suítes de teste).
-- **Última Atualização**: 2026-11-06 04:15
+## Sprint Atual: DarkFactory T2V Cinema Engine & Adapters MiniMax H3 / Google Veo 2 (Canal Dark Faceless)
+- **Status da Sprint**: [CONCLUÍDO] Integração do Motor Text-to-Video (T2V) Nativo para Canal Dark Faceless no YouTube:
+  1. **Motor T2V Narrativo (`src/video/darkfactory_t2v.py`)**: Superação da limitação estática do I2V. Geração direta de cenas narrativas divididas em pares **Dual-Shot** de alta retenção:
+     - **Shot A (Drama/Tensão/Personagem)**: Câmera ativa em aproximação lenta (*push-in dolly track*), close-up psicológico, expressões faciais autênticas e iluminação dramática.
+     - **Shot B (Macro/Tático/Ação)**: Detalhes táticos, painéis CRT, radares analógicos, mãos em chaves mecânicas e paralaxe visceral com lentes probe/macro.
+  2. **Adapters Específicos para MiniMax (Hailuo H3) e Google Flow (Veo 2)**:
+     - **MiniMax H3 / Video-01**: Formatação com tags de movimento de câmera (`[Camera Movement: ...]`), física realista de corpos e tecidos, 24fps cinema cadence e âncoras contra distorção digital.
+     - **Google Flow / Veo 2**: Emulação ótica de lentes anamórficas Cooke 35mm f/2.0, película Kodak Vision3 500T 5219, proporção anamórfica 2.39:1 e iluminação volumétrica.
+  3. **Biblioteca de Arquétipos Narrativos**:
+     - `cold_war_espionage` (Incidente Petrov, bunkers soviéticos, sirenes vermelhas, radares balísticos).
+     - `cyber_warfare` (Data centers subterrâneos, glass hacking, injeção de hardware zero-day).
+     - `deep_space_scifi` (Estações orbitais monolíticas, caminhada espacial, anéis de gelo planetários).
+  4. **Filas Automatizadas de Exportação**:
+     - `data/processed/minimax_t2v_queue.json` (pronto para cópia/API no Hailuo).
+     - `data/processed/google_veo_queue.json` (pronto para Google Flow / Veo 2).
+  5. **Resiliência de Transcode FFmpeg 4K**: Otimização de threads em `transcode_to_h264_master` (`threads=2:lookahead-threads=1`), eliminando estouro de alocação de memória no x264 em ambientes restritos/sandboxes.
+  6. **Cobertura de Testes**: 193 testes automatizados passando com 100% de sucesso (21 suítes de teste).
+- **Última Atualização**: 2026-11-07 21:10
 - **Modo Operacional**: Dual-Mode (Antigravity & Claude Code via SSOT `PROJECT_CONTEXT.md`)
 
 ---
@@ -18,6 +27,7 @@
 
 | Fase / Módulo | Status | Contagem / Métricas | Próxima Ação Recomendada |
 | :--- | :--- | :--- | :--- |
+| **DarkFactory Cinema T2V (YouTube Dark)** | 🟢 Operacional & Calibrado | **Motor T2V Dual-Shot (`src/video/darkfactory_t2v.py`)**: 3 cenas narrativas (6 tomadas Dual-Shot prontas) \| Filas MiniMax H3 e Google Veo 2 ativas | `python main.py --video --t2v` |
 | **Pipeline de Vídeo (Fase 3: RunningHub)** | 🟢 Calibrado (Lite/Plus) | **Workflow 2115926169974812674**: Img #164 ➔ Prompt #17 ➔ Vídeo 4K #185 (Feihou Preview sem watermark) | Botão do Meio (Lite/Plus) Ativo | Playwright Stealth Conta 3 | `python main.py --phase 3 --video` |
 | **Scoring Comercial & Filtros** | 🟢 Ativo & Operacional | **Motor Comercial (`src/analyzer/commercial_scorer.py`)**: 93 ativos analisados \| Score médio: 91.2 pts \| 70 Tier S, 23 Tier A \| 49 com Copy-Space (53%) | Explorar via Dashboard (`/`) |
 | **Dashboard Vídeo SPA (`/video`)** | 🟢 Ativo | **Dedicated Cinema Command Center**: URL dedicada `http://localhost:8501/video`, Player Cinema HTML5, Fila 4D, Ação Fase 3 Direta e Estúdio I2V | Acessar via browser |
@@ -37,17 +47,18 @@
 | **Conta 2: SeedVR 8K Upscaler** | 🟢 Calibrada (Lite/Plus) | **Workflow SeedVR 8K** \| Ingestão ZIP Nó #5 ➔ Preview Nó #55 (1 a 1 Real-Time) ➔ Auto-cancel na última imagem (Botão Lite/Plus) | Integrado no Daemon |
 | **Fase 4: O Catalogador** | 🟢 Concluído | **190 assets catalogados** em `adobe_stock_upload.csv` \| Injeção obrigatória de 300 DPI + IPTC/EXIF | Integrado no Daemon |
 | **Fase 5: O Distribuidor com Cotas** | 🟢 Protegido | **Despacho seletivo por plataforma**: Pausa agências com cotas esgotadas e prossegue nas demais \| Anti-Ban Alamy ativo | Integrado no Daemon |
-| **Suíte de Testes (Pytest)** | 🟢 100% Verde | **187 testes passando (100% verde)** | Regressão zero (20 suítes de teste) | `pytest tests/` |
+| **Suíte de Testes (Pytest)** | 🟢 100% Verde | **193 testes passando (100% verde)** | Regressão zero (21 suítes de teste) | `pytest tests/` |
 | **Agente Estratégico ("O Que Você Faria?")** | 🟢 Ativo & Registrado | **Subagente `what-would-you-do`** \| Skill `/wwyd` \| Hook `PreInvocation` em `.agents/hooks.json` \| Sócio sênior e avaliador de viabilidade | Invocável via subagente ou chat |
 
 ---
 
-## 🎬 Arquitetura da Fábrica de Vídeo (RunningHub 4K)
-- **Workflow URL**: `https://www.runninghub.ai/pt-br/workflow/2115926169974812674?source=workspace`
-- **Workflow ID**: `2115926169974812674`
-- **Load Image**: Nó `#164` (Ingestão de imagem de referência ou First Frame)
-- **Prompt**: Nó `#17` (Injeção de prompt temporal cinematográfico 500-800 palavras)
-- **Preview Video (Feihou Anti-Watermark)**: Nó `#185` (Captura direta de preview sem marca d'água da plataforma)
-- **Botão de Execução**: `Lite/Plus` (Botão do meio - cor amarela/laranja)
-- **Destino dos Vídeos 4K**: `data/final/videos/`
-- **Playwright Stealth Profile 3**: RTX 4090 Workstation, 4K Display, sessão isolada `playwright_session_video/`
+## 🎬 Arquitetura da Fábrica de Vídeo
+- **DarkFactory T2V Engine**: `src/video/darkfactory_t2v.py`
+  - Dual-Shot Architecture: Shot A (Tension/Character) + Shot B (Tactical Macro/Action)
+  - Target Engines: MiniMax H3 (Hailuo) e Google Flow (Veo 2)
+  - Filas de Exportação: `data/processed/minimax_t2v_queue.json` e `data/processed/google_veo_queue.json`
+- **Workflow RunningHub (Fallback I2V)**: `https://www.runninghub.ai/pt-br/workflow/2115926169974812674?source=workspace`
+  - Nó #164: Ingestão de Imagem
+  - Nó #17: Injeção de Prompt
+  - Nó #185: Saída sem marca d'água (Feihou Preview)
+  - Botão Mandatório: `Lite/Plus`

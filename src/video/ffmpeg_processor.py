@@ -241,11 +241,14 @@ def transcode_to_h264_master(
     cmd = [
         get_ffmpeg_binary(),
         "-y",
+        "-threads", "4",
         "-i", str(in_path),
         "-c:v", "libx264",
         "-profile:v", "high",
         "-level", "5.1",
         "-preset", preset,
+        "-threads", "2",
+        "-x264-params", "threads=2:lookahead-threads=1",
         "-crf", str(crf),
         "-pix_fmt", "yuv420p",
         "-movflags", "+faststart",
@@ -291,6 +294,7 @@ def transcode_to_prores_master(
     cmd = [
         get_ffmpeg_binary(),
         "-y",
+        "-threads", "4",
         "-i", str(in_path),
         "-c:v", "prores_ks",
         "-profile:v", str(profile),
@@ -349,6 +353,7 @@ def create_seamless_loop(
     cmd = [
         get_ffmpeg_binary(),
         "-y",
+        "-threads", "4",
         "-i", str(in_path),
         "-filter_complex", filter_complex,
         "-map", "[outv]",

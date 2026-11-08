@@ -1,0 +1,101 @@
+[
+  {
+    "scene_id": 1,
+    "title": "The First Nuclear Alarm Beacon",
+    "archetype": "cold_war_espionage",
+    "narrative_beat": "Serpukhov-15 secret military bunker, 1983. The early warning satellite system blares false nuclear launch confirmation.",
+    "created_at": 1794096461.7999487,
+    "shots": [
+      {
+        "shot_id": "cold_war_espionage_scene_1_shot_a",
+        "shot_type": "shot_a",
+        "focus": "character_tension",
+        "camera_movement": "Slow cinematic push-in (dolly track forward) from medium to tight close-up",
+        "subject_description": "Soviet duty officer Lieutenant Colonel Stanislav Petrov seated at a heavy steel console, under pulsating red emergency alarm beacons. His eyes wide with sudden tension, subtle cold sweat glinting on his brow as red light reflects in his glasses. Authentic human micro-expressions, breathing heavily with palpable psychological dread.",
+        "target_duration_sec": 5.0,
+        "aspect_ratio": "16:9",
+        "minimax_prompt": "[Camera Movement: Slow cinematic push-in (dolly track forward) from medium to tight close-up]. Soviet duty officer Lieutenant Colonel Stanislav Petrov seated at a heavy steel console, under pulsating red emergency alarm beacons. His eyes wide with sudden tension, subtle cold sweat glinting on his brow as red light reflects in his glasses. Authentic human micro-expressions, breathing heavily with palpable psychological dread. Cinematic lighting: Military olive drab, CRT phosphor green (#00FF66), blood red alarm strobes (#FF1A1A), amber incandescent warning lights.. Authentic film grain, natural weight and physics, hyper-realistic human motion, atmospheric volumetric shadows, 24fps motion cadence, master cinematography, no digital warping, no anatomical glitches.",
+        "google_veo_prompt": "Cinematic 4K UHD widescreen 2.39:1 letterbox footage. Soviet duty officer Lieutenant Colonel Stanislav Petrov seated at a heavy steel console, under pulsating red emergency alarm beacons. His eyes wide with sudden tension, subtle cold sweat glinting on his brow as red light reflects in his glasses. Authentic human micro-expressions, breathing heavily with palpable psychological dread. Camera trajectory: Slow cinematic push-in (dolly track forward) from medium to tight close-up. Lens & Optics: Cooke Anamorphic 35mm f/2.0, shallow depth of field, 2.39:1 letterbox, Kodak Vision3 500T 5219 grain emulation.. Color Palette: Military olive drab, CRT phosphor green (#00FF66), blood red alarm strobes (#FF1A1A), amber incandescent warning lights.. Shot on 35mm motion picture film, natural organic motion blur, rich micro-contrast, zero artificial smoothing, deep shadow detail, broadcast documentary prestige quality.",
+        "status": "pending"
+      },
+      {
+        "shot_id": "cold_war_espionage_scene_1_shot_b",
+        "shot_type": "shot_b",
+        "focus": "tactical_macro",
+        "camera_movement": "Handheld visceral drift with slight mechanical rumble, macro focus pull",
+        "subject_description": "Extreme macro of the retro Soviet command CRT screen. A glowing phosphor-green ballistic trajectory map showing 5 incoming intercontinental missiles with flashing Cyrillic warning text 'СТАРТ'. The amber mechanical toggle switches vibrate gently on the brushed steel dashboard.",
+        "target_duration_sec": 5.0,
+        "aspect_ratio": "16:9",
+        "minimax_prompt": "[Camera Movement: Handheld visceral drift with slight mechanical rumble, macro focus pull]. Extreme macro of the retro Soviet command CRT screen. A glowing phosphor-green ballistic trajectory map showing 5 incoming intercontinental missiles with flashing Cyrillic warning text 'СТАРТ'. The amber mechanical toggle switches vibrate gently on the brushed steel dashboard. Cinematic lighting: Military olive drab, CRT phosphor green (#00FF66), blood red alarm strobes (#FF1A1A), amber incandescent warning lights.. Authentic film grain, natural weight and physics, hyper-realistic human motion, atmospheric volumetric shadows, 24fps motion cadence, master cinematography, no digital warping, no anatomical glitches.",
+        "google_veo_prompt": "Cinematic 4K UHD widescreen 2.39:1 letterbox footage. Extreme macro of the retro Soviet command CRT screen. A glowing phosphor-green ballistic trajectory map showing 5 incoming intercontinental missiles with flashing Cyrillic warning text 'СТАРТ'. The amber mechanical toggle switches vibrate gently on the brushed steel dashboard. Camera trajectory: Handheld visceral drift with slight mechanical rumble, macro focus pull. Lens & Optics: Cooke Anamorphic 35mm f/2.0, shallow depth of field, 2.39:1 letterbox, Kodak Vision3 500T 5219 grain emulation.. Color Palette: Military olive drab, CRT phosphor green (#00FF66), blood red alarm strobes (#FF1A1A), amber incandescent warning lights.. Shot on 35mm motion picture film, natural organic motion blur, rich micro-contrast, zero artificial smoothing, deep shadow detail, broadcast documentary prestige quality.",
+        "status": "pending"
+      }
+    ]
+  },
+  {
+    "scene_id": 2,
+    "title": "The Agonizing Phone Line",
+    "archetype": "cold_war_espionage",
+    "narrative_beat": "Petrov grasps the secure bakelite red telephone receiver to report the false alarm, defying automated protocols.",
+    "created_at": 1794096461.801519,
+    "shots": [
+      {
+        "shot_id": "cold_war_espionage_scene_2_shot_a",
+        "shot_type": "shot_a",
+        "focus": "character_action",
+        "camera_movement": "Low-angle eye-level tracking shot moving laterally across the command room",
+        "subject_description": "Petrov lifting the heavy crimson military telephone to his ear, his jaw clenched, veins visible on his neck, speaking into the receiver with intense hushed authority while junior officers behind him freeze in stunned panic.",
+        "target_duration_sec": 5.0,
+        "aspect_ratio": "16:9",
+        "minimax_prompt": "[Camera Movement: Low-angle eye-level tracking shot moving laterally across the command room]. Petrov lifting the heavy crimson military telephone to his ear, his jaw clenched, veins visible on his neck, speaking into the receiver with intense hushed authority while junior officers behind him freeze in stunned panic. Cinematic lighting: Military olive drab, CRT phosphor green (#00FF66), blood red alarm strobes (#FF1A1A), amber incandescent warning lights.. Authentic film grain, natural weight and physics, hyper-realistic human motion, atmospheric volumetric shadows, 24fps motion cadence, master cinematography, no digital warping, no anatomical glitches.",
+        "google_veo_prompt": "Cinematic 4K UHD widescreen 2.39:1 letterbox footage. Petrov lifting the heavy crimson military telephone to his ear, his jaw clenched, veins visible on his neck, speaking into the receiver with intense hushed authority while junior officers behind him freeze in stunned panic. Camera trajectory: Low-angle eye-level tracking shot moving laterally across the command room. Lens & Optics: Cooke Anamorphic 35mm f/2.0, shallow depth of field, 2.39:1 letterbox, Kodak Vision3 500T 5219 grain emulation.. Color Palette: Military olive drab, CRT phosphor green (#00FF66), blood red alarm strobes (#FF1A1A), amber incandescent warning lights.. Shot on 35mm motion picture film, natural organic motion blur, rich micro-contrast, zero artificial smoothing, deep shadow detail, broadcast documentary prestige quality.",
+        "status": "pending"
+      },
+      {
+        "shot_id": "cold_war_espionage_scene_2_shot_b",
+        "shot_type": "shot_b",
+        "focus": "tactical_macro",
+        "camera_movement": "Dutch angle tight zoom settling onto the glowing countdown dials",
+        "subject_description": "Close-up on the analog ballistic timer ticking down towards zero. The second hand ticks with sharp mechanical precision, illuminated by flickering overhead fluorescent tubes, deep shadows casting dramatic contrast across the rivets.",
+        "target_duration_sec": 5.0,
+        "aspect_ratio": "16:9",
+        "minimax_prompt": "[Camera Movement: Dutch angle tight zoom settling onto the glowing countdown dials]. Close-up on the analog ballistic timer ticking down towards zero. The second hand ticks with sharp mechanical precision, illuminated by flickering overhead fluorescent tubes, deep shadows casting dramatic contrast across the rivets. Cinematic lighting: Military olive drab, CRT phosphor green (#00FF66), blood red alarm strobes (#FF1A1A), amber incandescent warning lights.. Authentic film grain, natural weight and physics, hyper-realistic human motion, atmospheric volumetric shadows, 24fps motion cadence, master cinematography, no digital warping, no anatomical glitches.",
+        "google_veo_prompt": "Cinematic 4K UHD widescreen 2.39:1 letterbox footage. Close-up on the analog ballistic timer ticking down towards zero. The second hand ticks with sharp mechanical precision, illuminated by flickering overhead fluorescent tubes, deep shadows casting dramatic contrast across the rivets. Camera trajectory: Dutch angle tight zoom settling onto the glowing countdown dials. Lens & Optics: Cooke Anamorphic 35mm f/2.0, shallow depth of field, 2.39:1 letterbox, Kodak Vision3 500T 5219 grain emulation.. Color Palette: Military olive drab, CRT phosphor green (#00FF66), blood red alarm strobes (#FF1A1A), amber incandescent warning lights.. Shot on 35mm motion picture film, natural organic motion blur, rich micro-contrast, zero artificial smoothing, deep shadow detail, broadcast documentary prestige quality.",
+        "status": "pending"
+      }
+    ]
+  },
+  {
+    "scene_id": 1,
+    "title": "Zero-Day Datacenter Breach",
+    "archetype": "cyber_warfare",
+    "narrative_beat": "A shadowy operative in a dark server hall taps into an air-gapped mainframe fiber array.",
+    "created_at": 1794096461.802589,
+    "shots": [
+      {
+        "shot_id": "cyber_warfare_scene_1_shot_a",
+        "shot_type": "shot_a",
+        "focus": "character_tension",
+        "camera_movement": "Smooth Ronin 4D gimbal orbital drift around the operator",
+        "subject_description": "Silhouetted cybersecurity hacker in tactical black apparel kneeling beside an open enterprise server rack. The cascading teal and amber LEDs cast complex shadows across their face mask as their gloved hands rapidly deploy a hardware bypass module.",
+        "target_duration_sec": 5.0,
+        "aspect_ratio": "16:9",
+        "minimax_prompt": "[Camera Movement: Smooth Ronin 4D gimbal orbital drift around the operator]. Silhouetted cybersecurity hacker in tactical black apparel kneeling beside an open enterprise server rack. The cascading teal and amber LEDs cast complex shadows across their face mask as their gloved hands rapidly deploy a hardware bypass module. Cinematic lighting: Deep cyan (#00D2FF), obsidian glass black, laser indigo (#4B0082), pulsating server LED orange.. Authentic film grain, natural weight and physics, hyper-realistic human motion, atmospheric volumetric shadows, 24fps motion cadence, master cinematography, no digital warping, no anatomical glitches.",
+        "google_veo_prompt": "Cinematic 4K UHD widescreen 2.39:1 letterbox footage. Silhouetted cybersecurity hacker in tactical black apparel kneeling beside an open enterprise server rack. The cascading teal and amber LEDs cast complex shadows across their face mask as their gloved hands rapidly deploy a hardware bypass module. Camera trajectory: Smooth Ronin 4D gimbal orbital drift around the operator. Lens & Optics: Leica Noctilux 50mm f/0.95, extreme low-light sensitivity, crisp optical chromatic aberrations, anamorphic horizontal streaks.. Color Palette: Deep cyan (#00D2FF), obsidian glass black, laser indigo (#4B0082), pulsating server LED orange.. Shot on 35mm motion picture film, natural organic motion blur, rich micro-contrast, zero artificial smoothing, deep shadow detail, broadcast documentary prestige quality.",
+        "status": "pending"
+      },
+      {
+        "shot_id": "cyber_warfare_scene_1_shot_b",
+        "shot_type": "shot_b",
+        "focus": "tactical_macro",
+        "camera_movement": "Macro probe lens tracking across glowing optical fiber glass",
+        "subject_description": "Macro probe perspective skimming along glowing fiber optic cables with high-speed light pulses flowing inside translucent conduits, culminating at a high-speed data transfer screen displaying rapid hexadecimal packet dumps.",
+        "target_duration_sec": 5.0,
+        "aspect_ratio": "16:9",
+        "minimax_prompt": "[Camera Movement: Macro probe lens tracking across glowing optical fiber glass]. Macro probe perspective skimming along glowing fiber optic cables with high-speed light pulses flowing inside translucent conduits, culminating at a high-speed data transfer screen displaying rapid hexadecimal packet dumps. Cinematic lighting: Deep cyan (#00D2FF), obsidian glass black, laser indigo (#4B0082), pulsating server LED orange.. Authentic film grain, natural weight and physics, hyper-realistic human motion, atmospheric volumetric shadows, 24fps motion cadence, master cinematography, no digital warping, no anatomical glitches.",
+        "google_veo_prompt": "Cinematic 4K UHD widescreen 2.39:1 letterbox footage. Macro probe perspective skimming along glowing fiber optic cables with high-speed light pulses flowing inside translucent conduits, culminating at a high-speed data transfer screen displaying rapid hexadecimal packet dumps. Camera trajectory: Macro probe lens tracking across glowing optical fiber glass. Lens & Optics: Leica Noctilux 50mm f/0.95, extreme low-light sensitivity, crisp optical chromatic aberrations, anamorphic horizontal streaks.. Color Palette: Deep cyan (#00D2FF), obsidian glass black, laser indigo (#4B0082), pulsating server LED orange.. Shot on 35mm motion picture film, natural organic motion blur, rich micro-contrast, zero artificial smoothing, deep shadow detail, broadcast documentary prestige quality.",
+        "status": "pending"
+      }
+    ]
+  }
+]
