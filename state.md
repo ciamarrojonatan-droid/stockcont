@@ -1,24 +1,14 @@
 # StockCont Pipeline State
 > Sincronizado automaticamente por hooks e comandos do ecossistema.
 
-## Sprint Atual: DarkFactory T2V Cinema Engine & Adapters MiniMax H3 / Google Veo 2 (Canal Dark Faceless)
-- **Status da Sprint**: [CONCLUÍDO] Integração do Motor Text-to-Video (T2V) Nativo para Canal Dark Faceless no YouTube:
-  1. **Motor T2V Narrativo (`src/video/darkfactory_t2v.py`)**: Superação da limitação estática do I2V. Geração direta de cenas narrativas divididas em pares **Dual-Shot** de alta retenção:
-     - **Shot A (Drama/Tensão/Personagem)**: Câmera ativa em aproximação lenta (*push-in dolly track*), close-up psicológico, expressões faciais autênticas e iluminação dramática.
-     - **Shot B (Macro/Tático/Ação)**: Detalhes táticos, painéis CRT, radares analógicos, mãos em chaves mecânicas e paralaxe visceral com lentes probe/macro.
-  2. **Adapters Específicos para MiniMax (Hailuo H3) e Google Flow (Veo 2)**:
-     - **MiniMax H3 / Video-01**: Formatação com tags de movimento de câmera (`[Camera Movement: ...]`), física realista de corpos e tecidos, 24fps cinema cadence e âncoras contra distorção digital.
-     - **Google Flow / Veo 2**: Emulação ótica de lentes anamórficas Cooke 35mm f/2.0, película Kodak Vision3 500T 5219, proporção anamórfica 2.39:1 e iluminação volumétrica.
-  3. **Biblioteca de Arquétipos Narrativos**:
-     - `cold_war_espionage` (Incidente Petrov, bunkers soviéticos, sirenes vermelhas, radares balísticos).
-     - `cyber_warfare` (Data centers subterrâneos, glass hacking, injeção de hardware zero-day).
-     - `deep_space_scifi` (Estações orbitais monolíticas, caminhada espacial, anéis de gelo planetários).
-  4. **Filas Automatizadas de Exportação**:
-     - `data/processed/minimax_t2v_queue.json` (pronto para cópia/API no Hailuo).
-     - `data/processed/google_veo_queue.json` (pronto para Google Flow / Veo 2).
-  5. **Resiliência de Transcode FFmpeg 4K**: Otimização de threads em `transcode_to_h264_master` (`threads=2:lookahead-threads=1`), eliminando estouro de alocação de memória no x264 em ambientes restritos/sandboxes.
-  6. **Cobertura de Testes**: 193 testes automatizados passando com 100% de sucesso (21 suítes de teste).
-- **Última Atualização**: 2026-11-07 21:10
+## Sprint Atual: DarkFactory Cinema Engine & Research / Kokoro Fallback Grounding
+- **Status da Sprint**: [CONCLUÍDO] Calibração de Produção Master para o DarkFactory / Documentários Históricos:
+  1. **Research Engine Ground-Truth (`darkfactory/src/research_engine.py`)**: Extração factual automática via Wikipedia REST API e MediaWiki Search API. Mapeamento de fatos numéricos, figuras históricas, locações, datas e síntese de ganchos dramáticos e oportunidades visuais de B-roll. Eliminação de alucinações e conformidade estrita contra *AI slop*.
+  2. **Kokoro TTS Local Fallback Engine (`darkfactory/src/kokoro_fallback.py`)**: Mapeamento de atuação (*acting direction*) a partir de instruções CosyVoice (`instruct_text`) para vozes e cadências do Kokoro-82M (`am_fenrir` para tensão/urgência, `am_onyx` para clima sombrio/grave, `am_adam` para documentário clássico). Fallback proxy transparente via Edge-TTS e transcode 16-bit 44.1kHz PCM WAV.
+  3. **Orquestrador Central Atualizado (`darkfactory/run_pilot_pipeline.py`)**: Suporte a `--step research`, `--step tts-local` e modo 100% autônomo offline `--step all-local`.
+  4. **Motor T2V Narrativo (`src/video/darkfactory_t2v.py`)**: Superação da limitação estática do I2V. Geração direta de cenas narrativas divididas em pares **Dual-Shot** de alta retenção (Shot A Drama/Tensão + Shot B Macro/Ação) com adapters para MiniMax H3 e Google Flow (Veo 2).
+  5. **Cobertura de Testes**: 205 testes automatizados passando com 100% de sucesso (193 testes no StockCont + 12 testes no DarkFactory).
+- **Última Atualização**: 2026-11-07 21:20
 - **Modo Operacional**: Dual-Mode (Antigravity & Claude Code via SSOT `PROJECT_CONTEXT.md`)
 
 ---
