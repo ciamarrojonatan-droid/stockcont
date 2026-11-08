@@ -21,6 +21,26 @@ from src.video.youtube_booster import (
     TriVariantThumbnail,
     run_youtube_booster_cli,
 )
+from src.video.cinematic_color import (
+    FilmLookProfile,
+    CinematicColorGrader,
+    LookSpecification,
+    LOOK_REGISTRY,
+)
+from src.video.pacing_analyzer import (
+    CinematicPacingAnalyzer,
+    PacingReport,
+    ShotSegment,
+)
+from src.video.otio_exporter import (
+    UniversalTimelineExporter,
+    TimelineClipRef,
+    TimelineMarker,
+)
+from src.video.tactical_graphics import (
+    TacticalGraphicsEngine,
+    LowerThirdData,
+)
 
 __all__ = [
     "VideoProperties",
@@ -39,4 +59,16 @@ __all__ = [
     "YouTubeAlgorithmBoosterBridge",
     "TriVariantThumbnail",
     "run_youtube_booster_cli",
+    "FilmLookProfile",
+    "CinematicColorGrader",
+    "LookSpecification",
+    "LOOK_REGISTRY",
+    "CinematicPacingAnalyzer",
+    "PacingReport",
+    "ShotSegment",
+    "UniversalTimelineExporter",
+    "TimelineClipRef",
+    "TimelineMarker",
+    "TacticalGraphicsEngine",
+    "LowerThirdData",
 ]

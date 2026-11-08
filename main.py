@@ -544,6 +544,17 @@ def main() -> None:
     video_group.add_argument("--youtube-title", type=str, default="The 1983 Soviet Glitch: 20 Minutes to Armageddon", help="Title for YouTube master optimization package")
     video_group.add_argument("--youtube-desc", type=str, default="A detailed historical Cold War documentary investigating Serpukhov-15 declassified telemetry.", help="Description for YouTube package")
     video_group.add_argument("--youtube-duration", type=float, default=600.0, help="Video duration in seconds for YouTube package calculation")
+    video_group.add_argument("--cinematic-profiles", action="store_true", help="List all Hollywood/35mm film emulation look profiles available")
+    video_group.add_argument("--cinematic-grade", type=str, default=None, choices=["kodak_2383", "fuji_eterna", "bleach_bypass", "oppenheimer_mono", "cold_war_noir", "cyber_tactical"], help="Apply Hollywood cinematic color grade and film grain")
+    video_group.add_argument("--cinematic-grain", type=float, default=None, help="Custom film grain strength (0.0 to 1.0)")
+    video_group.add_argument("--cinematic-letterbox", action="store_true", help="Apply 2.39:1 CinemaScope anamorphic matte")
+    video_group.add_argument("--video-in", type=str, default=None, help="Input video file path for cinematic processing or pacing analysis")
+    video_group.add_argument("--video-out", type=str, default=None, help="Output video file path for cinematic processing")
+    video_group.add_argument("--analyze-pacing", type=str, default=None, help="Analyze video pacing (MSL, Cuts Per Minute, Tension Score) for a video file")
+    video_group.add_argument("--export-otio", action="store_true", help="Export universal OpenTimelineIO (.otio) project for DaVinci Resolve Studio")
+    video_group.add_argument("--otio-title", type=str, default="DarkFactory_Master_Cut", help="Title for OTIO project")
+    video_group.add_argument("--tactical-hud", action="store_true", help="Generate tactical military radar HUD overlay PNG")
+    video_group.add_argument("--tactical-stamp", action="store_true", help="Generate declassified TOP SECRET stamp overlay PNG")
 
     args = parser.parse_args()
 
@@ -631,6 +642,96 @@ def main() -> None:
         print(f"  • EDSA Protection:        {edsa.get('status')} (Score: {edsa.get('edsa_score')}/100)")
         anchors = edsa.get('anchors_detected', [])
         print(f"  • Anchors Detected:       {', '.join(anchors)}\n")
+        return
+
+    if getattr(args, "cinematic_profiles", False):
+        from src.video.cinematic_color import CinematicColorGrader
+        grader = CinematicColorGrader()
+        profiles = grader.list_profiles()
+        print("\n==================================================================")
+        print("🎬 DARKFACTORY CINEMATIC COLOR SCIENCE (35MM FILM PROFILES)")
+        print("==================================================================")
+        for p in profiles:
+            print(f"  • [{p['id'].upper()}] {p['name']}")
+            print(f"    - Diretor / Vibe: {p['director_vibe']}")
+            print(f"    - Descrição:      {p['description']}")
+            print(f"    - Grão Padrão:    {int(p['recommended_grain'] * 100)}% film grain\n")
+        return
+
+    if getattr(args, "cinematic_grade", None):
+        profile = getattr(args, "cinematic_grade")
+        in_file = getattr(args, "video_in", None)
+        out_file = getattr(args, "video_out", None) or f"data/final/videos/{profile}_graded.mp4"
+        if not in_file:
+            print("[ERRO] Informe o arquivo de entrada via --video-in <caminho.mp4>")
+            return
+        from src.video.cinematic_color import CinematicColorGrader
+        grader = CinematicColorGrader()
+        ok = grader.apply_grade(
+            input_path=in_file,
+            output_path=out_file,
+            profile=profile,
+            film_grain=True,
+            grain_strength=getattr(args, "cinematic_grain", None),
+            letterbox_239=getattr(args, "cinematic_letterbox", False),
+        )
+        if ok:
+            print(f"\n✅ Color grading '{profile}' aplicado com sucesso: {out_file}")
+        else:
+            print(f"\n❌ Falha ao aplicar color grading em: {in_file}")
+        return
+
+    if getattr(args, "analyze_pacing", None):
+        video_to_analyze = getattr(args, "analyze_pacing")
+        from src.video.pacing_analyzer import CinematicPacingAnalyzer
+        analyzer = CinematicPacingAnalyzer()
+        report = analyzer.analyze_pacing(video_to_analyze)
+        print("\n==================================================================")
+        print("⏱️ CINEMATIC PACING & MONTAGE RHYTHM REPORT (THE EDITOR'S BRAIN)")
+        print("==================================================================")
+        print(f"  • Vídeo Analisado:       {report.video_path}")
+        print(f"  • Duração Total:         {report.total_duration_sec:.2f}s ({report.total_shots} planos)")
+        print(f"  • Mean Shot Length (MSL): {report.mean_shot_length:.2f}s por plano")
+        print(f"  • Cuts Per Minute (CPM): {report.cuts_per_minute:.1f} cortes/min")
+        print(f"  • Arquétipo de Pacing:   {report.pacing_archetype.upper()}")
+        print(f"  • Tension Pacing Score:  {report.tension_score}/100")
+        print(f"  • Penalidade Monotonia:  -{report.monotony_penalty:.1f} pts\n")
+        return
+
+    if getattr(args, "export_otio", False):
+        from src.video.otio_exporter import UniversalTimelineExporter, TimelineClipRef, TimelineMarker
+        exporter = UniversalTimelineExporter(fps=24.0)
+        # Monta timeline com as tomadas da fila T2V
+        clips = [
+            TimelineClipRef(name="Shot_A_Tension_Lead", media_path="data/final/videos/shot_a_tension.mp4", duration_sec=5.0),
+            TimelineClipRef(name="Shot_B_Tactical_Macro", media_path="data/final/videos/shot_b_macro.mp4", duration_sec=4.5),
+        ]
+        markers = [
+            TimelineMarker(name="00:00 - The Serpukhov Glitch", timecode_sec=0.0, color="RED"),
+            TimelineMarker(name="00:05 - The False Alarm Climax", timecode_sec=5.0, color="YELLOW"),
+        ]
+        out_otio = exporter.export_to_file(
+            output_path="data/processed/davinci_resolve_timeline.otio",
+            timeline_name=getattr(args, "otio_title", "DarkFactory_Master_Cut"),
+            video_clips=clips,
+            markers=markers,
+        )
+        print(f"\n✅ Linha do tempo OpenTimelineIO (.otio) exportada com sucesso: {out_otio}")
+        print("   -> Importe diretamente no DaVinci Resolve Studio (File > Import > Timeline...)")
+        return
+
+    if getattr(args, "tactical_hud", False):
+        from src.video.tactical_graphics import TacticalGraphicsEngine
+        t_engine = TacticalGraphicsEngine()
+        hud_path = t_engine.create_tactical_hud_overlay("data/processed/tactical_hud_overlay.png")
+        print(f"\n✅ HUD tático de radar militar gerado em: {hud_path}")
+        return
+
+    if getattr(args, "tactical_stamp", False):
+        from src.video.tactical_graphics import TacticalGraphicsEngine
+        t_engine = TacticalGraphicsEngine()
+        stamp_path = t_engine.create_declassified_stamp_overlay("data/processed/declassified_stamp.png")
+        print(f"\n✅ Carimbo de documento desclassificado gerado em: {stamp_path}")
         return
 
     if args.seasonal:
