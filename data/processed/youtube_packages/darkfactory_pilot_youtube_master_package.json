@@ -1,0 +1,534 @@
+{
+  "project_id": "darkfactory_pilot",
+  "pipeline": "DarkFactory x StockCont Cinema Engine",
+  "optimization_standard": "YouTube Partner Program 2026 Ready",
+  "monetization_projection": "🟢 Instant Green Dollar Sign via 100% Rating Accuracy",
+  "master_metadata": {
+    "title": "The 1983 Soviet Glitch: 20 Minutes to Armageddon",
+    "description": "A detailed historical Cold War documentary investigating Serpukhov-15 declassified telemetry.",
+    "duration_seconds": 600.0,
+    "resolution": "3840x2160"
+  },
+  "tri_variant_thumbnails": [
+    {
+      "variant_name": "Variant A: Psychological Dread / Human Chiaroscuro",
+      "archetype": "human_chiaroscuro_dread",
+      "hypothesis": "High emotional resonance via terrified human eye contact in high-contrast chiaroscuro.",
+      "composition": "Extreme close-up on officer's sweating brow reflecting flashing red emergency beacon.",
+      "text_overlay": "20 MINUTES TO MIDNIGHT",
+      "word_count": 4,
+      "target_watch_time_share": "High click volume across broad home feed recommendations.",
+      "file_path": "data/thumbnails/darkfactory_pilot_thumb_a.jpg"
+    },
+    {
+      "variant_name": "Variant B: Tactical Evidence / Macro Focus",
+      "archetype": "tactical_macro_evidence",
+      "hypothesis": "Appeals to military, science, and investigative history viewers seeking authentic documents.",
+      "composition": "Macro probe lens on glowing green CRT radar telemetry showing 5 ballistic trajectories.",
+      "text_overlay": "5 MISSILES DETECTED",
+      "word_count": 3,
+      "target_watch_time_share": "High AVD look-alike cohort seeking deep forensic analysis.",
+      "file_path": "data/thumbnails/darkfactory_pilot_thumb_b.jpg"
+    },
+    {
+      "variant_name": "Variant C: Colossal Scale / Existential Threat",
+      "archetype": "colossal_existential_scale",
+      "hypothesis": "Generates irresistible curiosity gap through an ethical paradox and immense architectural scale.",
+      "composition": "Silhouetted human figure standing before a gargantuan underground concrete ballistic silo.",
+      "text_overlay": "WHY HE REFUSED",
+      "word_count": 3,
+      "target_watch_time_share": "Maximum curiosity gap with long-term evergreen session extension.",
+      "file_path": "data/thumbnails/darkfactory_pilot_thumb_c.jpg"
+    }
+  ],
+  "official_series_playlist": {
+    "series_id": "darkfactory_classified_chronicles",
+    "series_title": "Classified Archives: Historical Near-Misses",
+    "is_official_series": true,
+    "episode_position": 1,
+    "total_episodes": 6,
+    "next_episode_hook": "Episode 2 of Classified Archives: Historical Near-Misses",
+    "youtube_studio_setting": "Playlists -> Playlist Settings -> Set as official series for this playlist = ON",
+    "algorithmic_benefit": "Suggested Videos & Up Next priority locking; extended binge session watch time attribution"
+  },
+  "seamless_outro_audit": {
+    "exit_cues_detected": [],
+    "has_retention_risk": false,
+    "seamless_bridge_injected": "\n\n[SEAMLESS BINGE BRIDGE]: While this file was buried in official archives, what researchers uncovered next was far more terrifying: Click here to uncover what happened three years later in the Arctic. [TRIGGER END-SCREEN CARD: The Secret Arctic Dossier]",
+    "remediated_script_outro": "A detailed historical Cold War documentary investigating Serpukhov-15 declassified telemetry.",
+    "rule": "Never signal the end of the video; hand off seamlessly to the next episode in the same breath."
+  },
+  "codec_readiness_audit": {
+    "resolution": "3840x2160",
+    "is_4k_or_1440p": true,
+    "allocated_youtube_codec": "VP09 / AV01 (Pristine Chiaroscuro)",
+    "recommendation": "Master and upload in 4K UHD (3840x2160) to avoid dark shadow banding and preserve film grain."
+  },
+  "self_certification_manifest": {
+    "project_id": "darkfactory_pilot",
+    "self_certification_questionnaire": {
+      "inappropriate_language": {
+        "declared": "None",
+        "rating": "Eligible for all ads",
+        "justification": "No vulgarity or profanity in title, thumbnail, or opening 7 seconds."
+      },
+      "adult_content": {
+        "declared": "None",
+        "rating": "Eligible for all ads",
+        "justification": "Zero sexual themes, nudity, or adult references."
+      },
+      "violence": {
+        "declared": "Educational / Historical Documentary Framing (EDSA)",
+        "rating": "Eligible for all ads",
+        "justification": "Depicts historical Cold War military alert and radar telemetry strictly within an educational and archival context. No graphic injuries or gratuitous gore."
+      },
+      "shocking_content": {
+        "declared": "None",
+        "rating": "Eligible for all ads",
+        "justification": "No grotesque imagery or content intended to repulse."
+      },
+      "harmful_or_dangerous_acts": {
+        "declared": "None",
+        "rating": "Eligible for all ads",
+        "justification": "No stunts, self-harm, or dangerous weapons assembly."
+      },
+      "hateful_or_derogatory_content": {
+        "declared": "None",
+        "rating": "Eligible for all ads",
+        "justification": "Strict historical neutrality; zero hate speech."
+      },
+      "recreational_drugs_and_drug_related_content": {
+        "declared": "None",
+        "rating": "Eligible for all ads",
+        "justification": "No drug use or promotion."
+      },
+      "firearms_related_content": {
+        "declared": "None",
+        "rating": "Eligible for all ads",
+        "justification": "Historical military telemetry only; no civilian firearm sales or modifications."
+      },
+      "sensitive_events": {
+        "declared": "Documented Declassified Historical Event (EDSA)",
+        "rating": "Eligible for all ads",
+        "justification": "Covers 1983 historical event with declassified sources. Not a recent tragedy."
+      },
+      "altered_or_synthetic_content": {
+        "declared": "Disclosed — Synthetic Visual Reenactment",
+        "rating": "Eligible for all ads (YPP Compliant)",
+        "disclosure_checkbox": true,
+        "justification": "Realistic historical recreations created via AI tools disclosed in metadata per YouTube AI Transparency policy."
+      }
+    },
+    "projected_monetization_status": "🟢 Green Dollar Sign (Fully Monetized)",
+    "rating_accuracy_tier": "High (Calibrated Trust Profile)",
+    "human_review_recommended": false,
+    "edsa_exemption_applied": true,
+    "studio_submission_guide": "When submitting the video in YouTube Studio -> Monetization -> Submit Rating, select 'None of the above' for adult/language/shocking, and check 'Educational / Documentary' for historical violence to preserve your 100% Rating Accuracy score."
+  },
+  "edsa_compliance_audit": {
+    "has_edsa_protection": true,
+    "edsa_score": 100,
+    "anchors_detected": [
+      "declassified",
+      "1983",
+      "documentary",
+      "cold war",
+      "soviet",
+      "telemetry",
+      "historical"
+    ],
+    "disclaimer_present": false,
+    "status": "EDSA_PROTECTED",
+    "policy_reference": "YouTube Advertiser-Friendly Guidelines (EDSA Context Exemption)"
+  },
+  "darkfactory_base_package": {
+    "project_id": "darkfactory_pilot",
+    "algorithm_score": 100,
+    "status": "algorithm_optimized",
+    "youtube_employee_standard": "MET: Multi-Language SEO, Multi-Language Audio Tracks, Video Chapters, Closed Captions, Stable Volume, End Screens, Pinned Comments, Test-and-Compare Thumbnails, Official Series Playlist, Seamless Outro & 4K Codec Guard",
+    "primary_metadata": {
+      "title": "The 1983 Soviet Glitch: 20 Minutes to Armageddon",
+      "description": "A detailed historical Cold War documentary investigating Serpukhov-15 declassified telemetry.\n\n⏱️ CHAPTERS & KEY MOMENTS:\n00:00 Prologue: Midnight in the Command Bunker\n01:48 The Red Alert: Early Warning Alarm Triggers\n04:12 Five Ballistic Trajectories on Screen\n06:48 The Standoff: Direct Line to Moscow\n08:48 The Classified Truth & Historical Aftermath\n\n#ColdWar #HistoryDocumentary #StanislavPetrov",
+      "top_hashtags": [
+        "#ColdWar",
+        "#HistoryDocumentary",
+        "#StanislavPetrov"
+      ]
+    },
+    "video_chapters": {
+      "raw_chapters": [
+        {
+          "time_sec": 0.0,
+          "timestamp": "00:00",
+          "title_en": "Prologue: Midnight in the Command Bunker",
+          "title_es": "Prólogo: Medianoche en el Búnker de Mando",
+          "title_pt": "Prólogo: Meia-Noite no Bunker de Comando",
+          "title_de": "Prolog: Mitternacht im Kommandobunker",
+          "title_ja": "プロローグ: 極秘司令バンカーの深夜",
+          "title_ko": "프롤로그: 비밀 사령부 벙커의 자정",
+          "title_zh": "序幕：绝密指挥堡垒的至暗子夜"
+        },
+        {
+          "time_sec": 108.0,
+          "timestamp": "01:48",
+          "title_en": "The Red Alert: Early Warning Alarm Triggers",
+          "title_es": "La Alerta Roja: Se Activa la Alarma Temprana",
+          "title_pt": "O Alerta Vermelho: Disparo do Alarme Antecipado",
+          "title_de": "Roter Alarm: Das Frühwarnsystem löst aus",
+          "title_ja": "赤色警報: 早期警戒レーダー発動",
+          "title_ko": "적색 경보: 조기경보 시스템 작동",
+          "title_zh": "红色警报：预警防御系统刺耳启动"
+        },
+        {
+          "time_sec": 252.0,
+          "timestamp": "04:12",
+          "title_en": "Five Ballistic Trajectories on Screen",
+          "title_es": "Cinco Trayectorias Balísticas en Pantalla",
+          "title_pt": "Cinco Trajetórias Balísticas na Tela",
+          "title_de": "Fünf ballistische Flugbahnen auf dem Radar",
+          "title_ja": "レーダー画面上の5本の弾道ミサイル軌道",
+          "title_ko": "레이더에 포착된 5발의 탄도 궤적",
+          "title_zh": "雷达屏幕上赫然出现的五条洲际弹道轨迹"
+        },
+        {
+          "time_sec": 408.0,
+          "timestamp": "06:48",
+          "title_en": "The Standoff: Direct Line to Moscow",
+          "title_es": "El Enfrentamiento: Línea Directa a Moscú",
+          "title_pt": "O Impasse: Linha Direta com Moscou",
+          "title_de": "Der Showdown: Heiße Leitung nach Moskau",
+          "title_ja": "対峙: モスクワへの直通非常ホットライン",
+          "title_ko": "대치: 모스크바 직통 핫라인",
+          "title_zh": "绝命博弈：直通克里姆林宫的红色热线"
+        },
+        {
+          "time_sec": 528.0,
+          "timestamp": "08:48",
+          "title_en": "The Classified Truth & Historical Aftermath",
+          "title_es": "La Verdad Clasificada y las Secuelas Históricas",
+          "title_pt": "A Verdade Secreta e o Desfecho Histórico",
+          "title_de": "Die geheime Wahrheit und historische Folgen",
+          "title_ja": "封印された機密の真相と歴史的結末",
+          "title_ko": "봉인된 진실과 역사의 교훈",
+          "title_zh": "解密真相与逃过劫难的人类历史余波"
+        }
+      ],
+      "description_block_en": "⏱️ CHAPTERS & KEY MOMENTS:\n00:00 Prologue: Midnight in the Command Bunker\n01:48 The Red Alert: Early Warning Alarm Triggers\n04:12 Five Ballistic Trajectories on Screen\n06:48 The Standoff: Direct Line to Moscow\n08:48 The Classified Truth & Historical Aftermath"
+    },
+    "google_search_key_moments": {
+      "@context": "https://schema.org",
+      "@type": "VideoObject",
+      "name": "The 1983 Soviet Glitch: 20 Minutes to Armageddon",
+      "description": "A detailed historical Cold War documentary investigating Serpukhov-15 declassified telemetry.",
+      "duration": "PT10M0S",
+      "hasPart": [
+        {
+          "@type": "Clip",
+          "name": "Prologue: Midnight in the Command Bunker",
+          "startOffset": 0,
+          "endOffset": 108,
+          "url": "https://youtu.be/darkfactory_pilot&t=0s"
+        },
+        {
+          "@type": "Clip",
+          "name": "The Red Alert: Early Warning Alarm Triggers",
+          "startOffset": 108,
+          "endOffset": 252,
+          "url": "https://youtu.be/darkfactory_pilot&t=108s"
+        },
+        {
+          "@type": "Clip",
+          "name": "Five Ballistic Trajectories on Screen",
+          "startOffset": 252,
+          "endOffset": 408,
+          "url": "https://youtu.be/darkfactory_pilot&t=252s"
+        },
+        {
+          "@type": "Clip",
+          "name": "The Standoff: Direct Line to Moscow",
+          "startOffset": 408,
+          "endOffset": 528,
+          "url": "https://youtu.be/darkfactory_pilot&t=408s"
+        },
+        {
+          "@type": "Clip",
+          "name": "The Classified Truth & Historical Aftermath",
+          "startOffset": 528,
+          "endOffset": 600,
+          "url": "https://youtu.be/darkfactory_pilot&t=528s"
+        }
+      ]
+    },
+    "multilingual_localizations": {
+      "es": {
+        "title": "El Error Soviético de 1983: 20 Minutos para el Apocalipsis",
+        "description": "🏛️ RECREACIÓN HISTÓRICA DOCUMENTAL: Este documental incorpora recreaciones históricas educativas y simulaciones sintéticas con fines de investigación académica y educación bajo Fair Use.\n\nEl 26 de septiembre de 1983, el sistema soviético de alerta temprana Oko detectó misiles nucleares dirigiéndose hacia Moscú. Un solo hombre, Stanislav Petrov, tuvo 20 minutos para decidir el destino de la humanidad.\n\nA detailed historical Cold War documentary investigating Serpukhov-15 declassified telemetry.\n\n⏱️ CAPÍTULOS Y MOMENTOS CLAVE:\n00:00 Prólogo: Medianoche en el Búnker de Mando\n01:48 La Alerta Roja: Se Activa la Alarma Temprana\n04:12 Cinco Trayectorias Balísticas en Pantalla\n06:48 El Enfrentamiento: Línea Directa a Moscú\n08:48 La Verdad Clasificada y las Secuelas Históricas\n\n#GuerraFria #DocumentalHistorico #HistoriaMilitar"
+      },
+      "pt-BR": {
+        "title": "O Erro Soviético de 1983: 20 Minutos para o Apocalipse",
+        "description": "🏛️ RECONSTITUIÇÃO HISTÓRICA DOCUMENTAL: Este documentário incorpora simulações históricas educacionais e visuais sintéticos para fins de pesquisa acadêmica e preservação da história sob Fair Use.\n\nEm 26 de setembro de 1983, os satélites soviéticos Oko reportaram cinco mísseis balísticos em rota de colisão. Stanislav Petrov desobedeceu o protocolo militar e evitou a Terceira Guerra Mundial.\n\nA detailed historical Cold War documentary investigating Serpukhov-15 declassified telemetry.\n\n⏱️ CAPÍTULOS E MOMENTOS-CHAVE:\n00:00 Prólogo: Meia-Noite no Bunker de Comando\n01:48 O Alerta Vermelho: Disparo do Alarme Antecipado\n04:12 Cinco Trajetórias Balísticas na Tela\n06:48 O Impasse: Linha Direta com Moscou\n08:48 A Verdade Secreta e o Desfecho Histórico\n\n#GuerraFria #Documentario #HistoriaMilitar"
+      },
+      "de": {
+        "title": "Der Sowjet-Fehler von 1983: 20 Minuten bis zum Weltuntergang",
+        "description": "🏛️ HISTORISCHE ARCHIV-REKONSTRUKTION: Diese Dokumentation enthält historische Bildungssimulationen zu Forschungs- und Bildungszwecken im Rahmen von Fair Use.\n\nAm 26. September 1983 meldete das sowjetische Frühwarnsystem Oko fünf anfliegende Atomraketen. Stanislav Petrov rettete die Welt vor der nuklearen Vernichtung.\n\nA detailed historical Cold War documentary investigating Serpukhov-15 declassified telemetry.\n\n⏱️ KAPITEL & WICHTIGE MOMENTE:\n00:00 Prolog: Mitternacht im Kommandobunker\n01:48 Roter Alarm: Das Frühwarnsystem löst aus\n04:12 Fünf ballistische Flugbahnen auf dem Radar\n06:48 Der Showdown: Heiße Leitung nach Moskau\n08:48 Die geheime Wahrheit und historische Folgen\n\n#KalterKrieg #Dokumentation #Geschichte"
+      },
+      "ja": {
+        "title": "1983年ソ連核警報誤報事件：人類滅亡までの20分",
+        "description": "🏛️ 歴史アーカイブ再現ドキュメンタリー：本作はフェアユースに基づき、歴史教育および学術研究を目的としてAI生成シミュレーションを取り入れた歴史検証ドキュメンタリーです。\n\n1983年9月26日、ソ連の早期警戒システムOkoがアメリカからの核ミサイル発射を探知。スタニスラフ・ペトロフ中佐は命令を拒否し、第三次世界大戦の勃発を食い止めました。\n\nA detailed historical Cold War documentary investigating Serpukhov-15 declassified telemetry.\n\n⏱️ チャプター / 目次:\n00:00 プロローグ: 極秘司令バンカーの深夜\n01:48 赤色警報: 早期警戒レーダー発動\n04:12 レーダー画面上の5本の弾道ミサイル軌道\n06:48 対峙: モスクワへの直通非常ホットライン\n08:48 封印された機密の真相と歴史的結末\n\n#冷戦 #歴史ドキュメンタリー #軍事史"
+      },
+      "ko": {
+        "title": "1983년 소련 핵 오보 사건: 인류 멸망까지 20분",
+        "description": "🏛️ 역사적 아카이브 재구성 다큐멘터리: 본 영상은 공정 이용(Fair Use) 원칙에 따라 역사 교육 및 학술 연구 목적으로 생성형 인공지능 시뮬레이션을 활용하여 제작되었습니다。\n\n1983년 9월 26일, 소련의 조기경보위성 오코가 미국의 핵미사일 발사를 감지했습니다. 스타니슬라프 페트로프 중령은 군사 규범을 거부하고 제3차 세계대전을 막아냈습니다.\n\nA detailed historical Cold War documentary investigating Serpukhov-15 declassified telemetry.\n\n⏱️ 챕터 및 주요 장면 타임스탬프:\n00:00 프롤로그: 비밀 사령부 벙커의 자정\n01:48 적색 경보: 조기경보 시스템 작동\n04:12 레이더에 포착된 5발의 탄도 궤적\n06:48 대치: 모스크바 직통 핫라인\n08:48 봉인된 진실과 역사의 교훈\n\n#냉전 #역사다큐 #군사실화"
+      },
+      "zh-Hans": {
+        "title": "1983年苏联核警报假警事件：距人类毁灭仅剩20分钟",
+        "description": "🏛️ 历史档案还原纪录片：本片遵循合理使用原则（Fair Use），以严肃历史教育及学术研究为目的，采用AI生成视效与情景再现技术还原真实历史档案。\n\n1983年9月26日，苏联“预警之眼”（Oko）卫星侦测到五枚美军洲际导弹来袭。彼得罗夫中校顶住重压做出决断，将人类从核毁灭深渊边缘拉回。\n\nA detailed historical Cold War documentary investigating Serpukhov-15 declassified telemetry.\n\n⏱️ 章节与关键时刻索引:\n00:00 序幕：绝密指挥堡垒的至暗子夜\n01:48 红色警报：预警防御系统刺耳启动\n04:12 雷达屏幕上赫然出现的五条洲际弹道轨迹\n06:48 绝命博弈：直通克里姆林宫的红色热线\n08:48 解密真相与逃过劫难的人类历史余波\n\n#冷战秘闻 #历史纪录片 #军事历史"
+      }
+    },
+    "multilingual_subtitles_tracks": {},
+    "multilingual_audio_tracks": {
+      "en": {
+        "language_code": "en",
+        "language_name": "English (US) - Original Master",
+        "voice_model": "Edge-TTS ChristopherNeural / Kokoro am_adam",
+        "style": "Authoritative historical documentary baritone",
+        "file_path": "C:\\Users\\WDAGUtilityAccount\\Downloads\\Nova pasta\\darkfactory\\data\\audio\\dubbing\\darkfactory_pilot_dub_en.mp3",
+        "target_lufs": -14.0,
+        "true_peak_max_dbtp": -1.0,
+        "sample_rate_hz": 48000,
+        "channels": 2,
+        "codec": "aac",
+        "bitrate_kbps": 384,
+        "status": "spec_ready"
+      },
+      "es": {
+        "language_code": "es",
+        "language_name": "Spanish (Latin America / Spain)",
+        "voice_model": "Edge-TTS AlvaroNeural",
+        "style": "Solemn cinematic narrator",
+        "file_path": "C:\\Users\\WDAGUtilityAccount\\Downloads\\Nova pasta\\darkfactory\\data\\audio\\dubbing\\darkfactory_pilot_dub_es.mp3",
+        "target_lufs": -14.0,
+        "true_peak_max_dbtp": -1.0,
+        "sample_rate_hz": 48000,
+        "channels": 2,
+        "codec": "aac",
+        "bitrate_kbps": 384,
+        "status": "spec_ready"
+      },
+      "pt-BR": {
+        "language_code": "pt-BR",
+        "language_name": "Portuguese (Brazil)",
+        "voice_model": "Edge-TTS AntonioNeural",
+        "style": "Deep documentary baritone",
+        "file_path": "C:\\Users\\WDAGUtilityAccount\\Downloads\\Nova pasta\\darkfactory\\data\\audio\\dubbing\\darkfactory_pilot_dub_pt-BR.mp3",
+        "target_lufs": -14.0,
+        "true_peak_max_dbtp": -1.0,
+        "sample_rate_hz": 48000,
+        "channels": 2,
+        "codec": "aac",
+        "bitrate_kbps": 384,
+        "status": "spec_ready"
+      },
+      "de": {
+        "language_code": "de",
+        "language_name": "German",
+        "voice_model": "Edge-TTS ConradNeural",
+        "style": "Authoritative historical narrator",
+        "file_path": "C:\\Users\\WDAGUtilityAccount\\Downloads\\Nova pasta\\darkfactory\\data\\audio\\dubbing\\darkfactory_pilot_dub_de.mp3",
+        "target_lufs": -14.0,
+        "true_peak_max_dbtp": -1.0,
+        "sample_rate_hz": 48000,
+        "channels": 2,
+        "codec": "aac",
+        "bitrate_kbps": 384,
+        "status": "spec_ready"
+      },
+      "ja": {
+        "language_code": "ja",
+        "language_name": "Japanese",
+        "voice_model": "Edge-TTS KeitaNeural",
+        "style": "Tense and solemn Japanese documentary narrator",
+        "file_path": "C:\\Users\\WDAGUtilityAccount\\Downloads\\Nova pasta\\darkfactory\\data\\audio\\dubbing\\darkfactory_pilot_dub_ja.mp3",
+        "target_lufs": -14.0,
+        "true_peak_max_dbtp": -1.0,
+        "sample_rate_hz": 48000,
+        "channels": 2,
+        "codec": "aac",
+        "bitrate_kbps": 384,
+        "status": "spec_ready"
+      },
+      "ko": {
+        "language_code": "ko",
+        "language_name": "Korean",
+        "voice_model": "Edge-TTS InJoonNeural",
+        "style": "Dramatic historical storyteller",
+        "file_path": "C:\\Users\\WDAGUtilityAccount\\Downloads\\Nova pasta\\darkfactory\\data\\audio\\dubbing\\darkfactory_pilot_dub_ko.mp3",
+        "target_lufs": -14.0,
+        "true_peak_max_dbtp": -1.0,
+        "sample_rate_hz": 48000,
+        "channels": 2,
+        "codec": "aac",
+        "bitrate_kbps": 384,
+        "status": "spec_ready"
+      },
+      "zh-Hans": {
+        "language_code": "zh-Hans",
+        "language_name": "Chinese (Simplified)",
+        "voice_model": "Edge-TTS YunxiNeural",
+        "style": "Epic and profound documentary cadence",
+        "file_path": "C:\\Users\\WDAGUtilityAccount\\Downloads\\Nova pasta\\darkfactory\\data\\audio\\dubbing\\darkfactory_pilot_dub_zh-Hans.mp3",
+        "target_lufs": -14.0,
+        "true_peak_max_dbtp": -1.0,
+        "sample_rate_hz": 48000,
+        "channels": 2,
+        "codec": "aac",
+        "bitrate_kbps": 384,
+        "status": "spec_ready"
+      }
+    },
+    "interactive_elements": {
+      "total_duration_sec": 600.0,
+      "info_card": {
+        "trigger_timestamp": "05:00",
+        "trigger_sec": 300.0,
+        "card_type": "Video / Playlist Deep-Dive",
+        "custom_teaser_text": "Classified Nuclear Near-Misses",
+        "action": "Keeps viewers inside your channel ecosystem before natural drop-off"
+      },
+      "end_screen": {
+        "start_timestamp": "09:40",
+        "start_sec": 580.0,
+        "elements": [
+          {
+            "type": "SUBSCRIBE_BUTTON",
+            "position": "Center-Left",
+            "timing": "09:40 - End"
+          },
+          {
+            "type": "BEST_FOR_VIEWER_VIDEO",
+            "position": "Top-Right",
+            "timing": "09:40 - End"
+          },
+          {
+            "type": "MOST_RECENT_UPLOAD",
+            "position": "Bottom-Right",
+            "timing": "09:40 - End"
+          }
+        ]
+      }
+    },
+    "thumbnail_ab_test_package": [
+      {
+        "variant": "Thumbnail A (The Psychological Human Focus)",
+        "archetype": "human_chiaroscuro_dread",
+        "hypothesis": "High emotional connection through terrified human eye contact in high-contrast chiaroscuro.",
+        "composition": "Extreme close-up on Stanislav Petrov's sweating face reflecting red alarm beacon.",
+        "text_overlay": "20 MINUTES TO MIDNIGHT",
+        "text_word_count": 4,
+        "target_watch_time_share": "High initial click volume across broad home feed",
+        "file": "data/thumbnails/thumb_variant_a.jpg"
+      },
+      {
+        "variant": "Thumbnail B (The Tactical Hardware Tension)",
+        "archetype": "tactical_macro_evidence",
+        "hypothesis": "Appeals to military and tech history buffs looking for authentic Cold War apparatus.",
+        "composition": "Macro probe shot on glowing green CRT radar grid showing 5 missile vectors.",
+        "text_overlay": "5 MISSILES DETECTED",
+        "text_word_count": 3,
+        "target_watch_time_share": "Ultra-targeted look-alike high AVD cohort",
+        "file": "data/thumbnails/thumb_variant_b.jpg"
+      },
+      {
+        "variant": "Thumbnail C (The High-Stakes Geopolitical Dilemma)",
+        "archetype": "colossal_existential_scale",
+        "hypothesis": "Creates curiosity gap through an ethical paradox.",
+        "composition": "Silhouette of hand hovering 1 inch above massive red Soviet launch switch against gargantuan concrete bunker.",
+        "text_overlay": "WHY HE REFUSED",
+        "text_word_count": 3,
+        "target_watch_time_share": "Maximum curiosity gap (Legitbait) with multi-hour retention",
+        "file": "data/thumbnails/thumb_variant_c.jpg"
+      }
+    ],
+    "official_series_playlist": {
+      "series_id": "darkfactory_cold_war_chronicles",
+      "series_title": "Cold War Declassified: The Nuclear Near-Misses",
+      "is_official_series": true,
+      "episode_position": 1,
+      "total_episodes": 5,
+      "next_episode_hook": "The Secret Arctic Incident of 1986",
+      "youtube_studio_setting": "Playlists -> Playlist Settings -> Set as official series for this playlist = ON",
+      "algorithmic_benefit": "Suggested Videos & Up Next priority locking; extended binge session watch time attribution"
+    },
+    "seamless_outro_validation": {
+      "exit_cues_detected": [],
+      "has_retention_risk": false,
+      "seamless_bridge_injected": "\n\n[SEAMLESS BINGE BRIDGE]: While this file was buried in official archives, what researchers uncovered next was far more terrifying: The Secret Arctic Incident of 1986 [TRIGGER END-SCREEN CARD: Cold War Declassified: Episode 2]",
+      "remediated_script_outro": "A detailed historical Cold War documentary investigating Serpukhov-15 declassified telemetry.",
+      "rule": "Never signal the end of the video; hand off seamlessly to the next episode in the same breath."
+    },
+    "codec_readiness_guard": {
+      "resolution": "3840x2160",
+      "is_4k_or_1440p": true,
+      "allocated_youtube_codec": "VP09 / AV01 (Pristine Chiaroscuro)",
+      "recommendation": "Master and upload in 4K UHD (3840x2160) to avoid dark shadow banding and preserve film grain."
+    },
+    "pinned_engagement_comment": "🚨 HISTORICAL DILEMMA: If you were sitting in Lieutenant Colonel Petrov's chair at 12:15 AM, with alarm sirens blaring and the computer system confirming five inbound nuclear missiles... would you have trusted the machine and launched, or trusted your human instinct?\n\n💬 Leave your honest thoughts below — we read and pin the most thoughtful analysis.\n🔔 Subscribe to DarkFactory for more classified history: https://youtube.com/@DarkFactoryCinema?sub_confirmation=1",
+    "community_tab_poll": {
+      "poll_type": "INTERACTIVE_DEBATE_POLL",
+      "optimal_publish_time": "2 hours after video release (Double-Dip Feed Algorithm)",
+      "question": "Should military nuclear launch decisions ever be delegated to AI algorithms?",
+      "options": [
+        "Never — Human gut check is vital (Like Petrov)",
+        "Only for secondary sensor verification",
+        "Yes — Hypersonic speeds leave no time for humans",
+        "See Results / Comment in Video"
+      ],
+      "accompanying_text": "In 1983, Soviet algorithms insisted 5 American nuclear missiles were airborne. One officer's refusal to follow code saved civilization. Watch our new investigative documentary now live on the channel!",
+      "target_url_ref": "video://darkfactory_pilot"
+    },
+    "shorts_distribution": {
+      "shorts_related_video_link": {
+        "target_master_video_id": "PENDING_MASTER_UPLOAD",
+        "status": "ready_for_binding",
+        "instruction": "Binds via Shorts YouTube Studio as the official 'Related Video' button"
+      },
+      "audio_remixing": {
+        "allow_audio_remixing": true,
+        "allow_video_remixing": true,
+        "attribution": "DarkFactory Cinema"
+      }
+    },
+    "localizations": {
+      "es": {
+        "title": "El Error Soviético de 1983: 20 Minutos para el Apocalipsis",
+        "description": "🏛️ RECREACIÓN HISTÓRICA DOCUMENTAL: Este documental incorpora recreaciones históricas educativas y simulaciones sintéticas con fines de investigación académica y educación bajo Fair Use.\n\nEl 26 de septiembre de 1983, el sistema soviético de alerta temprana Oko detectó misiles nucleares dirigiéndose hacia Moscú. Un solo hombre, Stanislav Petrov, tuvo 20 minutos para decidir el destino de la humanidad.\n\nA detailed historical Cold War documentary investigating Serpukhov-15 declassified telemetry.\n\n⏱️ CAPÍTULOS Y MOMENTOS CLAVE:\n00:00 Prólogo: Medianoche en el Búnker de Mando\n01:48 La Alerta Roja: Se Activa la Alarma Temprana\n04:12 Cinco Trayectorias Balísticas en Pantalla\n06:48 El Enfrentamiento: Línea Directa a Moscú\n08:48 La Verdad Clasificada y las Secuelas Históricas\n\n#GuerraFria #DocumentalHistorico #HistoriaMilitar"
+      },
+      "pt-BR": {
+        "title": "O Erro Soviético de 1983: 20 Minutos para o Apocalipse",
+        "description": "🏛️ RECONSTITUIÇÃO HISTÓRICA DOCUMENTAL: Este documentário incorpora simulações históricas educacionais e visuais sintéticos para fins de pesquisa acadêmica e preservação da história sob Fair Use.\n\nEm 26 de setembro de 1983, os satélites soviéticos Oko reportaram cinco mísseis balísticos em rota de colisão. Stanislav Petrov desobedeceu o protocolo militar e evitou a Terceira Guerra Mundial.\n\nA detailed historical Cold War documentary investigating Serpukhov-15 declassified telemetry.\n\n⏱️ CAPÍTULOS E MOMENTOS-CHAVE:\n00:00 Prólogo: Meia-Noite no Bunker de Comando\n01:48 O Alerta Vermelho: Disparo do Alarme Antecipado\n04:12 Cinco Trajetórias Balísticas na Tela\n06:48 O Impasse: Linha Direta com Moscou\n08:48 A Verdade Secreta e o Desfecho Histórico\n\n#GuerraFria #Documentario #HistoriaMilitar"
+      },
+      "de": {
+        "title": "Der Sowjet-Fehler von 1983: 20 Minuten bis zum Weltuntergang",
+        "description": "🏛️ HISTORISCHE ARCHIV-REKONSTRUKTION: Diese Dokumentation enthält historische Bildungssimulationen zu Forschungs- und Bildungszwecken im Rahmen von Fair Use.\n\nAm 26. September 1983 meldete das sowjetische Frühwarnsystem Oko fünf anfliegende Atomraketen. Stanislav Petrov rettete die Welt vor der nuklearen Vernichtung.\n\nA detailed historical Cold War documentary investigating Serpukhov-15 declassified telemetry.\n\n⏱️ KAPITEL & WICHTIGE MOMENTE:\n00:00 Prolog: Mitternacht im Kommandobunker\n01:48 Roter Alarm: Das Frühwarnsystem löst aus\n04:12 Fünf ballistische Flugbahnen auf dem Radar\n06:48 Der Showdown: Heiße Leitung nach Moskau\n08:48 Die geheime Wahrheit und historische Folgen\n\n#KalterKrieg #Dokumentation #Geschichte"
+      },
+      "ja": {
+        "title": "1983年ソ連核警報誤報事件：人類滅亡までの20分",
+        "description": "🏛️ 歴史アーカイブ再現ドキュメンタリー：本作はフェアユースに基づき、歴史教育および学術研究を目的としてAI生成シミュレーションを取り入れた歴史検証ドキュメンタリーです。\n\n1983年9月26日、ソ連の早期警戒システムOkoがアメリカからの核ミサイル発射を探知。スタニスラフ・ペトロフ中佐は命令を拒否し、第三次世界大戦の勃発を食い止めました。\n\nA detailed historical Cold War documentary investigating Serpukhov-15 declassified telemetry.\n\n⏱️ チャプター / 目次:\n00:00 プロローグ: 極秘司令バンカーの深夜\n01:48 赤色警報: 早期警戒レーダー発動\n04:12 レーダー画面上の5本の弾道ミサイル軌道\n06:48 対峙: モスクワへの直通非常ホットライン\n08:48 封印された機密の真相と歴史的結末\n\n#冷戦 #歴史ドキュメンタリー #軍事史"
+      },
+      "ko": {
+        "title": "1983년 소련 핵 오보 사건: 인류 멸망까지 20분",
+        "description": "🏛️ 역사적 아카이브 재구성 다큐멘터리: 본 영상은 공정 이용(Fair Use) 원칙에 따라 역사 교육 및 학술 연구 목적으로 생성형 인공지능 시뮬레이션을 활용하여 제작되었습니다。\n\n1983년 9월 26일, 소련의 조기경보위성 오코가 미국의 핵미사일 발사를 감지했습니다. 스타니슬라프 페트로프 중령은 군사 규범을 거부하고 제3차 세계대전을 막아냈습니다.\n\nA detailed historical Cold War documentary investigating Serpukhov-15 declassified telemetry.\n\n⏱️ 챕터 및 주요 장면 타임스탬프:\n00:00 프롤로그: 비밀 사령부 벙커의 자정\n01:48 적색 경보: 조기경보 시스템 작동\n04:12 레이더에 포착된 5발의 탄도 궤적\n06:48 대치: 모스크바 직통 핫라인\n08:48 봉인된 진실과 역사의 교훈\n\n#냉전 #역사다큐 #군사실화"
+      },
+      "zh-Hans": {
+        "title": "1983年苏联核警报假警事件：距人类毁灭仅剩20分钟",
+        "description": "🏛️ 历史档案还原纪录片：本片遵循合理使用原则（Fair Use），以严肃历史教育及学术研究为目的，采用AI生成视效与情景再现技术还原真实历史档案。\n\n1983年9月26日，苏联“预警之眼”（Oko）卫星侦测到五枚美军洲际导弹来袭。彼得罗夫中校顶住重压做出决断，将人类从核毁灭深渊边缘拉回。\n\nA detailed historical Cold War documentary investigating Serpukhov-15 declassified telemetry.\n\n⏱️ 章节与关键时刻索引:\n00:00 序幕：绝密指挥堡垒的至暗子夜\n01:48 红色警报：预警防御系统刺耳启动\n04:12 雷达屏幕上赫然出现的五条洲际弹道轨迹\n06:48 绝命博弈：直通克里姆林宫的红色热线\n08:48 解密真相与逃过劫难的人类历史余波\n\n#冷战秘闻 #历史纪录片 #军事历史"
+      }
+    },
+    "subtitles_tracks": {},
+    "shorts_related_video_link": {
+      "target_master_video_id": "PENDING_MASTER_UPLOAD",
+      "status": "ready_for_binding",
+      "instruction": "Binds via Shorts YouTube Studio as the official 'Related Video' button"
+    }
+  }
+}

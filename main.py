@@ -539,6 +539,11 @@ def main() -> None:
     video_group.add_argument("--t2v-beat", type=str, default=None, help="Narrative story beat for custom dual-shot scene")
     video_group.add_argument("--nolan-direct", action="store_true", help="Execute Christopher Nolan Showrunner Engine to direct a dark historical documentary episode")
     video_group.add_argument("--nolan-topic", type=str, default="1983 Soviet nuclear false alarm incident", help="Historical topic to direct with Nolan non-linear methodology")
+    video_group.add_argument("--youtube-boost", action="store_true", help="Execute YouTube Algorithm Booster (MLA, chapters, tri-variant thumbnails, series playlist)")
+    video_group.add_argument("--youtube-compliance", action="store_true", help="Execute YouTube Compliance QC and Self-Certification Pre-Rater for Green Dollar Sign")
+    video_group.add_argument("--youtube-title", type=str, default="The 1983 Soviet Glitch: 20 Minutes to Armageddon", help="Title for YouTube master optimization package")
+    video_group.add_argument("--youtube-desc", type=str, default="A detailed historical Cold War documentary investigating Serpukhov-15 declassified telemetry.", help="Description for YouTube package")
+    video_group.add_argument("--youtube-duration", type=float, default=600.0, help="Video duration in seconds for YouTube package calculation")
 
     args = parser.parse_args()
 
@@ -595,6 +600,37 @@ def main() -> None:
 
     if getattr(args, "nolan_direct", False):
         run_nolan_director(topic=getattr(args, "nolan_topic", "1983 Soviet nuclear false alarm incident"))
+        return
+
+    if getattr(args, "youtube_boost", False):
+        from src.video.youtube_booster import run_youtube_booster_cli
+        run_youtube_booster_cli(
+            title=getattr(args, "youtube_title", "The 1983 Soviet Glitch: 20 Minutes to Armageddon"),
+            description=getattr(args, "youtube_desc", "A detailed historical Cold War documentary."),
+            duration=getattr(args, "youtube_duration", 600.0),
+        )
+        return
+
+    if getattr(args, "youtube_compliance", False):
+        from src.video.youtube_booster import YouTubeAlgorithmBoosterBridge
+        bridge = YouTubeAlgorithmBoosterBridge()
+        cert = bridge.generate_self_certification_manifest(
+            project_id="cli_audit",
+            title=getattr(args, "youtube_title", "The 1983 Soviet Glitch"),
+            description=getattr(args, "youtube_desc", "Historical documentary."),
+        )
+        edsa = bridge.evaluate_edsa_framing(
+            title=getattr(args, "youtube_title", "The 1983 Soviet Glitch"),
+            description=getattr(args, "youtube_desc", "Historical documentary."),
+        )
+        print("\n==================================================================")
+        print("🛡️ YOUTUBE COMPLIANCE & EDSA SELF-CERTIFICATION REPORT")
+        print("==================================================================")
+        print(f"  • Projected Monetization: {cert.get('projected_monetization_status')}")
+        print(f"  • Rating Accuracy Tier:   {cert.get('rating_accuracy_tier')}")
+        print(f"  • EDSA Protection:        {edsa.get('status')} (Score: {edsa.get('edsa_score')}/100)")
+        anchors = edsa.get('anchors_detected', [])
+        print(f"  • Anchors Detected:       {', '.join(anchors)}\n")
         return
 
     if args.seasonal:

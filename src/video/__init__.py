@@ -16,6 +16,11 @@ from src.video.darkfactory_t2v import (
     format_google_veo_prompt,
     NARRATIVE_ARCHETYPES,
 )
+from src.video.youtube_booster import (
+    YouTubeAlgorithmBoosterBridge,
+    TriVariantThumbnail,
+    run_youtube_booster_cli,
+)
 
 __all__ = [
     "VideoProperties",
@@ -31,4 +36,7 @@ __all__ = [
     "format_minimax_prompt",
     "format_google_veo_prompt",
     "NARRATIVE_ARCHETYPES",
+    "YouTubeAlgorithmBoosterBridge",
+    "TriVariantThumbnail",
+    "run_youtube_booster_cli",
 ]
