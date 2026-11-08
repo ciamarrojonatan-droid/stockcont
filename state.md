@@ -1,22 +1,21 @@
 # StockCont Pipeline State
 > Sincronizado automaticamente por hooks e comandos do ecossistema.
 
-## Sprint Atual: YouTube Compliance & Safety QC Engine (Hard Gate & Dispute Kit)
-- **Status da Sprint**: [CONCLUÍDO] Blindagem total pré-upload contra 'Yellow Dollar', strikes e Content ID:
-  1. **YouTube Compliance QC Engine (`darkfactory/src/youtube_compliance_qc.py`)**:
-     - **Camada 1 (Metadados & EDSA)**: Varredura de termos de desmonetização com substituição automática por vocabulário historiográfico sóbrio (EDSA Standard: Educational, Documentary, Scientific, or Artistic), bloqueio de tag-stuffing e mitigação de clickbait.
-     - **Camada 2 (Declaração Obrigatória de IA)**: Injeção automática do selo BBC/PBS de Transparência no cabeçalho da descrição e ativação da flag oficial de Conteúdo Sintético/Gerado por IA na API do YouTube.
-     - **Camada 3 (Thumbnail & Áudio)**: Validação técnica de miniaturas (< 2MB, 16:9, sem símbolos de ódio) e auditoria de loudness EBU R128 (-14 LUFS / True Peak -1dBTP) sem linguagem imprópria nos primeiros 15 segundos.
-     - **Camada 4 (Dispute Kit Legal)**: Emissão automática de dossiê legal de contestação de Content ID (`data/processed/dispute_kits/{video_id}_dispute.txt`) com carimbos, prompts e amparo na Seção 107 do Copyright Act (Fair Use).
-     - **Quarentena Atômica**: Se o score for crítico (< 60/100) ou houver violação grave, move os arquivos para `data/quarantine/{id}/` e bloqueia o upload na raiz.
-  2. **Hard Gate no Despachante (`darkfactory/src/youtube_publisher.py`)**:
-     - Auditoria prévia obrigatória antes de qualquer chamada na API do YouTube.
-     - Aplica automaticamente os metadados saneados e impede uploads que possam gerar strikes no canal.
-  3. **Integração no Orquestrador & Daemon**:
-     - Suporte ao subcomando `--step qc` em `darkfactory/run_pilot_pipeline.py`.
-     - Integrado no ciclo contínuo do `darkfactory/src/daemon_darkfactory.py`.
-  4. **Cobertura Total de Testes**: **241 testes automatizados passando com 100% de sucesso** (193 testes no StockCont + 48 testes no DarkFactory).
-- **Última Atualização**: 2026-11-08 00:43
+## Sprint Atual: YouTube Algorithm Booster ("O Funcionário Perfeito") & Global Reach Engine
+- **Status da Sprint**: [CONCLUÍDO] Integração de todas as ferramentas de algoritmo, alcance e monetização do YouTube:
+  1. **YouTube Algorithm Booster Engine (`darkfactory/src/youtube_algorithm_booster.py`)**:
+     - **Multi-Language SEO Localizations**: Geração automática de títulos e descrições otimizadas para Espanha/América Latina (`es`), Brasil/Portugal (`pt-BR`) e Alemanha (`de`), indexando o mesmo vídeo nos rankings de busca do mundo todo.
+     - **Closed Captions Multilíngues (SRT)**: Criação das faixas de legenda completas em Espanhol e Português (`pilot_intro_es.srt` e `pilot_intro_pt.srt`), permitindo que a IA do YouTube indexe cada palavra falada como palavra-chave orgânica.
+     - **Stable Volume & Vocal Clarity Compliance**: Alinhamento com a tecnologia 'Stable Volume' do YouTube (-14 LUFS / True Peak -1.0 dBTP) com realce de presença vocal (+2.5dB em 3kHz) que elimina a compressão destrutiva da plataforma.
+     - **Cards & End Screens Blueprint**: Mapeamento preciso aos 50% de duração para disparo do Info Card (retenção contra drop-off) e nos últimos 20 segundos para a Tela Final teatral (loop de sessão com botão de inscrição e vídeo recomendado).
+     - **Shorts Native Related Video Link**: Estruturação do botão nativo do YouTube Shorts que direciona o tráfego do Shorts 9:16 diretamente para o documentário master 16:9 com 1 toque.
+     - **Triple Thumbnail A/B Test Package ("Test & Compare")**: Síntese de 3 composições visuais alternativas (Retrato Humano, Macro de Radar e Dilema Geopolítico) para acionar a ferramenta nativa de teste A/B do YouTube Studio.
+  2. **Injeção Transparente no Despachante (`darkfactory/src/youtube_publisher.py`)**:
+     - Suporte nativo à inserção de `localizations` (metadados multilíngues) e idiomas padrão (`defaultLanguage="en"`, `defaultAudioLanguage="en"`).
+  3. **Blindagem QC & Quarentena (`darkfactory/src/youtube_compliance_qc.py`)**:
+     - Hard Gate ativo prevenindo 'Yellow Dollar', strikes e falsos-positivos de Content ID.
+  4. **Cobertura Total de Testes**: **246 testes automatizados passando com 100% de sucesso** (193 testes no StockCont + 53 testes no DarkFactory).
+- **Última Atualização**: 2026-11-08 00:58
 - **Modo Operacional**: Dual-Mode (Antigravity & Claude Code via SSOT `PROJECT_CONTEXT.md`)
 
 ---
