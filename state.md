@@ -1,8 +1,8 @@
 # StockCont Pipeline State
 > Sincronizado automaticamente por hooks e comandos do ecossistema.
 
-## Sprint Atual: Nolan Dark History Director (Showrunner Master v2.0) & 4-Stem Cinema Sound Mixer
-- **Status da Sprint**: [CONCLUÍDO] Integração do Showrunner e Diretor Cinematográfico Christopher Nolan para Documentários Históricos com Sound Design Cinema-Grade (Google Flow + RunningHub MMAudio):
+## Sprint Atual: Nolan Dark History Director v2.5 & Google Flow (Omni Flash 1.2 + Veo 3 / 3.1 4K)
+- **Status da Sprint**: [CONCLUÍDO] Integração do Showrunner Christopher Nolan com Arquitetura Híbrida Google Flow (Omni Flash 1.2 + Veo 3 / 3.1 4K) e Sound Design Cinema-Grade (Google Flow Music + RunningHub MMAudio):
   1. **Nolan Dark History Director Skill (`.agents/skills/nolan-dark-history-director/SKILL.md`) & Subagente (`.agents/agents/nolan-director.md`)**:
      - 6 Pilares de Nolan (Manipulação Temporal Não-Linear, Subjetividade Íntima, Textura Hoyte van Hoytema IMAX 70mm, Arquitetura Acústica Zimmer/Göransson, Rigor Factual BBC e Arquitetura Dual-Shot A/B).
      - Dicionário de Lentes, iluminação chiaroscuro de baixa chave e fórmulas de tensão auditiva (Shepard Tone, Braam Sub-Bass, Ticking Clock).
@@ -10,7 +10,8 @@
      - Integração com `WikipediaResearcher` para extração factual instantânea.
      - Síntese de packaging completo (Logline paradoxal, 3 títulos magnéticos e conceito de thumbnail IMAX com sobreposição de texto e escala geométrica).
      - Arquitetura de 3 Fios Temporais (Fio A Relógio Lento, Fio B Relógio Rápido e Ponto de Convergência no Clímax).
-     - Cenas com pares **Dual-Shot A/B** para MiniMax H3, Google Veo 2 e Wan 2.2 + instruções de atuação vocal para CosyVoice/Kokoro.
+     - **Google Flow Omni Flash 1.2 Queue (`google_flow_omni_queue.json`)**: Tomadas de continuidade de 12 a 15 segundos, até 6 imagens de referência históricas por cena para consistência facial inabalável e comandos conversacionais multi-turn.
+     - **Google Flow Veo 3 / 3.1 Queue (`google_flow_veo3_queue.json`)**: Hero shots de 6 a 8 segundos em **4K UHD nativo (3840x2160)** a 24fps, Panavision Anamorphic / IMAX 70mm, 60% menos morphing/aberrações que o Veo 2 e áudio estéreo nativo a 48kHz.
      - Exportação atômica das filas de áudio: `google_flow_music_prompt.txt`, `runninghub_mmaudio_prompts.json` e `runninghub_whoosh_prompts.json`.
   3. **4-Stem Master Audio Mixer Engine (`darkfactory/src/audio_mixer_master.py`)**:
      - **Stem 1 (Voiceover)**: Ingestão de narração calibrada CosyVoice / Kokoro-82M / Edge-TTS.
@@ -22,8 +23,8 @@
   4. **Integração de CLI Multi-Repositório**:
      - No StockCont: `python main.py --nolan-direct --nolan-topic "<tema>"`.
      - No DarkFactory: `python run_pilot_pipeline.py --step sound`, `--step direct` e `--step all-local`.
-  5. **Cobertura de Testes**: 215 testes automatizados passando com 100% de sucesso (193 testes no StockCont + 22 testes no DarkFactory).
-- **Última Atualização**: 2026-11-07 22:50
+  5. **Cobertura de Testes**: 216 testes automatizados passando com 100% de sucesso (193 testes no StockCont + 23 testes no DarkFactory).
+- **Última Atualização**: 2026-11-07 23:15
 - **Modo Operacional**: Dual-Mode (Antigravity & Claude Code via SSOT `PROJECT_CONTEXT.md`)
 
 ---
