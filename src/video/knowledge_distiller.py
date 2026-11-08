@@ -27,7 +27,10 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-import PyPDF2
+try:
+    import PyPDF2
+except ImportError:
+    PyPDF2 = None
 
 logger = logging.getLogger("stockcont.video.knowledge_distiller")
 
@@ -69,6 +72,8 @@ class MasterKnowledgeDistiller:
         results = []
         for pdf in pdf_files:
             try:
+                if PyPDF2 is None:
+                    continue
                 reader = PyPDF2.PdfReader(str(pdf))
                 pages_count = len(reader.pages)
                 title = reader.metadata.title if (reader.metadata and reader.metadata.title) else pdf.stem
