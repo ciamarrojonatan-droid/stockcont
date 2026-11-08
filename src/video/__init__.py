@@ -41,6 +41,16 @@ from src.video.tactical_graphics import (
     TacticalGraphicsEngine,
     LowerThirdData,
 )
+from src.video.cinematography_dop import (
+    LensOpticsType,
+    CompositionGeometry,
+    LightingRatio,
+    LensSpecification,
+    LENS_CATALOG,
+    CinematographyShotPlan,
+    KeyframeCompositionAudit,
+    CinematographyEngine,
+)
 
 __all__ = [
     "VideoProperties",
@@ -71,4 +81,12 @@ __all__ = [
     "TimelineMarker",
     "TacticalGraphicsEngine",
     "LowerThirdData",
+    "LensOpticsType",
+    "CompositionGeometry",
+    "LightingRatio",
+    "LensSpecification",
+    "LENS_CATALOG",
+    "CinematographyShotPlan",
+    "KeyframeCompositionAudit",
+    "CinematographyEngine",
 ]

@@ -555,6 +555,13 @@ def main() -> None:
     video_group.add_argument("--otio-title", type=str, default="DarkFactory_Master_Cut", help="Title for OTIO project")
     video_group.add_argument("--tactical-hud", action="store_true", help="Generate tactical military radar HUD overlay PNG")
     video_group.add_argument("--tactical-stamp", action="store_true", help="Generate declassified TOP SECRET stamp overlay PNG")
+    video_group.add_argument("--dop-plan", action="store_true", help="Synthesize Hollywood Director of Photography (DoP) & Composition Plan")
+    video_group.add_argument("--dop-title", type=str, default="Nuclear Bunker False Alarm", help="Title for DoP shot plan")
+    video_group.add_argument("--dop-lens", type=str, default="cooke_anamorphic_i", choices=["panavision_c_series", "cooke_anamorphic_i", "arri_master_anamorphic", "zeiss_supreme_prime", "leica_summilux_c", "arri_signature_75mm", "laowa_probe_24mm"], help="Optical cinema lens family")
+    video_group.add_argument("--dop-comp", type=str, default="rule_of_thirds", choices=["rule_of_thirds", "golden_spiral", "kubrick_one_point", "dutch_angle", "dirty_single", "low_angle_oppression", "high_angle_vuln"], help="Compositional framing geometry")
+    video_group.add_argument("--dop-lighting", type=str, default="8_to_1", choices=["16:1", "8_to_1", "4_to_1", "2_to_1"], help="Key-to-Fill chiaroscuro lighting ratio")
+    video_group.add_argument("--audit-keyframe", type=str, default=None, help="Audit keyframe composition, rule of thirds adherence, and render visual guides")
+    video_group.add_argument("--extract-keyframes", type=str, default=None, help="Extract strategic cinematic keyframes (Opening, Golden Ratio, Climax) from a video")
 
     args = parser.parse_args()
 
@@ -732,6 +739,66 @@ def main() -> None:
         t_engine = TacticalGraphicsEngine()
         stamp_path = t_engine.create_declassified_stamp_overlay("data/processed/declassified_stamp.png")
         print(f"\n✅ Carimbo de documento desclassificado gerado em: {stamp_path}")
+        return
+
+    if getattr(args, "dop_plan", False):
+        from src.video.cinematography_dop import (
+            CinematographyEngine,
+            LensOpticsType,
+            CompositionGeometry,
+            LightingRatio,
+        )
+        engine = CinematographyEngine()
+        plan = engine.build_shot_plan(
+            shot_name=getattr(args, "dop_title", "Nuclear Bunker False Alarm"),
+            lens_type=LensOpticsType(getattr(args, "dop_lens", "cooke_anamorphic_i")),
+            composition=CompositionGeometry(getattr(args, "dop_comp", "rule_of_thirds")),
+            lighting_ratio=LightingRatio(getattr(args, "dop_lighting", "8_to_1")),
+        )
+        print("\n==================================================================")
+        print("🎬 DIRECTOR OF PHOTOGRAPHY (DoP) & COMPOSITION BLUEPRINT")
+        print("==================================================================")
+        print(f"  • Tomada / Cena:        {plan.shot_name}")
+        print(f"  • Câmera:               {plan.camera_body}")
+        print(f"  • Lente Óptica:         {plan.lens.model_name} ({plan.lens.focal_length_mm}mm T{plan.lens.t_stop})")
+        print(f"  • Anamórfica / Squeeze: {'SIM (2.39:1 CinemaScope)' if plan.lens.anamorphic else 'NÃO (Esférica Prime)'}")
+        print(f"  • Bokeh & Flares:       {plan.lens.bokeh_shape} | {plan.lens.flare_character}")
+        print(f"  • Geometria de Quadro:  {plan.composition.value.upper()}")
+        print(f"  • Razão Chiaroscuro:    {plan.lighting_ratio.value} (Key {plan.kelvin_key}K vs Fill {plan.kelvin_fill}K)")
+        print(f"  • Shutter & Movimento:  {plan.shutter_angle} | {plan.camera_movement}")
+        print("\n  [DoP Prompt Injector]:")
+        print(f"  \"{plan.to_dop_prompt()}\"\n")
+        return
+
+    if getattr(args, "audit_keyframe", None):
+        img_path = getattr(args, "audit_keyframe")
+        from src.video.cinematography_dop import CinematographyEngine
+        engine = CinematographyEngine()
+        audit = engine.audit_keyframe_composition(img_path, generate_annotated_grid=True)
+        print("\n==================================================================")
+        print("📐 KEYFRAME COMPOSITION & DoP COMPUTER VISION AUDIT")
+        print("==================================================================")
+        print(f"  • Imagem Auditada:           {audit.image_path}")
+        print(f"  • Resolução:                 {audit.width} x {audit.height}")
+        print(f"  • Rule of Thirds Score:      {audit.rule_of_thirds_score:.1f}% de alinhamento")
+        print(f"  • Contraste Chiaroscuro:     {audit.chiaroscuro_contrast_ratio}:1")
+        print(f"  • Balanço Quente/Frio:       {audit.warm_cold_kelvin_bias.upper()}")
+        print(f"  • Equilíbrio Horizontal:     {audit.visual_balance_horizontal:+.3f}")
+        if audit.annotated_guide_path:
+            print(f"  • Guia Visual Anotada:       {audit.annotated_guide_path}")
+        print("==================================================================\n")
+        return
+
+    if getattr(args, "extract_keyframes", None):
+        video_path = getattr(args, "extract_keyframes")
+        from src.video.cinematography_dop import CinematographyEngine
+        engine = CinematographyEngine()
+        out_dir = Path("data/processed/keyframes")
+        kfs = engine.extract_cinematic_keyframes(video_path, out_dir)
+        print(f"\n✅ {len(kfs)} keyframes cinematográficos extraídos em: {out_dir}")
+        for k in kfs:
+            audit = engine.audit_keyframe_composition(k, generate_annotated_grid=True)
+            print(f"  • [{k.name}] Thirds: {audit.rule_of_thirds_score:.1f}% | Contrast: {audit.chiaroscuro_contrast_ratio}:1 | Guide: {audit.annotated_guide_path}")
         return
 
     if args.seasonal:

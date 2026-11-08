@@ -1,28 +1,30 @@
 # StockCont Pipeline State
 > Sincronizado automaticamente por hooks e comandos do ecossistema.
 
-## Sprint Atual: Cinematic Video Pipeline: 35mm Film Science (LUTs), Rhythm/Pacing Intelligence, OpenTimelineIO (DaVinci Bridge) & Tactical Motion Graphics
-- **Status da Sprint**: [CONCLUÍDO] Integração do ecossistema completo de edição e masterização cinematográfica open-source para elevar o DarkFactory e StockCont ao padrão Hollywood/Netflix:
-  1. **Motor de Ciência de Cor & Emulação de Película 35mm (`src/video/cinematic_color.py`)**:
-     - 6 perfis cinematográficos calibrados: `kodak_2383` (Christopher Nolan, sombras teal e realces âmbar), `fuji_eterna` (David Fincher, baixo contraste e tons pastéis), `bleach_bypass` (Spielberg/Kaminski, retenção de prata e contraste cortante), `oppenheimer_mono` (Double-X 65mm P&B puro), `cold_war_noir` (documentos confidenciais e verde-tungstênio), `cyber_tactical` (Villeneuve, ciano/âmbar de alta separação).
-     - Geração de granulação analógica realista (`noise=c0s=X:c0f=t+u`) e matte anamórfico CinemaScope 2.39:1.
-     - Suporte nativo a LUTs 3D externas (`.cube`) ou emulação procedural sem arquivos externos.
+## Sprint Atual: Cinematic Video Pipeline: DoP & Composition Engineering, 35mm Film Science, Pacing Intelligence, OTIO & Tactical Graphics
+- **Status da Sprint**: [CONCLUÍDO] Integração do ecossistema completo de edição, direção de fotografia (DoP), engenharia de composição visual e masterização cinematográfica open-source:
+  1. **Motor de Direção de Fotografia (DoP) & Engenharia de Composição (`src/video/cinematography_dop.py`)**:
+     - **Catálogo de Ópticas de Cinema**: Lentes Anamórficas (Panavision C-Series 40mm T2.3, Cooke Anamorphic/i 35mm T2.3, Arri Master Anamorphic 50mm T1.9) com squeeze 2.0x/1.8x, bokeh oval e flares horizontais característicos; e Esféricas Prime (Zeiss Supreme 21mm T1.5, Leica Summilux-C 35mm T1.4, Arri Signature 75mm T1.8 e Laowa Probe 24mm T14 macro periscópica).
+     - **Geometria de Enquadramento Cinematográfico**: Regra dos Terços (Power Points & Lead Room), Espiral de Ouro de Fibonacci, Simetria Central 1-Point Kubrickiana, Dutch Angle (canted 12° para pânico institucional), Dirty Single com 35% de oclusão em primeiro plano e Ângulo Baixo Opressor.
+     - **Arquitetura de Iluminação & Chiaroscuro**: Razão Key-to-Fill calculada (16:1 Gordon Willis Noir, 8:1 Suspense Militar, 4:1 Rembrandt), balanço Dual-Kelvin (Key 2800K Tungstênio vs Fill 6500K Ciano/Luar) e névoa volumétrica com feixes Tyndall.
+     - **Auditor de Keyframes por Visão Computacional**: Extração automática de tomadas estratégicas (Abertura, Golden Ratio $0.618$, Clímax) com cálculo de energia nos terços (Sobel Gradient), contraste dinâmico chiaroscuro, bias de temperatura de cor e renderização de imagens anotadas com guias translúcidas de enquadramento (Cyan Thirds Grid, Gold Power Points, 2.39:1 CinemaScope crop).
+     - **Injeção de Prompts DoP no DarkFactory T2V**: Enriquecimento automático das tomadas MiniMax H3 e Google Veo 2 com parâmetros estritos de câmera, lente, abertura e iluminação.
+     - **Comandos CLI**: `python main.py --dop-plan`, `python main.py --audit-keyframe <path>` e `python main.py --extract-keyframes <video_path>`.
+  2. **Motor de Ciência de Cor & Emulação de Película 35mm (`src/video/cinematic_color.py`)**:
+     - 6 perfis cinematográficos calibrados: `kodak_2383` (Christopher Nolan), `fuji_eterna` (David Fincher), `bleach_bypass` (Spielberg/Kaminski), `oppenheimer_mono` (Double-X 65mm P&B puro), `cold_war_noir` (documentos confidenciais) e `cyber_tactical` (Denis Villeneuve).
+     - Granulação analógica realista (`noise=c0s=X:c0f=t+u`) e matte anamórfico CinemaScope 2.39:1.
      - Comandos CLI: `python main.py --cinematic-profiles` e `python main.py --cinematic-grade <profile> --video-in <path>`.
-  2. **Analisador de Ritmo & Pacing Cinematográfico - "The Editor's Brain" (`src/video/pacing_analyzer.py`)**:
-     - Cálculo em tempo real de Mean Shot Length (MSL em segundos) e Cortes Por Minuto (CPM).
-     - Integração com PySceneDetect (`AdaptiveDetector`) com fallback analítico.
-     - Tension Pacing Index (0 a 100) e cálculo de monotonia rítmica (Golden Ratio of Editing).
+  3. **Analisador de Ritmo & Pacing Cinematográfico - "The Editor's Brain" (`src/video/pacing_analyzer.py`)**:
+     - Cálculo de Mean Shot Length (MSL em segundos), Cortes Por Minuto (CPM), Tension Pacing Index (0 a 100) e penalidade por monotonia rítmica.
      - Comando CLI: `python main.py --analyze-pacing <video_path>`.
-  3. **Ponte de Intercâmbio Universal OpenTimelineIO (`src/video/otio_exporter.py`)**:
+  4. **Ponte de Intercâmbio Universal OpenTimelineIO (`src/video/otio_exporter.py`)**:
      - Geração de timelines padronizadas `.otio` (Pixar / ASWF) compatíveis com **DaVinci Resolve Studio**, Premiere Pro, Final Cut Pro e Blender.
      - Estrutura multitrack completa: V1 (Tomadas Principais), V2 (Grafismos Táticos), A1 (Voz EBU R128), A2 (Trilha Zimmer), A3 (Foley Diegético) e marcadores de capítulos.
      - Comando CLI: `python main.py --export-otio`.
-  4. **Motor de Motion Graphics Tático & Overlays (`src/video/tactical_graphics.py`)**:
-     - Carimbo militar angulado 'TOP SECRET // DECLASSIFIED // LEVEL 5'.
-     - HUD tático de radar militar com cantoneiras, mira central e coordenadas geográficas.
-     - Lower-thirds em tipografia monoespaçada com identificação de sujeitos e data/local histórico.
+  5. **Motor de Motion Graphics Tático & Overlays (`src/video/tactical_graphics.py`)**:
+     - Carimbo militar angulado 'TOP SECRET // DECLASSIFIED // LEVEL 5', HUD de radar militar e Lower-thirds em tipografia monoespaçada.
      - Comandos CLI: `python main.py --tactical-hud` e `python main.py --tactical-stamp`.
-  5. **Cobertura Total de Testes**: **216 testes automatizados passando com 100% de sucesso** (zero regressões).
+  6. **Cobertura Total de Testes**: **220 testes automatizados passando com 100% de sucesso** (zero regressões).
 - **Última Atualização**: 2026-11-08 03:26
 - **Modo Operacional**: Dual-Mode (Antigravity & Claude Code via SSOT `PROJECT_CONTEXT.md`)
 

@@ -162,7 +162,8 @@ def format_minimax_prompt(
     subject: str,
     camera: str,
     lighting_palette: str,
-    duration: float = 5.0
+    duration: float = 5.0,
+    dop_prompt: Optional[str] = None,
 ) -> str:
     """Format prompt adhering strictly to MiniMax H3 / Hailuo Video-01 best practices.
 
@@ -172,7 +173,7 @@ def format_minimax_prompt(
     clean_subj = subject.strip().rstrip(".")
     clean_cam = camera.strip().rstrip(".")
     
-    return (
+    base_prompt = (
         f"[Camera Movement: {clean_cam}]. "
         f"{clean_subj}. "
         f"Cinematic lighting: {lighting_palette}. "
@@ -180,13 +181,17 @@ def format_minimax_prompt(
         f"atmospheric volumetric shadows, 24fps motion cadence, master cinematography, "
         f"no digital warping, no anatomical glitches."
     )
+    if dop_prompt:
+        return f"{base_prompt} [Director of Photography: {dop_prompt.strip()}]"
+    return base_prompt
 
 
 def format_google_veo_prompt(
     subject: str,
     camera: str,
     optics: str,
-    lighting_palette: str
+    lighting_palette: str,
+    dop_prompt: Optional[str] = None,
 ) -> str:
     """Format prompt adhering strictly to Google Flow / Veo 2 cinematography standards.
 
@@ -195,7 +200,7 @@ def format_google_veo_prompt(
     clean_subj = subject.strip().rstrip(".")
     clean_cam = camera.strip().rstrip(".")
     
-    return (
+    base_prompt = (
         f"Cinematic 4K UHD widescreen 2.39:1 letterbox footage. "
         f"{clean_subj}. "
         f"Camera trajectory: {clean_cam}. "
@@ -204,6 +209,9 @@ def format_google_veo_prompt(
         f"Shot on 35mm motion picture film, natural organic motion blur, rich micro-contrast, "
         f"zero artificial smoothing, deep shadow detail, broadcast documentary prestige quality."
     )
+    if dop_prompt:
+        return f"{base_prompt} Cinematography & Framing Direction: {dop_prompt.strip()}"
+    return base_prompt
 
 
 class DarkFactoryT2VDirector:

@@ -234,3 +234,95 @@ class TestTacticalGraphicsEngine:
         with Image.open(res) as img:
             assert img.size == (1280, 720)
             assert img.mode == "RGBA"
+
+
+class TestCinematographyDoP:
+    """Testes do motor de Direção de Fotografia e Engenharia de Composição."""
+
+    def test_lens_catalog_completeness(self):
+        from src.video.cinematography_dop import LENS_CATALOG, LensOpticsType
+        assert len(LENS_CATALOG) == len(LensOpticsType)
+        for lens_type, spec in LENS_CATALOG.items():
+            assert spec.focal_length_mm > 0
+            assert spec.t_stop > 0
+            assert spec.squeeze_factor >= 1.0
+
+    def test_build_shot_plan_and_dop_prompt(self):
+        from src.video.cinematography_dop import (
+            CinematographyEngine,
+            CompositionGeometry,
+            LensOpticsType,
+            LightingRatio,
+        )
+        engine = CinematographyEngine(default_camera="Arri Alexa 65 Large Format")
+        plan = engine.build_shot_plan(
+            shot_name="Bunker Tension Shot",
+            lens_type=LensOpticsType.ANAMORPHIC_PANAVISION,
+            composition=CompositionGeometry.DUTCH_ANGLE,
+            lighting_ratio=LightingRatio.EXTREME_CHIAROSCURO_16_1,
+            kelvin_key=2800,
+            kelvin_fill=6500,
+        )
+        assert plan.lens.model_name == "Panavision C-Series 40mm Anamorphic"
+        assert plan.composition == CompositionGeometry.DUTCH_ANGLE
+        assert plan.lighting_ratio == LightingRatio.EXTREME_CHIAROSCURO_16_1
+
+        dop_prompt = plan.to_dop_prompt()
+        assert "Arri Alexa 65" in dop_prompt
+        assert "Panavision C-Series 40mm" in dop_prompt
+        assert "2.39:1 anamorphic" in dop_prompt
+        assert "Dutch angle" in dop_prompt
+        assert "16:1 key-to-fill ratio" in dop_prompt
+        assert "2800K" in dop_prompt
+        assert "6500K" in dop_prompt
+
+    def test_audit_keyframe_composition_synthetic(self, tmp_path):
+        import numpy as np
+        from PIL import Image
+        from src.video.cinematography_dop import CinematographyEngine
+
+        # Cria imagem sintética 1920x1080 com linhas nítidas nos terços
+        w, h = 1920, 1080
+        arr = np.zeros((h, w, 3), dtype=np.uint8)
+        # Linhas de alta energia nos terços
+        arr[:, w // 3, :] = 255
+        arr[:, 2 * w // 3, :] = 255
+        arr[h // 3, :, :] = 255
+        arr[2 * h // 3, :, :] = 255
+
+        test_img_path = tmp_path / "synthetic_thirds.jpg"
+        Image.fromarray(arr).save(test_img_path)
+
+        engine = CinematographyEngine()
+        audit = engine.audit_keyframe_composition(test_img_path, generate_annotated_grid=True)
+
+        assert audit.width == 1920
+        assert audit.height == 1080
+        assert audit.rule_of_thirds_score > 30.0
+        assert audit.chiaroscuro_contrast_ratio >= 1.0
+        assert audit.annotated_guide_path is not None
+        assert Path(audit.annotated_guide_path).exists()
+
+    def test_t2v_prompt_enrichment_with_dop(self):
+        from src.video.darkfactory_t2v import format_google_veo_prompt, format_minimax_prompt
+        dop_text = "Shot on Cooke 35mm T2.3, Rule of Thirds framing, 8:1 chiaroscuro lighting."
+        
+        mm_prompt = format_minimax_prompt(
+            subject="Duty officer freezes",
+            camera="Push-in dolly",
+            lighting_palette="Red beacons",
+            dop_prompt=dop_text,
+        )
+        assert "[Director of Photography:" in mm_prompt
+        assert "Cooke 35mm" in mm_prompt
+
+        veo_prompt = format_google_veo_prompt(
+            subject="Tactical missile trajectory map",
+            camera="Macro drift",
+            optics="Cooke 35mm",
+            lighting_palette="Phosphor green",
+            dop_prompt=dop_text,
+        )
+        assert "Cinematography & Framing Direction:" in veo_prompt
+        assert "Rule of Thirds" in veo_prompt
+
