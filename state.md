@@ -1,21 +1,25 @@
 # StockCont Pipeline State
 > Sincronizado automaticamente por hooks e comandos do ecossistema.
 
-## Sprint Atual: YouTube Algorithm Booster ("O Funcionário Perfeito") & Global Reach Engine
-- **Status da Sprint**: [CONCLUÍDO] Integração de todas as ferramentas de algoritmo, alcance e monetização do YouTube, incluindo expansão para mercados asiáticos de alto RPM:
-  1. **YouTube Algorithm Booster Engine (`darkfactory/src/youtube_algorithm_booster.py`)**:
-     - **Multi-Language SEO Localizations**: Geração automática de títulos e descrições otimizadas para Espanha/América Latina (`es`), Brasil/Portugal (`pt-BR`), Alemanha (`de`), Japão (`ja`), Coreia do Sul (`ko`) e Grande China / Chinês Simplificado (`zh-Hans`), permitindo indexação orgânica nos rankings globais com consolidação total de visualizações na mesma URL.
-     - **Closed Captions Multilíngues (SRT)**: Criação das faixas de legenda completas em Inglês (`en`), Espanhol (`es`), Português (`pt`), Japonês (`ja`), Coreano (`ko`) e Chinês Simplificado (`zh`), armazenadas em `data/subtitles/`. A IA e o algoritmo de busca do YouTube indexam cada palavra e termo histórico falado como palavra-chave orgânica nativa em cada região.
-     - **Stable Volume & Vocal Clarity Compliance**: Alinhamento com a tecnologia 'Stable Volume' do YouTube (-14 LUFS / True Peak -1.0 dBTP) com realce de presença vocal (+2.5dB em 3kHz) que elimina a compressão destrutiva da plataforma.
-     - **Cards & End Screens Blueprint**: Mapeamento preciso aos 50% de duração para disparo do Info Card (retenção contra drop-off) e nos últimos 20 segundos para a Tela Final teatral (loop de sessão com botão de inscrição e vídeo recomendado).
-     - **Shorts Native Related Video Link**: Estruturação do botão nativo do YouTube Shorts que direciona o tráfego do Shorts 9:16 diretamente para o documentário master 16:9 com 1 toque.
-     - **Triple Thumbnail A/B Test Package ("Test & Compare")**: Síntese de 3 composições visuais alternativas (Retrato Humano, Macro de Radar e Dilema Geopolítico) para acionar a ferramenta nativa de teste A/B do YouTube Studio.
-  2. **Injeção Transparente no Despachante (`darkfactory/src/youtube_publisher.py`)**:
-     - Suporte nativo à inserção de `localizations` (metadados multilíngues) e idiomas padrão (`defaultLanguage="en"`, `defaultAudioLanguage="en"`).
-  3. **Blindagem QC & Quarentena (`darkfactory/src/youtube_compliance_qc.py`)**:
-     - Hard Gate ativo prevenindo 'Yellow Dollar', strikes e falsos-positivos de Content ID.
-  4. **Cobertura Total de Testes**: **246 testes automatizados passando com 100% de sucesso** (193 testes no StockCont + 53 testes no DarkFactory).
-- **Última Atualização**: 2026-11-08 01:25
+## Sprint Atual: YouTube Multi-Language Audio, Video Chapters & Algorithm Booster ("O Funcionário Perfeito")
+- **Status da Sprint**: [CONCLUÍDO] Integração do ecossistema completo de distribuição, áudio multilíngue, retenção e monetização algorítmica para o YouTube:
+  1. **Multi-Language Audio Tracks / YouTube Dubbing (`darkfactory/src/youtube_algorithm_booster.py`)**:
+     - Suporte nativo a faixas de áudio multilíngues para a funcionalidade de dublagem do YouTube nos 7 idiomas estratégicos: Inglês (`en`), Espanhol (`es`), Português (`pt-BR`), Alemão (`de`), Japonês (`ja`), Coreano (`ko`) e Chinês Simplificado (`zh-Hans`).
+     - Calibração de cada faixa conforme a norma internacional EBU R128: -14.0 LUFS, True Peak máximo de -1.0 dBTP, Stereo 2 canais, 48 kHz, 384 kbps AAC.
+  2. **Marcação de Capítulos & Key Moments (Video Chapters)**:
+     - Geração de timestamps compatíveis com a especificação rígida do YouTube (início obrigatório em `00:00`, mínimo de 3 capítulos, intervalo mínimo de 10s).
+     - Títulos de capítulos adaptados e traduzidos para os 7 idiomas, injetados automaticamente nas descrições primárias e localizadas.
+     - Exportação de dados estruturados Schema.org `VideoObject` com marcação `Clip` (Key Moments JSON-LD) para elegibilidade em carrosséis de busca no Google.
+  3. **Comentário Fixado Estratégico (High-Retention Pinned Comment)**:
+     - Síntese de dilemas históricos e morais abertos ("Se você estivesse na cadeira de Petrov com alarmes soando, obedeceria o protocolo militar ou seu instinto humano?") para alavancar a velocidade de comentários nas primeiras 2 horas pós-lançamento, com CTA de inscrição do canal.
+  4. **Blueprint de Enquete da Aba Comunidade (Community Tab Poll)**:
+     - Geração de enquetes interativas prontas para publicação no feed móvel de não-inscritos (distribuição algorítmica gratuita de alto alcance).
+  5. **Matriz de Top-3 Hashtags Otimizadas (#Tags)**:
+     - Curadoria das 3 hashtags primárias de maior volume de busca exibidas com destaque acima do título do vídeo em cada região.
+  6. **Permissão de Remix de Áudio para Shorts (`allow_audio_remixing`)**:
+     - Ativação das diretrizes de licenciamento de áudio para permitir que outros criadores remixem a trilha sonora épica em seus Shorts, gerando backlinks orgânicos para o vídeo principal.
+  7. **Cobertura Total de Testes**: **254 testes automatizados passando com 100% de sucesso** (193 testes no StockCont + 61 testes no DarkFactory).
+- **Última Atualização**: 2026-11-08 01:45
 - **Modo Operacional**: Dual-Mode (Antigravity & Claude Code via SSOT `PROJECT_CONTEXT.md`)
 
 ---
