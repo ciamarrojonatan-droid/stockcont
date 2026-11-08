@@ -60,6 +60,14 @@ Cada cena longa é decomposta em duas tomadas complementares:
 - **Shot A (Drama / Close-Up Psicológico)**: Câmera em *slow push-in dolly*, close-up nos olhos ou expressão sob chiaroscuro.
 - **Shot B (Macro / Tático / Ação)**: Lente probe/macro em ponteiros, chaves industriais, telas CRT, mapas marcados a lápis de cera, fumaça de cigarro cortando o feixe de luz.
 
+### 7. As 5 Leis Invioláveis dos Mestres (Knowledge Vault Integrado)
+Todo roteiro e plano de decupagem do Showrunner deve passar compulsoriamente pelo `src/video/story_validator.py`:
+1. **Walter Murch (Rule of Six & Eye-Trace)**: A transição de Shot A para Shot B deve priorizar Emoção (51%) e Avanço da História (23%). O ponto focal do olhar deve ser transferido suavemente sem forçar saccades caóticos.
+2. **MrBeast (A Lei dos Primeiros 60 Segundos)**: Zero Dead Air. Duração média de tomada nos primeiros 60s <= 4.2s. Re-ancoragem da aposta máxima (re-hook) obrigatoriamente entre 0:50 e 1:10. Banimento total de exit-cues no final.
+3. **Lisa Cron (Neurociência Narrativa & Curiosity Gaps)**: A cada 20-25 segundos, abrir uma nova pergunta ou dilema moral. Conectar eventos exclusivamente com "PORTANTO" ou "PORÉM" (proibido "E DEPOIS" episódico).
+4. **Jonah Berger (Viral STEPPS Score >= 85)**: Documentos secretos desclassificados (Social Currency), perigos existenciais contemporâneos (Triggers) e emoções de alta excitabilidade fisiológica (Dread/Awe).
+5. **Brendan Kane (Hook Point de 3 Segundos)**: Choque óptico de contraste e premissa contra-intuitiva nos primeiros 3 segundos, sem preâmbulos ou cumprimentos.
+
 ---
 
 ## 📋 FLUXO DE TRABALHO DO SHOWRUNNER EM 4 PASSOS

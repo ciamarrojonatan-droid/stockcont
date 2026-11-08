@@ -1,29 +1,26 @@
 # StockCont Pipeline State
 > Sincronizado automaticamente por hooks e comandos do ecossistema.
 
-## Sprint Atual: DarkFactory Cinema Dashboard — Autonomous Faceless YouTube Studio (:8502) & Cross-Link StockCont (:8501)
-- **Status da Sprint**: [CONCLUÍDO] Implementação ponta a ponta do Dashboard Web SPA nativo para o DarkFactory, perfeitamente integrado e desacoplado:
-  1. **Servidor Standalone FastAPI no DarkFactory (`darkfactory/src/dashboard/app.py` na porta 8502)**:
-     - 24 rotas REST e SSE ativas, ciclo de vida com cleanup de processos órfãos e CORS aberto para interoperabilidade com o StockCont.
-     - Suporte a streaming de mídia para áudios, vídeos 4K (com chunks parciais HTTP), legendas .srt e frames de b-roll.
-     - Empacotador in-memory ZIP otimizado (`/api/download-package/{video_id}`) em modo `ZIP_STORED` (milissegundos de latência).
-  2. **Design System Apple HIG iOS 27 Liquid Glass Cinema Edition (`cinema_dash.css`)**:
-     - Estética dark obsidian (`#050608`), vidro volumétrico, acentos Ouro Theatrical (`#FFD700`), Âmbar (`#FF9F0A`) e Roxo Diretor (`#BF5AF2`).
-     - Ícone claquete 3D pura (`favicon.svg`) e animações fluidas de pulso LED e hover.
-  3. **Cockpit Completo com 6 Abas Táticas (Nolan Cinema Studio)**:
-     - **Aba 1 (Cockpit Geral & KPIs)**: Disparador de produções E2E por tema histórico, botões de fases 1-5, controle do Daemon 24/7 e telemetria de cotas Google Flow (Omni 1.2 / Veo 3.1).
-     - **Aba 2 (Roteiro 3 Fios de Nolan)**: Visualização da estrutura não-linear (Fio A: Relógio Lento, Fio B: Relógio Rápido, Fio C: Pós-Impacto), loglines e títulos alternativos de alto CTR.
-     - **Aba 3 (Fila Visual)**: Monitor de prompts e status para Google Veo 3.1 4K (8s, 2.39:1 anamórfico), Gemini Omni Flash 1.2 (15s) e MMAudio/Whoosh.
-     - **Aba 4 (Sound Lab 4-Stems)**: Mixer virtual Web Audio API (`audio_mixer.js`) com faders verticais de ganho, VU meters animados e botões MUTE / SOLO para Voz (CosyVoice/Kokoro), Trilha Lyria, Foley e Master Mix (-14 LUFS).
-     - **Aba 5 (Central 1-Click Approval & SEO)**: Player 4K anamórfico (`video_player.js`) com alternância de letterbox 2.39:1, legendas .srt multilíngues dinâmicas, seletor de miniaturas A/B/C Test & Compare, scorecard 100% Green Dollar e 3 ações executivas de publicação (Não-Listado, Público, Quarentena).
-     - **Aba 6 (Daemon 24/7 & Logs SSE)**: Terminal cyberpunk ao vivo com streaming SSE (`/api/stream-logs`), auto-scroll e histórico de quarentena.
-  4. **Cross-Link Bidirecional Unificado**:
-     - Pílula tátil "DarkFactory Cinema (:8502)" adicionada aos cabeçalhos de `index.html` e `video.html` no StockCont.
-     - Barra de alternância "StockCont Microstock (:8501) ⇄ DarkFactory Cinema (:8502)" ativa no topo do DarkFactory.
-  5. **Scripts de Execução & Suíte de Testes 100% Verde**:
-     - `run_dashboard.bat` na raiz do `darkfactory` para inicialização com 1 clique do uvicorn e abertura automática do navegador.
-     - Suíte `tests/test_dashboard_api.py` com 9 testes automatizados cobrindo todos os fluxos e endpoints REST, executando em 1.71s.
-- **Última Atualização**: 2026-11-08 05:10
+## Sprint Atual: DarkFactory Knowledge Vault & Story Auditor — Ingestão Canônica dos 27 Livros de Referência (Cinema, Storytelling Neural & Viralidade YouTube)
+- **Status da Sprint**: [CONCLUÍDO] Implementação ponta a ponta do motor de conhecimento e auditoria algorítmica destilado dos 27 livros em `C:\Users\WDAGUtilityAccount\Downloads\Nova pasta\darkfactory\livros`:
+  1. **Destilação Semântica Canônica (`src/video/knowledge_distiller.py`)**:
+     - Varredura e indexação dos 27 PDFs (Walter Murch, MrBeast, Lisa Cron, Derral Eves, Brendan Kane, Jonah Berger, Derek Thompson, Alex Hormozi, Nir Eyal, GaryVee).
+     - Geração persistente e atômica de 6 arquivos JSON estruturados em `src/video/knowledge/` (`walter_murch_editing.json`, `mrbeast_production.json`, `lisa_cron_story.json`, `viral_retention_stepps.json`, `youtube_growth_packaging.json`, `master_knowledge_index.json`).
+  2. **Motor Operacional Canônico (`src/video/master_knowledge.py`)**:
+     - *Walter Murch Rule of Six*: Pesos inegociáveis (Emoção 51%, História 23%, Ritmo 10%, Eye-Trace 7%, Plano 2D 5%, Espaço 3D 4%) e Teoria do Piscar (*Blink Theory*).
+     - *MrBeast First Minute Retention Law*: MSL <= 4.2s nos primeiros 60s, re-hook de confirmação entre 50s e 70s, zero dead air e banimento total de exit-cues.
+     - *Lisa Cron Neuro-Storytelling*: Cadência de *Curiosity Gaps* a cada 20-25s, The Third Rail (conflito interno) e causalidade ("Portanto/Porém" vs "E depois").
+     - *Jonah Berger STEPPS Vector*: Cálculo ponderado de potencial viral (0-100), moedas sociais secretas e emoções de alta excitabilidade fisiológica (*Dread/Awe*).
+  3. **Auditor de Roteiro e Manifestos (`src/video/story_validator.py`)**:
+     - Avaliador algorítmico `DarkFactoryStoryValidator` com scoring unificado (0 a 100), grading (A+, A, B, C, F), status de prontidão e roadmap de remediação.
+  4. **Integração Nativa nos Módulos Existentes**:
+     - `src/video/pacing_analyzer.py`: Incorpora `murch_rule_of_six_score` e `mrbeast_first_minute_compliant` em `PacingReport`.
+     - `src/video/youtube_booster.py`: Incorpora `score_viral_stepps` e auditoria no pacote master de publicação.
+     - `.agents/skills/nolan-dark-history-director/SKILL.md`: As 5 Leis Invioláveis dos Mestres adicionadas como diretrizes obrigatórias de roteirização.
+  5. **Suíte de Testes 100% Verde**:
+     - `tests/test_master_knowledge.py` (5 testes) e `tests/test_story_validator.py` (2 testes) passando com 100% de sucesso.
+     - Total: **307 testes automatizados passando (231 StockCont + 76 DarkFactory)** com zero regressão.
+- **Última Atualização**: 2026-11-08 05:45
 - **Modo Operacional**: Dual-Mode (Antigravity & Claude Code via SSOT `PROJECT_CONTEXT.md`)
 
 ---
@@ -52,7 +49,8 @@
 | **Conta 2: SeedVR 8K Upscaler** | 🟢 Calibrada (Lite/Plus) | **Workflow SeedVR 8K** \| Ingestão ZIP Nó #5 ➔ Preview Nó #55 (1 a 1 Real-Time) ➔ Auto-cancel na última imagem (Botão Lite/Plus) | Integrado no Daemon |
 | **Fase 4: O Catalogador** | 🟢 Concluído | **190 assets catalogados** em `adobe_stock_upload.csv` \| Injeção obrigatória de 300 DPI + IPTC/EXIF | Integrado no Daemon |
 | **Fase 5: O Distribuidor com Cotas** | 🟢 Protegido | **Despacho seletivo por plataforma**: Pausa agências com cotas esgotadas e prossegue nas demais \| Anti-Ban Alamy ativo | Integrado no Daemon |
-| **Suíte de Testes (Pytest)** | 🟢 100% Verde | **283 testes passando (216 no StockCont + 67 no DarkFactory, 100% verde)** | Regressão zero (22 suítes de teste StockCont + 8 DarkFactory) | `pytest tests/` |
+| **DarkFactory Master Knowledge Vault** | 🟢 Ativo & Operacional | **Motor Canônico dos 27 Livros (`src/video/master_knowledge.py`, `story_validator.py`)**: Walter Murch (Rule of Six), MrBeast (First Minute Law), Lisa Cron (Curiosity Gaps) e Jonah Berger (STEPPS) | Integrado nativo no Showrunner |
+| **Suíte de Testes (Pytest)** | 🟢 100% Verde | **307 testes passando (231 no StockCont + 76 no DarkFactory, 100% verde)** | Regressão zero (24 suítes de teste StockCont + 11 DarkFactory) | `pytest tests/` |
 | **YouTube Booster & Compliance Bridge** | 🟢 Ativo & Operacional | **Motor YouTube Completo (`src/video/youtube_booster.py`)**: A/B/C Thumbnails, Series Playlists, Seamless Outro, 4K Codec Guard, Self-Certification e EDSA | `python main.py --youtube-boost` |
 | **Agente Estratégico ("O Que Você Faria?")** | 🟢 Ativo & Registrado | **Subagente `what-would-you-do`** \| Skill `/wwyd` \| Hook `PreInvocation` em `.agents/hooks.json` \| Sócio sênior e avaliador de viabilidade | Invocável via subagente ou chat |
 

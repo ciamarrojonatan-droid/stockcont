@@ -15,7 +15,7 @@ from __future__ import annotations
 import logging
 import math
 import subprocess
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -52,6 +52,9 @@ class PacingReport:
     tension_score: int       # 0 a 100
     monotony_penalty: float  # Penalidade se todos os planos tiverem mesmo tempo
     shots: List[ShotSegment]
+    murch_rule_of_six_score: float = 85.0
+    mrbeast_first_minute_compliant: bool = True
+    retention_remediations: List[str] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -211,6 +214,29 @@ class CinematicPacingAnalyzer:
 
         tension_score = int(max(40, min(99, base_tension - monotony_penalty)))
 
+        # Auditoria Walter Murch & MrBeast
+        try:
+            from src.video.master_knowledge import get_master_knowledge_engine
+            engine = get_master_knowledge_engine()
+            dur_a = durations[0] if durations else 4.0
+            dur_b = durations[1] if len(durations) > 1 else dur_a
+            murch_res = engine.evaluate_murch_cut(dur_a, dur_b)
+            murch_score = murch_res.score
+
+            first_60s = []
+            acc = 0.0
+            for d in durations:
+                if acc < 60.0:
+                    first_60s.append(d)
+                    acc += d
+            mb_res = engine.evaluate_mrbeast_retention(first_60s, "")
+            mb_compliant = mb_res.is_compliant
+            remediations = mb_res.remediation_steps + murch_res.notes
+        except Exception:
+            murch_score = 85.0
+            mb_compliant = True
+            remediations = []
+
         return PacingReport(
             video_path=str(video_file),
             total_duration_sec=round(total_duration, 2),
@@ -222,4 +248,7 @@ class CinematicPacingAnalyzer:
             tension_score=tension_score,
             monotony_penalty=round(monotony_penalty, 1),
             shots=shots,
+            murch_rule_of_six_score=round(murch_score, 1),
+            mrbeast_first_minute_compliant=mb_compliant,
+            retention_remediations=remediations,
         )

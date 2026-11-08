@@ -182,6 +182,7 @@ Diferente de fluxos manuais de geração com IA generativa, o StockCont opera co
   - Hashing SHA-256 canônico de cada prompt para garantir idempotência.
   - Cancelamento atômico pós-última imagem renderizada para economizar créditos de GPU.
   - **Botão de Execução Mandatório (Lite/Plus)**: Em TODOS os workflows (Conta 1 Raw Producer, Conta 2 SeedVR 8K Upscaler e Conta 3/Vídeo 4K), o botão de execução acionado no RunningHub é SEMPRE o **Lite/Plus** (botão do meio). O botão **Standard** é terminantemente proibido e desabilitado em todo o código.
+  - **DarkFactory Knowledge Vault & Story Auditor**: Módulos em `src/video/master_knowledge.py`, `src/video/knowledge_distiller.py` e `src/video/story_validator.py` destilados dos 27 livros canônicos de referência (Walter Murch, MrBeast, Lisa Cron, Jonah Berger, Brendan Kane, Derral Eves, Derek Thompson, Alex Hormozi). Valida matematicamente a *Rule of Six* de Murch (51% Emoção > 23% História > 10% Ritmo > 7% Eye-Trace), a cadência MrBeast dos primeiros 60s (MSL <= 4.2s, re-hook aos 60s, zero dead air), os *Curiosity Gaps* de Lisa Cron a cada 20s e o índice viral *STEPPS* de Jonah Berger.
 
 ### Fase 4: O Catalogador & Metadados Binários
 

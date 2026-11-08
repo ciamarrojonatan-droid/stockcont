@@ -1,0 +1,14 @@
+{
+  "version": "1.0.0",
+  "system": "DarkFactory Knowledge Vault",
+  "source_directory": "C:\\Users\\WDAGUtilityAccount\\Downloads\\Nova pasta\\darkfactory\\livros",
+  "books_count": 27,
+  "modules": {
+    "editing": "walter_murch_editing.json",
+    "retention": "mrbeast_production.json",
+    "storytelling": "lisa_cron_story.json",
+    "virality": "viral_retention_stepps.json",
+    "growth": "youtube_growth_packaging.json"
+  },
+  "status": "ready"
+}

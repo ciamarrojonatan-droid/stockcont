@@ -1,0 +1,35 @@
+{
+  "source_books": [
+    "The YouTube Formula (Derral Eves)",
+    "YouTube Secrets (Benji Travis & Sean Cannell)",
+    "100M Leads (Alex Hormozi)",
+    "Day Trading Attention (Gary Vaynerchuk)"
+  ],
+  "derral_eves_algorithm_math": {
+    "formula": "YouTube Success = High CTR x High AVD (Average View Duration) x Session Time Extension",
+    "target_metrics": {
+      "ctr_minimum": 0.08,
+      "ctr_optimal": 0.14,
+      "avd_minimum_percent": 0.55,
+      "avd_optimal_percent": 0.72
+    },
+    "traffic_sources": {
+      "browse_features": "Exige miniatura de alta curiosidade existencial e título magnético sem jargão hermético.",
+      "suggested_videos": "Exige formato de série oficial serializada e 'Seamless Binge Bridge' nos últimos 5 segundos."
+    }
+  },
+  "hormozi_hook_story_offer": {
+    "attention_magnetism": "Ganchos devem apelar para curiosidade mórbida, perda iminente ou conhecimento proibido.",
+    "perceived_value_equation": "Valor = (Sonho Dramático x Certeza Histórica) / (Tempo para Revelação x Esforço do Espectador)."
+  },
+  "packaging_checklist": [
+    "Título com menos de 50 caracteres para visualização perfeita em dispositivos móveis.",
+    "Miniatura com no máximo 3 palavras de alto contraste emocional.",
+    "Composição geométrica com ponto focal único no terço esquerdo ou central.",
+    "Tags de conformidade com IA devidamente preenchidas sem comprometer a distribuição."
+  ],
+  "darkfactory_integration": {
+    "packaging_optimizer": "generate_tri_variant_thumbnails",
+    "binge_bridge": "validate_and_enforce_seamless_outro"
+  }
+}
