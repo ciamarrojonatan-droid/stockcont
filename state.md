@@ -1,8 +1,8 @@
 # StockCont Pipeline State
 > Sincronizado automaticamente por hooks e comandos do ecossistema.
 
-## Sprint Atual: Nolan Dark History Director (Showrunner Master v2.0) & Crosscutting Engine
-- **Status da Sprint**: [CONCLUÍDO] Integração do Showrunner e Diretor Cinematográfico Christopher Nolan para Documentários Históricos:
+## Sprint Atual: Nolan Dark History Director (Showrunner Master v2.0) & 4-Stem Cinema Sound Mixer
+- **Status da Sprint**: [CONCLUÍDO] Integração do Showrunner e Diretor Cinematográfico Christopher Nolan para Documentários Históricos com Sound Design Cinema-Grade (Google Flow + RunningHub MMAudio):
   1. **Nolan Dark History Director Skill (`.agents/skills/nolan-dark-history-director/SKILL.md`) & Subagente (`.agents/agents/nolan-director.md`)**:
      - 6 Pilares de Nolan (Manipulação Temporal Não-Linear, Subjetividade Íntima, Textura Hoyte van Hoytema IMAX 70mm, Arquitetura Acústica Zimmer/Göransson, Rigor Factual BBC e Arquitetura Dual-Shot A/B).
      - Dicionário de Lentes, iluminação chiaroscuro de baixa chave e fórmulas de tensão auditiva (Shepard Tone, Braam Sub-Bass, Ticking Clock).
@@ -11,11 +11,19 @@
      - Síntese de packaging completo (Logline paradoxal, 3 títulos magnéticos e conceito de thumbnail IMAX com sobreposição de texto e escala geométrica).
      - Arquitetura de 3 Fios Temporais (Fio A Relógio Lento, Fio B Relógio Rápido e Ponto de Convergência no Clímax).
      - Cenas com pares **Dual-Shot A/B** para MiniMax H3, Google Veo 2 e Wan 2.2 + instruções de atuação vocal para CosyVoice/Kokoro.
-  3. **Integração de CLI Multi-Repositório**:
+     - Exportação atômica das filas de áudio: `google_flow_music_prompt.txt`, `runninghub_mmaudio_prompts.json` e `runninghub_whoosh_prompts.json`.
+  3. **4-Stem Master Audio Mixer Engine (`darkfactory/src/audio_mixer_master.py`)**:
+     - **Stem 1 (Voiceover)**: Ingestão de narração calibrada CosyVoice / Kokoro-82M / Edge-TTS.
+     - **Stem 2 (OST / Trilha Sonora)**: Google Flow Music (DeepMind Lyria / MusicFX) com fallback de drone orquestral procedural.
+     - **Stem 3 (Foley & SFX)**: RunningHub MMAudio (Workflow `2119239526823604226` / Post `2043812317204320257`) + SoundEffectGenerator (Workflow `2119239626330701825` / Post `2050212088202711042`).
+     - **Stem 4 (Sub-Bass Anchor)**: Impacto Braam 35Hz + Shepard Tone procedural de fundo.
+     - **Dynamic Sidechain Ducking via FFmpeg**: Atenuação inteligente de 16dB a 18dB da trilha/foley durante a fala, com ressurgimento dramático nos momentos de silêncio do narrador.
+     - **Masterização Broadcast**: Normalização estrita EBU R128 (-14 LUFS / True Peak -1dBTP).
+  4. **Integração de CLI Multi-Repositório**:
      - No StockCont: `python main.py --nolan-direct --nolan-topic "<tema>"`.
-     - No DarkFactory: `python run_pilot_pipeline.py --step direct`.
-  4. **Cobertura de Testes**: 210 testes automatizados passando com 100% de sucesso (193 testes no StockCont + 17 testes no DarkFactory).
-- **Última Atualização**: 2026-11-07 22:08
+     - No DarkFactory: `python run_pilot_pipeline.py --step sound`, `--step direct` e `--step all-local`.
+  5. **Cobertura de Testes**: 215 testes automatizados passando com 100% de sucesso (193 testes no StockCont + 22 testes no DarkFactory).
+- **Última Atualização**: 2026-11-07 22:50
 - **Modo Operacional**: Dual-Mode (Antigravity & Claude Code via SSOT `PROJECT_CONTEXT.md`)
 
 ---
