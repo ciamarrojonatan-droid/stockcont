@@ -19,7 +19,7 @@
 
 ---
 
-## 📑 Sumário Executivo
+## <img src="docs/icons/book.svg" width="20" height="20" /> Sumário Executivo
 
 1. [Visão Geral do Sistema](#-visão-geral-do-sistema)
 2. [Arquitetura de Alto Nível & Topologia da Esteira](#-arquitetura-de-alto-nível--topologia-da-esteira)
@@ -43,7 +43,7 @@
 
 ---
 
-## 🔭 Visão Geral do Sistema
+## <img src="docs/icons/globe.svg" width="20" height="20" /> Visão Geral do Sistema
 
 O **StockCont** é um ecossistema autônomo industrial de inteligência preditiva de dados, engenharia reversa multimodal e automação robótica (RPA) projetado para cobrir o ciclo comercial completo de ativos digitais criados por inteligência artificial (imagens 4K/8K e vídeos cinematográficos) para as principais plataformas mundiais de **microstock** (Adobe Stock, Freepik, 123RF, Dreamstime, Pond5, Vecteezy, Ingram Image).
 
@@ -62,7 +62,7 @@ Operando como um **fundo quantitativo de ativos digitais de alta demanda**, o si
 
 ---
 
-## 🏗 Arquitetura de Alto Nível & Topologia da Esteira
+##  Arquitetura de Alto Nível & Topologia da Esteira
 
 ```mermaid
 flowchart TD
@@ -85,7 +85,7 @@ flowchart TD
         H3 --> I3["Conta 1: Raw Producer<br/>(42 nós PromptList / até 210 prompts)"]
         I3 --> J3[("data/staging/images/<br/>(Renders 4K Brutos)")]
         J3 --> K3["Gemini Vision QC Inspector<br/>(Curadoria & Empacotamento Zip de 10)"]
-        K3 --> L3["Conta 2: SeedVR 8K Upscaler<br/>(Ingestão Zip #5 ➔ Preview #55)"]
+        K3 --> L3["Conta 2: SeedVR 8K Upscaler<br/>(Ingestão Zip #5  Preview #55)"]
         L3 --> M3[("data/final/images/<br/>(JPGs 8K Master)")]
     end
 
@@ -100,7 +100,7 @@ flowchart TD
     subgraph S5["Fase 5: Distribuidor, Cotas & O Cofre"]
         O4 --> Q5["Rolling 7D Quota Manager<br/>(src/uploader/quota_manager.py)"]
         Q5 --> R5["Despacho Multi-Agência SFTP/FTP<br/>(Adobe, Freepik, 123RF, Pond5...)"]
-        Q5 -.->|Bloqueio Anti-Ban ADR-05| BLK["⛔ ALAMY (Bloqueio IA Ativo)"]
+        Q5 -.->|Bloqueio Anti-Ban ADR-05| BLK["<img src="docs/icons/ban.svg" width="14" height="14" /> ALAMY (Bloqueio IA Ativo)"]
         O4 --> S5["Cofre Cloud Google Drive<br/>(src/backup/gdrive_backup.py)"]
         R5 & S5 --> T5["Auto-Purga Inteligente do SSD<br/>(Libera disco pós-distribuição 100%)"]
     end
@@ -114,20 +114,20 @@ flowchart TD
 
 ---
 
-## 🖥️ Dashboard Web SPA Local (iOS 27 Liquid Glass)
+## <img src="docs/icons/desktop.svg" width="20" height="20" /> Dashboard Web SPA Local (iOS 27 Liquid Glass)
 
 O StockCont conta com uma aplicação web moderna em Single-Page Application (FastAPI), com arquitetura reativa, streaming de logs via Server-Sent Events (SSE) e design unificado no padrão **Apple iOS 27 Liquid Glass** (HIG Design Tokens):
 
 * **Superfície Transparente & Blur Vibrante**: Fundo em `#1C1C1E` e `#2A2A2C`, bordas sutis com gradientes lineares especulares e cantos arredondados contínuos (*continuous squircle*).
 * **Controles Segmentados em Cápsula (`.pickerStyle(.tabs)`)**: Alternância ultra-fluida entre abas com transições refinadas e estado ativo destacado em azul iOS (`#007AFF` e `#0088FF`).
 * **KPI Cards em Inset Grouped**: 6 cartões de métricas em tempo real (Tendências mineradas, Prompts prontos, Fila ComfyUI, Assets em disco, Catalogados com IPTC e Uploads confirmados).
-* **Nova Aba "🤖 Produção 24/7"**:
-  - Hero Card de estado do Daemon com badge pulsante (🟢 Rodando 24/7 / ⏹️ Parado).
+* **Nova Aba " Produção 24/7"**:
+  - Hero Card de estado do Daemon com badge pulsante (<img src="docs/icons/status-green.svg" width="12" height="12" /> Rodando 24/7 / ️ Parado).
   - Telemetria do Cofre: Assets em disco, engatilhados, 100% distribuídos, no Google Drive e purgados do SSD.
   - Monitor de Cotas Semanais (Rolling 7D) com barras de progresso coloridas por plataforma e contagem regressiva para liberação de novas vagas.
   - Botões de Ação Rápida: Iniciar em Background, Abrir Janela Console Supervisionada (`run_24_7.bat`) e Parar.
 * **Galeria de Ativos com Modal IPTC/EXIF**: Grid responsivo com carregamento sob demanda. O clique em qualquer imagem inspeciona instantaneamente as tags IPTC, dimensões, resolução em DPI e conformidade gravada no cabeçalho binário.
-* **Radar Sazonal Interativo**: Painel de micro-nichos calculados para a janela D+75 com botão `🚀 Minerar este Nicho` em 1 clique.
+* **Radar Sazonal Interativo**: Painel de micro-nichos calculados para a janela D+75 com botão `<img src="docs/icons/terminal.svg" width="16" height="16" /> Minerar este Nicho` em 1 clique.
 
 Para iniciar o Dashboard:
 ```bash
@@ -137,7 +137,7 @@ python main.py --dashboard
 
 ---
 
-## 🔬 Detalhamento Técnico das Fases do Pipeline
+##  Detalhamento Técnico das Fases do Pipeline
 
 ### Fase 1: O Olheiro Preditivo (*Radar Sazonal & Saturation Index*)
 * **Módulos Centrais**: [`src/scraper/adobe_stock.py`](file:///c:/Users/WDAGUtilityAccount/Downloads/Nova%20pasta/stockcont/src/scraper/adobe_stock.py), [`src/analyzer/seasonal_radar.py`](file:///c:/Users/WDAGUtilityAccount/Downloads/Nova%20pasta/stockcont/src/analyzer/seasonal_radar.py), [`src/analyzer/saturation_index.py`](file:///c:/Users/WDAGUtilityAccount/Downloads/Nova%20pasta/stockcont/src/analyzer/saturation_index.py), [`src/scraper/hydrator.py`](file:///c:/Users/WDAGUtilityAccount/Downloads/Nova%20pasta/stockcont/src/scraper/hydrator.py)
@@ -156,9 +156,9 @@ Empresas e agências adquirem ativos para campanhas com **60 a 90 dias de antece
 Calcula a viabilidade matemática entre consumo e concorrência:
 $$\text{Saturation Score} = \frac{\text{Downloads Médios dos Top Sellers}}{\max(\text{Total de Resultados Indexados}, 1)}$$
 
-* 🟢 **Blue Ocean** ($\text{Score} \ge 0.025$): Alta demanda e baixa concorrência. Produção imediata.
-* 🟡 **Competição Moderada** ($0.005 \le \text{Score} < 0.025$): Exige forte diferenciação estética e copy-space.
-* 🔴 **Red Ocean** ($\text{Score} < 0.005$): Nicho saturado. O sistema recomenda refinar a busca.
+* <img src="docs/icons/status-green.svg" width="12" height="12" /> **Blue Ocean** ($\text{Score} \ge 0.025$): Alta demanda e baixa concorrência. Produção imediata.
+* <img src="docs/icons/status-yellow.svg" width="12" height="12" /> **Competição Moderada** ($0.005 \le \text{Score} < 0.025$): Exige forte diferenciação estética e copy-space.
+* <img src="docs/icons/status-red.svg" width="12" height="12" /> **Red Ocean** ($\text{Score} < 0.005$): Nicho saturado. O sistema recomenda refinar a busca.
 
 #### 3. Concurrent Reference Hydrator (`--sync-raw`)
 Módulo com pool de threads para download concorrente de miniaturas de referência listadas em `trends.json` que estejam pendentes em disco.
@@ -179,7 +179,7 @@ Módulo com pool de threads para download concorrente de miniaturas de referênc
 
 ---
 
-### 🎬 Pipeline de Vídeo Cinematográfico (Fases 1 a 5 de Vídeo)
+### <img src="docs/icons/film.svg" width="18" height="18" /> Pipeline de Vídeo Cinematográfico (Fases 1 a 5 de Vídeo)
 * **Módulos Centrais**: [`src/video/ffmpeg_processor.py`](file:///c:/Users/WDAGUtilityAccount/Downloads/Nova%20pasta/stockcont/src/video/ffmpeg_processor.py), [`src/video/video_metadata.py`](file:///c:/Users/WDAGUtilityAccount/Downloads/Nova%20pasta/stockcont/src/video/video_metadata.py), [`src/analyzer/video_director.py`](file:///c:/Users/WDAGUtilityAccount/Downloads/Nova%20pasta/stockcont/src/analyzer/video_director.py), [`src/cataloger/video_cataloger.py`](file:///c:/Users/WDAGUtilityAccount/Downloads/Nova%20pasta/stockcont/src/cataloger/video_cataloger.py)
 * **Objetivo**: Produzir e distribuir clipes de vídeo em movimento (I2V) a partir de imagens de alta fidelidade para monetização em vídeo no Adobe Stock Video e Pond5.
 
@@ -227,7 +227,7 @@ python main.py --video --phase 5 --platform pond5
 
 ---
 
-### 🔍 Módulo QC: Curadoria Multimodal & Prevenção OOM
+###  Módulo QC: Curadoria Multimodal & Prevenção OOM
 * **Módulo Central**: [`src/analyzer/qc_inspector.py`](file:///c:/Users/WDAGUtilityAccount/Downloads/Nova%20pasta/stockcont/src/analyzer/qc_inspector.py)
 * **Auditoria Visual via Gemini Vision**: Inspeciona as imagens geradas pela Conta 1 contra deformações anatômicas, artefatos visuais ou texto distorcido.
 * **Empacotamento em Lotes de 10 (`approved_batch.zip`)**: Agrupa apenas imagens aprovadas em zips leves de exatamente 10 unidades, prevenindo estouro de VRAM na GPU durante o upscale 8K da Conta 2.
@@ -273,7 +273,7 @@ python main.py --video --phase 5 --platform pond5
 
 ---
 
-### ☁️ O Cofre Cloud (Google Drive + Auto-Purga Inteligente de SSD)
+### <img src="docs/icons/cloud.svg" width="18" height="18" /> O Cofre Cloud (Google Drive + Auto-Purga Inteligente de SSD)
 * **Módulo Central**: [`src/backup/gdrive_backup.py`](file:///c:/Users/WDAGUtilityAccount/Downloads/Nova%20pasta/stockcont/src/backup/gdrive_backup.py)
 * **Backup no Google Drive**: Sincronização automática para `G:\Meu Drive\StockCont_backup` com livro-razão `gdrive_backup_history.json`.
 * **Auto-Purga Inteligente de SSD**: Ativos gerados em 8K ocupam espaço significativo em disco. O StockCont remove com segurança o arquivo do SSD local **apenas quando duas condições simultâneas forem satisfeitas**:
@@ -283,7 +283,7 @@ python main.py --video --phase 5 --platform pond5
 
 ---
 
-### 🤖 Motor Autônomo 24/7 (Daemon Supervisor & Watchdog Windows)
+### <img src="docs/icons/robot.svg" width="18" height="18" /> Motor Autônomo 24/7 (Daemon Supervisor & Watchdog Windows)
 * **Módulo Central**: [`src/orchestrator/daemon.py`](file:///c:/Users/WDAGUtilityAccount/Downloads/Nova%20pasta/stockcont/src/orchestrator/daemon.py)
 * **Loop Contínuo Pipelined**:
   1. **Buffer de Prompts**: Monitora a fila; se pendentes < 50, dispara automaticamente as Fases 1 e 2.
@@ -301,7 +301,7 @@ python main.py --video --phase 5 --platform pond5
 
 ---
 
-## 🎮 Orquestrador Mestre CLI (`main.py`) & Scripts de Execução
+##  Orquestrador Mestre CLI (`main.py`) & Scripts de Execução
 
 ```bash
 # ==========================================
@@ -413,7 +413,7 @@ python main.py --phase 5 --platform adobe
 
 ---
 
-## 📂 Estrutura do Repositório & Gestão de Dados
+##  Estrutura do Repositório & Gestão de Dados
 
 ```text
 stockcont/
@@ -516,7 +516,7 @@ stockcont/
 
 ---
 
-## 📄 Contratos de Dados (Data Schemas v3.0)
+## <img src="docs/icons/file-text.svg" width="20" height="20" /> Contratos de Dados (Data Schemas v3.0)
 
 ### Schema de Prompts Processados (`data/processed/prompts.json` - v3.0)
 ```json
@@ -547,26 +547,26 @@ stockcont/
 
 ---
 
-## 🌐 Matriz Estratégica Multi-Agência & Proteção Anti-Ban Alamy
+##  Matriz Estratégica Multi-Agência & Proteção Anti-Ban Alamy
 
 | Plataforma | Protocolo | Tipo de Ativo | Política de IA | Gestão no StockCont |
 | :--- | :--- | :--- | :--- | :--- |
-| **Adobe Stock** | SFTP | Imagens 8K & Vídeos | ✅ Aceito *(Tag IA requerida)* | Suporte nativo / Lê IPTC e átomos MP4 |
-| **Freepik Contributor** | FTP | Imagens 8K | ✅ Aceito em escala massiva | Suporte nativo / Despacho com cotas |
-| **Dreamstime** | FTP | Imagens 8K | ✅ Aceito *(IA no Caption)* | Suporte nativo / Pré-formatação de texto |
-| **Pond5** | FTP | Vídeos 4K & ProRes | ✅ Aceito *(Preço customizável)*| Suporte nativo / Apple ProRes 422 HQ |
-| **123RF** | FTP | Imagens 8K | ✅ Aceito | Suporte nativo / Gestor de cotas |
-| **Vecteezy** | FTP | Imagens & Vetores | ✅ Aceito | Suporte nativo / Leitura IPTC |
-| **Ingram Image** | FTP | Imagens 8K | ✅ Aceito | Suporte nativo / Gestor de cotas |
-| **Alamy** | SFTP/FTP | Imagens & Vídeos | ⛔ **TERMINANTEMENTE PROIBIDO PARA IA** | 🛡️ **BLOQUEIO ATIVO ANTI-BAN (ADR-05)** |
+| **Adobe Stock** | SFTP | Imagens 8K & Vídeos | <img src="docs/icons/check.svg" width="14" height="14" /> Aceito *(Tag IA requerida)* | Suporte nativo / Lê IPTC e átomos MP4 |
+| **Freepik Contributor** | FTP | Imagens 8K | <img src="docs/icons/check.svg" width="14" height="14" /> Aceito em escala massiva | Suporte nativo / Despacho com cotas |
+| **Dreamstime** | FTP | Imagens 8K | <img src="docs/icons/check.svg" width="14" height="14" /> Aceito *(IA no Caption)* | Suporte nativo / Pré-formatação de texto |
+| **Pond5** | FTP | Vídeos 4K & ProRes | <img src="docs/icons/check.svg" width="14" height="14" /> Aceito *(Preço customizável)*| Suporte nativo / Apple ProRes 422 HQ |
+| **123RF** | FTP | Imagens 8K | <img src="docs/icons/check.svg" width="14" height="14" /> Aceito | Suporte nativo / Gestor de cotas |
+| **Vecteezy** | FTP | Imagens & Vetores | <img src="docs/icons/check.svg" width="14" height="14" /> Aceito | Suporte nativo / Leitura IPTC |
+| **Ingram Image** | FTP | Imagens 8K | <img src="docs/icons/check.svg" width="14" height="14" /> Aceito | Suporte nativo / Gestor de cotas |
+| **Alamy** | SFTP/FTP | Imagens & Vídeos | <img src="docs/icons/ban.svg" width="14" height="14" /> **TERMINANTEMENTE PROIBIDO PARA IA** | <img src="docs/icons/shield.svg" width="14" height="14" /> **BLOQUEIO ATIVO ANTI-BAN (ADR-05)** |
 
-> ### ⚠️ ALERTA MANDATÓRIO DE COMPLIANCE — ALAMY (ADR-05)
+> ### <img src="docs/icons/alert.svg" width="15" height="15" />️ ALERTA MANDATÓRIO DE COMPLIANCE — ALAMY (ADR-05)
 > A **Alamy proíbe terminantemente qualquer conteúdo gerado por IA** (Seção 1.3 do Contrato de Contribuinte). Submeter IA à Alamy acarreta **banimento sumário da conta e perda definitiva de todos os rendimentos acumulados**.
 > O StockCont possui proteção ativa em [`src/cataloger/platform_compliance.py`](file:///c:/Users/WDAGUtilityAccount/Downloads/Nova%20pasta/stockcont/src/cataloger/platform_compliance.py) que **bloqueia programaticamente qualquer tentativa de upload de asset IA para a Alamy**, exibindo aviso no console e mantendo o contribuinte seguro.
 
 ---
 
-## 🚀 Instalação, Configuração & Execução
+## <img src="docs/icons/terminal.svg" width="16" height="16" /> Instalação, Configuração & Execução
 
 ### 1. Pré-Requisitos
 * Python 3.11 ou superior
@@ -614,7 +614,7 @@ Campos essenciais:
 
 ---
 
-## 🛡 Resiliência Operacional & Decisões de Engenharia (ADRs)
+## <img src="docs/icons/shield.svg" width="20" height="20" /> Resiliência Operacional & Decisões de Engenharia (ADRs)
 
 1. **ADR-01: Blindagem de Encoding UTF-8 em Windows**: Todo I/O de console, rede e persistência é forçado para UTF-8 no bootstrap de `main.py` e utilitários, neutralizando falhas crônicas de `cp1252` em terminais Windows.
 2. **ADR-02: Escrita Atômica Transacional com `.tmp`**: Todos os arquivos JSON críticos (`prompts.json`, `trends.json`, `generation_history.json`, `upload_history.json`, `daemon_state.json`) são serializados primeiramente em arquivos temporários `.tmp` com identificadores únicos de processo e substituídos atomicamente via `os.replace()`.
@@ -626,6 +626,6 @@ Campos essenciais:
 
 ---
 
-## 📜 Licença
+##  Licença
 
 Distribuído sob a licença **MIT**. Consulte o arquivo `LICENSE` para mais detalhes.
