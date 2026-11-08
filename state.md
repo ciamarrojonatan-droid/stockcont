@@ -1,30 +1,22 @@
 # StockCont Pipeline State
 > Sincronizado automaticamente por hooks e comandos do ecossistema.
 
-## Sprint Atual: Automação E2E Total DarkFactory (Shorts 9:16, YouTube Publisher v3 & Daemon 24/7)
-- **Status da Sprint**: [CONCLUÍDO] Automação completa de ponta a ponta (E2E) do roadmap de monetização:
-  1. **Motor Automático de Shorts Verticais 9:16 (`darkfactory/src/shorts_generator.py`)**:
-     - Recorte automático dos primeiros 50 a 55 segundos (Cold Open de alta retenção).
-     - Composição visual 1080x1920 com fundo cinematográfico desfocado e primeiro plano óptico nítido.
-     - Legendas dinâmicas amarelas/pretas queimadas na zona segura de visualização mobile.
-  2. **Despachante Oficial YouTube Data API v3 (`darkfactory/src/youtube_publisher.py`)**:
-     - Autenticação OAuth 2.0 local persistente e upload resumable em pedaços (chunks de 8MB).
-     - Injeção automática de títulos magnéticos de Nolan, descrição rica com timestamps/capítulos, tags SEO e thumbnail customizada.
-     - Publicação por padrão com status **`unlisted` (Não Listado)** para conferência e blindagem de monetização no YPP.
-     - Método de transição de 1-clique (`update_video_privacy(id, 'public')`) e injeção de comentários fixados.
-     - Livro-razão atômico em `data/processed/youtube_upload_history.json`.
-  3. **Bot RPA Playwright Stealth para Google Flow (`darkfactory/src/google_flow_bot.py`)**:
-     - Suporte a perfil Chrome persistente para automação em `flow.google.com`.
-     - Ingestão das filas do Gemini Omni Flash 1.2 (tomadas longas de 15s) e Google Veo 3 / 3.1 (Hero shots em 4K nativo).
-     - Download automático dos clipes para `data/broll/` com fallback resiliente para RunningHub / render procedural.
-  4. **Daemon Supervisor 24/7 de Documentários (`darkfactory/src/daemon_darkfactory.py`)**:
-     - Agendamento autônomo baseado na cadência áurea (terças e sextas para longos; seg/qua/qui/sáb para Shorts).
-     - Heartbeat atômico contínuo em `data/processed/darkfactory_daemon_state.json`.
-     - Fila persistente de aprovação com gatilho de 1-clique (`pending_approval_queue`).
-  5. **Orquestrador Unificado (`darkfactory/run_pilot_pipeline.py`)**:
-     - Suporte completo a `--step shorts`, `--step publish`, `--step flow` e execução E2E via `--step all` e `--step all-local`.
-  6. **Cobertura Total de Testes**: **233 testes automatizados passando com 100% de sucesso** (193 testes no StockCont + 40 testes no DarkFactory).
-- **Última Atualização**: 2026-11-08 00:10
+## Sprint Atual: YouTube Compliance & Safety QC Engine (Hard Gate & Dispute Kit)
+- **Status da Sprint**: [CONCLUÍDO] Blindagem total pré-upload contra 'Yellow Dollar', strikes e Content ID:
+  1. **YouTube Compliance QC Engine (`darkfactory/src/youtube_compliance_qc.py`)**:
+     - **Camada 1 (Metadados & EDSA)**: Varredura de termos de desmonetização com substituição automática por vocabulário historiográfico sóbrio (EDSA Standard: Educational, Documentary, Scientific, or Artistic), bloqueio de tag-stuffing e mitigação de clickbait.
+     - **Camada 2 (Declaração Obrigatória de IA)**: Injeção automática do selo BBC/PBS de Transparência no cabeçalho da descrição e ativação da flag oficial de Conteúdo Sintético/Gerado por IA na API do YouTube.
+     - **Camada 3 (Thumbnail & Áudio)**: Validação técnica de miniaturas (< 2MB, 16:9, sem símbolos de ódio) e auditoria de loudness EBU R128 (-14 LUFS / True Peak -1dBTP) sem linguagem imprópria nos primeiros 15 segundos.
+     - **Camada 4 (Dispute Kit Legal)**: Emissão automática de dossiê legal de contestação de Content ID (`data/processed/dispute_kits/{video_id}_dispute.txt`) com carimbos, prompts e amparo na Seção 107 do Copyright Act (Fair Use).
+     - **Quarentena Atômica**: Se o score for crítico (< 60/100) ou houver violação grave, move os arquivos para `data/quarantine/{id}/` e bloqueia o upload na raiz.
+  2. **Hard Gate no Despachante (`darkfactory/src/youtube_publisher.py`)**:
+     - Auditoria prévia obrigatória antes de qualquer chamada na API do YouTube.
+     - Aplica automaticamente os metadados saneados e impede uploads que possam gerar strikes no canal.
+  3. **Integração no Orquestrador & Daemon**:
+     - Suporte ao subcomando `--step qc` em `darkfactory/run_pilot_pipeline.py`.
+     - Integrado no ciclo contínuo do `darkfactory/src/daemon_darkfactory.py`.
+  4. **Cobertura Total de Testes**: **241 testes automatizados passando com 100% de sucesso** (193 testes no StockCont + 48 testes no DarkFactory).
+- **Última Atualização**: 2026-11-08 00:43
 - **Modo Operacional**: Dual-Mode (Antigravity & Claude Code via SSOT `PROJECT_CONTEXT.md`)
 
 ---
