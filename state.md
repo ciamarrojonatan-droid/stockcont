@@ -1,14 +1,21 @@
 # StockCont Pipeline State
 > Sincronizado automaticamente por hooks e comandos do ecossistema.
 
-## Sprint Atual: DarkFactory Cinema Engine & Research / Kokoro Fallback Grounding
-- **Status da Sprint**: [CONCLUÍDO] Calibração de Produção Master para o DarkFactory / Documentários Históricos:
-  1. **Research Engine Ground-Truth (`darkfactory/src/research_engine.py`)**: Extração factual automática via Wikipedia REST API e MediaWiki Search API. Mapeamento de fatos numéricos, figuras históricas, locações, datas e síntese de ganchos dramáticos e oportunidades visuais de B-roll. Eliminação de alucinações e conformidade estrita contra *AI slop*.
-  2. **Kokoro TTS Local Fallback Engine (`darkfactory/src/kokoro_fallback.py`)**: Mapeamento de atuação (*acting direction*) a partir de instruções CosyVoice (`instruct_text`) para vozes e cadências do Kokoro-82M (`am_fenrir` para tensão/urgência, `am_onyx` para clima sombrio/grave, `am_adam` para documentário clássico). Fallback proxy transparente via Edge-TTS e transcode 16-bit 44.1kHz PCM WAV.
-  3. **Orquestrador Central Atualizado (`darkfactory/run_pilot_pipeline.py`)**: Suporte a `--step research`, `--step tts-local` e modo 100% autônomo offline `--step all-local`.
-  4. **Motor T2V Narrativo (`src/video/darkfactory_t2v.py`)**: Superação da limitação estática do I2V. Geração direta de cenas narrativas divididas em pares **Dual-Shot** de alta retenção (Shot A Drama/Tensão + Shot B Macro/Ação) com adapters para MiniMax H3 e Google Flow (Veo 2).
-  5. **Cobertura de Testes**: 205 testes automatizados passando com 100% de sucesso (193 testes no StockCont + 12 testes no DarkFactory).
-- **Última Atualização**: 2026-11-07 21:20
+## Sprint Atual: Nolan Dark History Director (Showrunner Master v2.0) & Crosscutting Engine
+- **Status da Sprint**: [CONCLUÍDO] Integração do Showrunner e Diretor Cinematográfico Christopher Nolan para Documentários Históricos:
+  1. **Nolan Dark History Director Skill (`.agents/skills/nolan-dark-history-director/SKILL.md`) & Subagente (`.agents/agents/nolan-director.md`)**:
+     - 6 Pilares de Nolan (Manipulação Temporal Não-Linear, Subjetividade Íntima, Textura Hoyte van Hoytema IMAX 70mm, Arquitetura Acústica Zimmer/Göransson, Rigor Factual BBC e Arquitetura Dual-Shot A/B).
+     - Dicionário de Lentes, iluminação chiaroscuro de baixa chave e fórmulas de tensão auditiva (Shepard Tone, Braam Sub-Bass, Ticking Clock).
+  2. **Motor Executivo em Python (`darkfactory/src/nolan_director.py`)**:
+     - Integração com `WikipediaResearcher` para extração factual instantânea.
+     - Síntese de packaging completo (Logline paradoxal, 3 títulos magnéticos e conceito de thumbnail IMAX com sobreposição de texto e escala geométrica).
+     - Arquitetura de 3 Fios Temporais (Fio A Relógio Lento, Fio B Relógio Rápido e Ponto de Convergência no Clímax).
+     - Cenas com pares **Dual-Shot A/B** para MiniMax H3, Google Veo 2 e Wan 2.2 + instruções de atuação vocal para CosyVoice/Kokoro.
+  3. **Integração de CLI Multi-Repositório**:
+     - No StockCont: `python main.py --nolan-direct --nolan-topic "<tema>"`.
+     - No DarkFactory: `python run_pilot_pipeline.py --step direct`.
+  4. **Cobertura de Testes**: 210 testes automatizados passando com 100% de sucesso (193 testes no StockCont + 17 testes no DarkFactory).
+- **Última Atualização**: 2026-11-07 22:08
 - **Modo Operacional**: Dual-Mode (Antigravity & Claude Code via SSOT `PROJECT_CONTEXT.md`)
 
 ---

@@ -370,6 +370,19 @@ def run_darkfactory_t2v(
     print(f"                               data/processed/google_veo_queue.json\n")
 
 
+def run_nolan_director(topic: str = "1983 Soviet nuclear false alarm incident") -> None:
+    """Execute Christopher Nolan Showrunner Engine to direct a dark historical documentary episode."""
+    logger.info(f"--- Starting Christopher Nolan Dark History Director on '{topic}' ---")
+    df_root = Path(__file__).resolve().parent.parent / "darkfactory"
+    nolan_script = df_root / "src" / "nolan_director.py"
+    if nolan_script.exists():
+        import subprocess
+        python_exe = sys.executable
+        subprocess.run([python_exe, str(nolan_script), "--topic", topic])
+    else:
+        logger.error(f"Nolan Director script not found at {nolan_script}")
+
+
 def run_video_phase_2(max_items: int | None = None, image_stem: str | None = None) -> None:
     """Execute Video Phase 2: Video Director of Photography."""
     logger.info("--- Starting Video Phase 2: Video Director (Gemini Vision 4D Temporal Prompts) ---")
@@ -524,6 +537,8 @@ def main() -> None:
     video_group.add_argument("--t2v-export", action="store_true", help="Export formatted queues for MiniMax H3 and Google Veo 2")
     video_group.add_argument("--t2v-title", type=str, default=None, help="Title for custom dual-shot scene")
     video_group.add_argument("--t2v-beat", type=str, default=None, help="Narrative story beat for custom dual-shot scene")
+    video_group.add_argument("--nolan-direct", action="store_true", help="Execute Christopher Nolan Showrunner Engine to direct a dark historical documentary episode")
+    video_group.add_argument("--nolan-topic", type=str, default="1983 Soviet nuclear false alarm incident", help="Historical topic to direct with Nolan non-linear methodology")
 
     args = parser.parse_args()
 
@@ -576,6 +591,10 @@ def main() -> None:
             custom_title=getattr(args, "t2v_title", None),
             custom_beat=getattr(args, "t2v_beat", None),
         )
+        return
+
+    if getattr(args, "nolan_direct", False):
+        run_nolan_director(topic=getattr(args, "nolan_topic", "1983 Soviet nuclear false alarm incident"))
         return
 
     if args.seasonal:
