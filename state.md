@@ -52,7 +52,7 @@
 | **Conta 2: SeedVR 8K Upscaler** | 🟢 Calibrada (Lite/Plus) | **Workflow SeedVR 8K** \| Ingestão ZIP Nó #5 ➔ Preview Nó #55 (1 a 1 Real-Time) ➔ Auto-cancel na última imagem (Botão Lite/Plus) | Integrado no Daemon |
 | **Fase 4: O Catalogador** | 🟢 Concluído | **190 assets catalogados** em `adobe_stock_upload.csv` \| Injeção obrigatória de 300 DPI + IPTC/EXIF | Integrado no Daemon |
 | **Fase 5: O Distribuidor com Cotas** | 🟢 Protegido | **Despacho seletivo por plataforma**: Pausa agências com cotas esgotadas e prossegue nas demais \| Anti-Ban Alamy ativo | Integrado no Daemon |
-| **Suíte de Testes (Pytest)** | 🟢 100% Verde | **268 testes passando (202 no StockCont + 66 no DarkFactory, 100% verde)** | Regressão zero (22 suítes de teste) | `pytest tests/` |
+| **Suíte de Testes (Pytest)** | 🟢 100% Verde | **283 testes passando (216 no StockCont + 67 no DarkFactory, 100% verde)** | Regressão zero (22 suítes de teste StockCont + 8 DarkFactory) | `pytest tests/` |
 | **YouTube Booster & Compliance Bridge** | 🟢 Ativo & Operacional | **Motor YouTube Completo (`src/video/youtube_booster.py`)**: A/B/C Thumbnails, Series Playlists, Seamless Outro, 4K Codec Guard, Self-Certification e EDSA | `python main.py --youtube-boost` |
 | **Agente Estratégico ("O Que Você Faria?")** | 🟢 Ativo & Registrado | **Subagente `what-would-you-do`** \| Skill `/wwyd` \| Hook `PreInvocation` em `.agents/hooks.json` \| Sócio sênior e avaliador de viabilidade | Invocável via subagente ou chat |
 
