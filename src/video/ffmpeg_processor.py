@@ -270,7 +270,8 @@ def transcode_to_h264_master(
         logger.error(f"FFmpeg transcode failed: {err_msg}")
         raise RuntimeError(f"FFmpeg transcode failed for {in_path}: {err_msg[:300]}")
 
-    temp_out.replace(out_path)
+    if temp_out.exists():
+        temp_out.replace(out_path)
     return out_path
 
 
@@ -312,7 +313,8 @@ def transcode_to_prores_master(
         logger.error(f"FFmpeg ProRes transcode failed: {err_msg}")
         raise RuntimeError(f"FFmpeg ProRes failed for {in_path}: {err_msg[:300]}")
 
-    temp_out.replace(out_path)
+    if temp_out.exists():
+        temp_out.replace(out_path)
     return out_path
 
 
@@ -375,5 +377,59 @@ def create_seamless_loop(
         logger.error(f"FFmpeg loop generation failed: {err_msg}")
         raise RuntimeError(f"FFmpeg loop generation failed: {err_msg[:300]}")
 
-    temp_out.replace(out_path)
+    if temp_out.exists():
+        temp_out.replace(out_path)
+    return out_path
+
+
+def time_stretch_audio_complex_pro(
+    input_audio_path: Path | str,
+    output_audio_path: Path | str,
+    tempo: float = 0.92,
+    pitch: float = 1.0,
+    preserve_formants: bool = True,
+) -> Path:
+    """Ableton Live 'Complex Pro' Warp Engine for Speech and Voiceovers.
+
+    Employs FFmpeg's librubberband in Phase Vocoder mode:
+      - formant=preserved: Preserves human vocal tract formants (zero chipmunk/demon effect)
+      - transients=smooth: Treats vocal signals as continuous harmonic flows (zero metallic/robotic flutter)
+      - window=long: Expanded FFT window for pristine resolution of chest/baritone fundamental frequencies
+      - smoothing=on: Inter-frame spectral smoothing eliminating phase comb filtering
+      - pitchq=quality: Maximum phase-vocoder precision
+    """
+    in_path = Path(input_audio_path).resolve()
+    out_path = Path(output_audio_path).resolve()
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    formant_str = "preserved" if preserve_formants else "shifted"
+    filter_expr = (
+        f"rubberband=tempo={tempo:.3f}:pitch={pitch:.3f}:"
+        f"formant={formant_str}:transients=smooth:window=long:smoothing=on:pitchq=quality"
+    )
+
+    temp_out = out_path.with_suffix(f".tmp.{os.getpid()}{out_path.suffix}")
+
+    cmd = [
+        get_ffmpeg_binary(),
+        "-y",
+        "-i", str(in_path),
+        "-af", filter_expr,
+        "-c:a", "libmp3lame" if out_path.suffix.lower() == ".mp3" else "pcm_s16le",
+        "-b:a", "320k" if out_path.suffix.lower() == ".mp3" else None,
+        str(temp_out),
+    ]
+    cmd = [c for c in cmd if c is not None]
+
+    logger.info(f"Applying Complex Pro Voice Warp (tempo={tempo:.2f}, pitch={pitch:.2f}): {in_path.name}")
+    res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=120.0)
+    if res.returncode != 0:
+        if temp_out.exists():
+            temp_out.unlink()
+        err_msg = res.stderr.decode("utf-8", errors="ignore")
+        logger.error(f"Complex Pro warp failed: {err_msg}")
+        raise RuntimeError(f"FFmpeg Complex Pro warp failed: {err_msg[:300]}")
+
+    if temp_out.exists():
+        temp_out.replace(out_path)
     return out_path

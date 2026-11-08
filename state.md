@@ -1,26 +1,22 @@
 # StockCont Pipeline State
 > Sincronizado automaticamente por hooks e comandos do ecossistema.
 
-## Sprint Atual: DarkFactory Knowledge Vault & Story Auditor — Ingestão Canônica dos 27 Livros de Referência (Cinema, Storytelling Neural & Viralidade YouTube)
-- **Status da Sprint**: [CONCLUÍDO] Implementação ponta a ponta do motor de conhecimento e auditoria algorítmica destilado dos 27 livros em `C:\Users\WDAGUtilityAccount\Downloads\Nova pasta\darkfactory\livros`:
-  1. **Destilação Semântica Canônica (`src/video/knowledge_distiller.py`)**:
-     - Varredura e indexação dos 27 PDFs (Walter Murch, MrBeast, Lisa Cron, Derral Eves, Brendan Kane, Jonah Berger, Derek Thompson, Alex Hormozi, Nir Eyal, GaryVee).
-     - Geração persistente e atômica de 6 arquivos JSON estruturados em `src/video/knowledge/` (`walter_murch_editing.json`, `mrbeast_production.json`, `lisa_cron_story.json`, `viral_retention_stepps.json`, `youtube_growth_packaging.json`, `master_knowledge_index.json`).
-  2. **Motor Operacional Canônico (`src/video/master_knowledge.py`)**:
-     - *Walter Murch Rule of Six*: Pesos inegociáveis (Emoção 51%, História 23%, Ritmo 10%, Eye-Trace 7%, Plano 2D 5%, Espaço 3D 4%) e Teoria do Piscar (*Blink Theory*).
-     - *MrBeast First Minute Retention Law*: MSL <= 4.2s nos primeiros 60s, re-hook de confirmação entre 50s e 70s, zero dead air e banimento total de exit-cues.
-     - *Lisa Cron Neuro-Storytelling*: Cadência de *Curiosity Gaps* a cada 20-25s, The Third Rail (conflito interno) e causalidade ("Portanto/Porém" vs "E depois").
-     - *Jonah Berger STEPPS Vector*: Cálculo ponderado de potencial viral (0-100), moedas sociais secretas e emoções de alta excitabilidade fisiológica (*Dread/Awe*).
-  3. **Auditor de Roteiro e Manifestos (`src/video/story_validator.py`)**:
-     - Avaliador algorítmico `DarkFactoryStoryValidator` com scoring unificado (0 a 100), grading (A+, A, B, C, F), status de prontidão e roadmap de remediação.
-  4. **Integração Nativa nos Módulos Existentes**:
-     - `src/video/pacing_analyzer.py`: Incorpora `murch_rule_of_six_score` e `mrbeast_first_minute_compliant` em `PacingReport`.
-     - `src/video/youtube_booster.py`: Incorpora `score_viral_stepps` e auditoria no pacote master de publicação.
-     - `.agents/skills/nolan-dark-history-director/SKILL.md`: As 5 Leis Invioláveis dos Mestres adicionadas como diretrizes obrigatórias de roteirização.
-  5. **Suíte de Testes 100% Verde**:
-     - `tests/test_master_knowledge.py` (5 testes) e `tests/test_story_validator.py` (2 testes) passando com 100% de sucesso.
-     - Total: **307 testes automatizados passando (231 StockCont + 76 DarkFactory)** com zero regressão.
-- **Última Atualização**: 2026-11-08 05:45
+## Sprint Atual: Ableton Live 'Complex Pro' Warp Engine para Locução Neural — Preservação de Formantes e Eliminação de Artefatos Robóticos
+- **Status da Sprint**: [CONCLUÍDO] Solução de alta fidelidade acústica para desaceleração natural de voz sem timbragem robótica:
+  1. **Diagnóstico da Causa Raiz do Efeito Robótico**:
+     - *1ª Causa*: O Edge-TTS recebia parâmetros de taxa negativa (`rate="-3%"` a `rate="-14%"`), acionando o algoritmo interno simples WSOLA do servidor, que gera cancelamento de fase (*phase comb filtering*) e tremolo metálico.
+     - *2ª Causa*: O FFmpeg executava `rubberband=pitch=0.94:tempo=0.98` com os parâmetros default da biblioteca (`formant=shifted`, `transients=crisp`), projetados para percussão, fatiando micro-transientes da fala e alterando as ressonâncias do trato vocal humano.
+  2. **Arquitetura do Modo 'Complex Pro' (Ableton Live / zplane élastique)**:
+     - No Ableton Live, o modo *Complex* usa um **Phase Vocoder** polifônico no domínio da frequência. O *Complex Pro* adiciona **Preservação de Formantes (100%)** e controle de envelope espectral para isolar a cavidade ressonante da garganta/boca humana, impedindo que a voz soe sintética ou robótica quando desacelerada.
+  3. **Implementação do Complex Pro via Rubber Band Library**:
+     - Implementado em `src/video/ffmpeg_processor.py` (`time_stretch_audio_complex_pro`):
+       `rubberband=tempo=...:pitch=...:formant=preserved:transients=smooth:window=long:smoothing=on:pitchq=quality`
+     - Atualizado em `darkfactory/src/cosyvoice_master.py`: Masterização documental barítono desacelera com formantes travados.
+     - Atualizado em `darkfactory/src/generate_pilot_audio.py`: Síntese neural pura em cadência nativa (`rate="+0%"`), transferindo a desaceleração para o Phase Vocoder de alta precisão.
+  4. **Validação & Testes**:
+     - Nova suíte `tests/test_audio_warp_complex_pro.py` (2 testes unitários passando).
+     - Testes de pipeline de vídeo e booster 100% verdes (39 testes no StockCont + 5 testes no DarkFactory).
+- **Última Atualização**: 2026-11-08 18:52
 - **Modo Operacional**: Dual-Mode (Antigravity & Claude Code via SSOT `PROJECT_CONTEXT.md`)
 
 ---
@@ -48,21 +44,3 @@
 | **Módulo QC: Curadoria & Quality Control** | 🟢 Calibrado | **Gemini Vision auto-audit ativo** \| Empacotamento em zips de 10 (`approved_batch.zip`) para prevenir OOM na GPU | Integrado no Daemon |
 | **Conta 2: SeedVR 8K Upscaler** | 🟢 Calibrada (Lite/Plus) | **Workflow SeedVR 8K** \| Ingestão ZIP Nó #5 ➔ Preview Nó #55 (1 a 1 Real-Time) ➔ Auto-cancel na última imagem (Botão Lite/Plus) | Integrado no Daemon |
 | **Fase 4: O Catalogador** | 🟢 Concluído | **190 assets catalogados** em `adobe_stock_upload.csv` \| Injeção obrigatória de 300 DPI + IPTC/EXIF | Integrado no Daemon |
-| **Fase 5: O Distribuidor com Cotas** | 🟢 Protegido | **Despacho seletivo por plataforma**: Pausa agências com cotas esgotadas e prossegue nas demais \| Anti-Ban Alamy ativo | Integrado no Daemon |
-| **DarkFactory Master Knowledge Vault** | 🟢 Ativo & Operacional | **Motor Canônico dos 27 Livros (`src/video/master_knowledge.py`, `story_validator.py`)**: Walter Murch (Rule of Six), MrBeast (First Minute Law), Lisa Cron (Curiosity Gaps) e Jonah Berger (STEPPS) | Integrado nativo no Showrunner |
-| **Suíte de Testes (Pytest)** | 🟢 100% Verde | **307 testes passando (231 no StockCont + 76 no DarkFactory, 100% verde)** | Regressão zero (24 suítes de teste StockCont + 11 DarkFactory) | `pytest tests/` |
-| **YouTube Booster & Compliance Bridge** | 🟢 Ativo & Operacional | **Motor YouTube Completo (`src/video/youtube_booster.py`)**: A/B/C Thumbnails, Series Playlists, Seamless Outro, 4K Codec Guard, Self-Certification e EDSA | `python main.py --youtube-boost` |
-| **Agente Estratégico ("O Que Você Faria?")** | 🟢 Ativo & Registrado | **Subagente `what-would-you-do`** \| Skill `/wwyd` \| Hook `PreInvocation` em `.agents/hooks.json` \| Sócio sênior e avaliador de viabilidade | Invocável via subagente ou chat |
-
----
-
-## 🎬 Arquitetura da Fábrica de Vídeo
-- **DarkFactory T2V Engine**: `src/video/darkfactory_t2v.py`
-  - Dual-Shot Architecture: Shot A (Tension/Character) + Shot B (Tactical Macro/Action)
-  - Target Engines: MiniMax H3 (Hailuo) e Google Flow (Veo 2)
-  - Filas de Exportação: `data/processed/minimax_t2v_queue.json` e `data/processed/google_veo_queue.json`
-- **Workflow RunningHub (Fallback I2V)**: `https://www.runninghub.ai/pt-br/workflow/2115926169974812674?source=workspace`
-  - Nó #164: Ingestão de Imagem
-  - Nó #17: Injeção de Prompt
-  - Nó #185: Saída sem marca d'água (Feihou Preview)
-  - Botão Mandatório: `Lite/Plus`
