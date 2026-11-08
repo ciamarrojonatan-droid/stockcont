@@ -2,10 +2,10 @@
 > Sincronizado automaticamente por hooks e comandos do ecossistema.
 
 ## Sprint Atual: YouTube Algorithm Booster ("O Funcionário Perfeito") & Global Reach Engine
-- **Status da Sprint**: [CONCLUÍDO] Integração de todas as ferramentas de algoritmo, alcance e monetização do YouTube:
+- **Status da Sprint**: [CONCLUÍDO] Integração de todas as ferramentas de algoritmo, alcance e monetização do YouTube, incluindo expansão para mercados asiáticos de alto RPM:
   1. **YouTube Algorithm Booster Engine (`darkfactory/src/youtube_algorithm_booster.py`)**:
-     - **Multi-Language SEO Localizations**: Geração automática de títulos e descrições otimizadas para Espanha/América Latina (`es`), Brasil/Portugal (`pt-BR`) e Alemanha (`de`), indexando o mesmo vídeo nos rankings de busca do mundo todo.
-     - **Closed Captions Multilíngues (SRT)**: Criação das faixas de legenda completas em Espanhol e Português (`pilot_intro_es.srt` e `pilot_intro_pt.srt`), permitindo que a IA do YouTube indexe cada palavra falada como palavra-chave orgânica.
+     - **Multi-Language SEO Localizations**: Geração automática de títulos e descrições otimizadas para Espanha/América Latina (`es`), Brasil/Portugal (`pt-BR`), Alemanha (`de`), Japão (`ja`), Coreia do Sul (`ko`) e Grande China / Chinês Simplificado (`zh-Hans`), permitindo indexação orgânica nos rankings globais com consolidação total de visualizações na mesma URL.
+     - **Closed Captions Multilíngues (SRT)**: Criação das faixas de legenda completas em Inglês (`en`), Espanhol (`es`), Português (`pt`), Japonês (`ja`), Coreano (`ko`) e Chinês Simplificado (`zh`), armazenadas em `data/subtitles/`. A IA e o algoritmo de busca do YouTube indexam cada palavra e termo histórico falado como palavra-chave orgânica nativa em cada região.
      - **Stable Volume & Vocal Clarity Compliance**: Alinhamento com a tecnologia 'Stable Volume' do YouTube (-14 LUFS / True Peak -1.0 dBTP) com realce de presença vocal (+2.5dB em 3kHz) que elimina a compressão destrutiva da plataforma.
      - **Cards & End Screens Blueprint**: Mapeamento preciso aos 50% de duração para disparo do Info Card (retenção contra drop-off) e nos últimos 20 segundos para a Tela Final teatral (loop de sessão com botão de inscrição e vídeo recomendado).
      - **Shorts Native Related Video Link**: Estruturação do botão nativo do YouTube Shorts que direciona o tráfego do Shorts 9:16 diretamente para o documentário master 16:9 com 1 toque.
@@ -15,7 +15,7 @@
   3. **Blindagem QC & Quarentena (`darkfactory/src/youtube_compliance_qc.py`)**:
      - Hard Gate ativo prevenindo 'Yellow Dollar', strikes e falsos-positivos de Content ID.
   4. **Cobertura Total de Testes**: **246 testes automatizados passando com 100% de sucesso** (193 testes no StockCont + 53 testes no DarkFactory).
-- **Última Atualização**: 2026-11-08 00:58
+- **Última Atualização**: 2026-11-08 01:25
 - **Modo Operacional**: Dual-Mode (Antigravity & Claude Code via SSOT `PROJECT_CONTEXT.md`)
 
 ---
