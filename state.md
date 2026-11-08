@@ -1,30 +1,30 @@
 # StockCont Pipeline State
 > Sincronizado automaticamente por hooks e comandos do ecossistema.
 
-## Sprint Atual: Nolan Dark History Director v2.5 & Google Flow (Omni Flash 1.2 + Veo 3 / 3.1 4K)
-- **Status da Sprint**: [CONCLUÍDO] Integração do Showrunner Christopher Nolan com Arquitetura Híbrida Google Flow (Omni Flash 1.2 + Veo 3 / 3.1 4K) e Sound Design Cinema-Grade (Google Flow Music + RunningHub MMAudio):
-  1. **Nolan Dark History Director Skill (`.agents/skills/nolan-dark-history-director/SKILL.md`) & Subagente (`.agents/agents/nolan-director.md`)**:
-     - 6 Pilares de Nolan (Manipulação Temporal Não-Linear, Subjetividade Íntima, Textura Hoyte van Hoytema IMAX 70mm, Arquitetura Acústica Zimmer/Göransson, Rigor Factual BBC e Arquitetura Dual-Shot A/B).
-     - Dicionário de Lentes, iluminação chiaroscuro de baixa chave e fórmulas de tensão auditiva (Shepard Tone, Braam Sub-Bass, Ticking Clock).
-  2. **Motor Executivo em Python (`darkfactory/src/nolan_director.py`)**:
-     - Integração com `WikipediaResearcher` para extração factual instantânea.
-     - Síntese de packaging completo (Logline paradoxal, 3 títulos magnéticos e conceito de thumbnail IMAX com sobreposição de texto e escala geométrica).
-     - Arquitetura de 3 Fios Temporais (Fio A Relógio Lento, Fio B Relógio Rápido e Ponto de Convergência no Clímax).
-     - **Google Flow Omni Flash 1.2 Queue (`google_flow_omni_queue.json`)**: Tomadas de continuidade de 12 a 15 segundos, até 6 imagens de referência históricas por cena para consistência facial inabalável e comandos conversacionais multi-turn.
-     - **Google Flow Veo 3 / 3.1 Queue (`google_flow_veo3_queue.json`)**: Hero shots de 6 a 8 segundos em **4K UHD nativo (3840x2160)** a 24fps, Panavision Anamorphic / IMAX 70mm, 60% menos morphing/aberrações que o Veo 2 e áudio estéreo nativo a 48kHz.
-     - Exportação atômica das filas de áudio: `google_flow_music_prompt.txt`, `runninghub_mmaudio_prompts.json` e `runninghub_whoosh_prompts.json`.
-  3. **4-Stem Master Audio Mixer Engine (`darkfactory/src/audio_mixer_master.py`)**:
-     - **Stem 1 (Voiceover)**: Ingestão de narração calibrada CosyVoice / Kokoro-82M / Edge-TTS.
-     - **Stem 2 (OST / Trilha Sonora)**: Google Flow Music (DeepMind Lyria / MusicFX) com fallback de drone orquestral procedural.
-     - **Stem 3 (Foley & SFX)**: RunningHub MMAudio (Workflow `2119239526823604226` / Post `2043812317204320257`) + SoundEffectGenerator (Workflow `2119239626330701825` / Post `2050212088202711042`).
-     - **Stem 4 (Sub-Bass Anchor)**: Impacto Braam 35Hz + Shepard Tone procedural de fundo.
-     - **Dynamic Sidechain Ducking via FFmpeg**: Atenuação inteligente de 16dB a 18dB da trilha/foley durante a fala, com ressurgimento dramático nos momentos de silêncio do narrador.
-     - **Masterização Broadcast**: Normalização estrita EBU R128 (-14 LUFS / True Peak -1dBTP).
-  4. **Integração de CLI Multi-Repositório**:
-     - No StockCont: `python main.py --nolan-direct --nolan-topic "<tema>"`.
-     - No DarkFactory: `python run_pilot_pipeline.py --step sound`, `--step direct` e `--step all-local`.
-  5. **Cobertura de Testes**: 216 testes automatizados passando com 100% de sucesso (193 testes no StockCont + 23 testes no DarkFactory).
-- **Última Atualização**: 2026-11-07 23:15
+## Sprint Atual: Automação E2E Total DarkFactory (Shorts 9:16, YouTube Publisher v3 & Daemon 24/7)
+- **Status da Sprint**: [CONCLUÍDO] Automação completa de ponta a ponta (E2E) do roadmap de monetização:
+  1. **Motor Automático de Shorts Verticais 9:16 (`darkfactory/src/shorts_generator.py`)**:
+     - Recorte automático dos primeiros 50 a 55 segundos (Cold Open de alta retenção).
+     - Composição visual 1080x1920 com fundo cinematográfico desfocado e primeiro plano óptico nítido.
+     - Legendas dinâmicas amarelas/pretas queimadas na zona segura de visualização mobile.
+  2. **Despachante Oficial YouTube Data API v3 (`darkfactory/src/youtube_publisher.py`)**:
+     - Autenticação OAuth 2.0 local persistente e upload resumable em pedaços (chunks de 8MB).
+     - Injeção automática de títulos magnéticos de Nolan, descrição rica com timestamps/capítulos, tags SEO e thumbnail customizada.
+     - Publicação por padrão com status **`unlisted` (Não Listado)** para conferência e blindagem de monetização no YPP.
+     - Método de transição de 1-clique (`update_video_privacy(id, 'public')`) e injeção de comentários fixados.
+     - Livro-razão atômico em `data/processed/youtube_upload_history.json`.
+  3. **Bot RPA Playwright Stealth para Google Flow (`darkfactory/src/google_flow_bot.py`)**:
+     - Suporte a perfil Chrome persistente para automação em `flow.google.com`.
+     - Ingestão das filas do Gemini Omni Flash 1.2 (tomadas longas de 15s) e Google Veo 3 / 3.1 (Hero shots em 4K nativo).
+     - Download automático dos clipes para `data/broll/` com fallback resiliente para RunningHub / render procedural.
+  4. **Daemon Supervisor 24/7 de Documentários (`darkfactory/src/daemon_darkfactory.py`)**:
+     - Agendamento autônomo baseado na cadência áurea (terças e sextas para longos; seg/qua/qui/sáb para Shorts).
+     - Heartbeat atômico contínuo em `data/processed/darkfactory_daemon_state.json`.
+     - Fila persistente de aprovação com gatilho de 1-clique (`pending_approval_queue`).
+  5. **Orquestrador Unificado (`darkfactory/run_pilot_pipeline.py`)**:
+     - Suporte completo a `--step shorts`, `--step publish`, `--step flow` e execução E2E via `--step all` e `--step all-local`.
+  6. **Cobertura Total de Testes**: **233 testes automatizados passando com 100% de sucesso** (193 testes no StockCont + 40 testes no DarkFactory).
+- **Última Atualização**: 2026-11-08 00:10
 - **Modo Operacional**: Dual-Mode (Antigravity & Claude Code via SSOT `PROJECT_CONTEXT.md`)
 
 ---
