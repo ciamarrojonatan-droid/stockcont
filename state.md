@@ -1,31 +1,43 @@
 # StockCont Pipeline State
 > Sincronizado automaticamente por hooks e comandos do ecossistema.
 
-## Sprint Atual: Cinematic Video Pipeline: DoP & Composition Engineering, 35mm Film Science, Pacing Intelligence, OTIO & Tactical Graphics
-- **Status da Sprint**: [CONCLUÍDO] Integração do ecossistema completo de edição, direção de fotografia (DoP), engenharia de composição visual e masterização cinematográfica open-source:
-  1. **Motor de Direção de Fotografia (DoP) & Engenharia de Composição (`src/video/cinematography_dop.py`)**:
+## Sprint Atual: Cinematic Video Pipeline: 60-30-10 Color Psychology & Semiotics, DoP & Composition, 35mm Film Science, Pacing, OTIO & Tactical Graphics
+- **Status da Sprint**: [CONCLUÍDO] Integração do ecossistema completo de engenharia cromática 60-30-10, semiótica psicológica, direção de fotografia (DoP), composição visual e masterização cinematográfica open-source:
+  1. **Motor de Semiótica & Psicologia das Cores 60-30-10 (`src/video/color_psychology.py`)**:
+     - **Regra Proporcional 60-30-10 Calibrada**: 60% Cor Dominante (Base / Atmosfera ambiental de bunker/espaço), 30% Cor Secundária (Sujeito / Estrutura / Vestimenta militar), 10% Cor de Acento (Punctum visual / Alarme / Ponto focal emocional).
+     - **7 Arquétipos Semióticos Registrados**:
+       - `cold_war_paranoia`: 60% Concreto Subterrâneo (`#141920`), 30% Oliva Militar Soviético (`#324233`), 10% Fósforo Radar CRT Verde (`#00FF66`). Tensão split-complementary de espionagem.
+       - `nuclear_dread_siren`: 60% Preto Carbono (`#0B0D11`), 30% Aço Industrial Tungstênio (`#4A3F35`), 10% Vermelho Sangue Sirene (`#FF1122`). Urgência existencial e contagem regressiva.
+       - `cyber_espionage`: 60% Abismo Obsidiana (`#060C16`), 30% Aço Cobalto Tático (`#1C385C`), 10% Ciano Neon Elétrico (`#00E5FF`). Precisão cirúrgica de guerra eletrônica.
+       - `deep_space_void`: 60% Vácuo Cósmico Puro (`#020306`), 30% Titânio Criogênico (`#334155`), 10% Âmbar de Radiação Corona (`#F59E0B`). Isolamento cósmico e silêncio.
+       - `bio_pathogen_hazard`: 60% Cinza Estéril Clínico (`#202428`), 30% Ocre Hazmat (`#B45309`), 10% Violeta Esterilização UV (`#8B5CF6`). Contaminação e quarentena.
+       - `gordon_willis_noir`: 60% Preto Aveludado Subexposto (`#070707`), 30% Madeira e Couro Sépia (`#3E2718`), 10% Luz de Recorte Âmbar (`#EAB308`). Corrupção moral e conspiração nas sombras.
+       - `fincher_muted_sage`: 60% Carvão Mudo Dessaturado (`#1A1F24`), 30% Verde Celadon Sálvia (`#3D4A41`), 10% Lâmpada de Tungstênio Solitária (`#F59E0B`). Investigação obsessiva.
+     - **Auditor de Paleta por K-Means (Visão Computacional)**: Agrupamento em $k=3$ clusters, medição de desvio da proporção 60-30-10, cálculo do Score de Aderência (0-100), mapeamento do arquétipo mais próximo e renderização da cartela anotada com swatch banner (`_palette_603010.jpg`).
+     - **Comandos CLI**: `python main.py --list-palettes`, `python main.py --color-palette <archetype>` e `python main.py --audit-palette <image_path>`.
+  2. **Motor de Direção de Fotografia (DoP) & Engenharia de Composição (`src/video/cinematography_dop.py`)**:
      - **Catálogo de Ópticas de Cinema**: Lentes Anamórficas (Panavision C-Series 40mm T2.3, Cooke Anamorphic/i 35mm T2.3, Arri Master Anamorphic 50mm T1.9) com squeeze 2.0x/1.8x, bokeh oval e flares horizontais característicos; e Esféricas Prime (Zeiss Supreme 21mm T1.5, Leica Summilux-C 35mm T1.4, Arri Signature 75mm T1.8 e Laowa Probe 24mm T14 macro periscópica).
      - **Geometria de Enquadramento Cinematográfico**: Regra dos Terços (Power Points & Lead Room), Espiral de Ouro de Fibonacci, Simetria Central 1-Point Kubrickiana, Dutch Angle (canted 12° para pânico institucional), Dirty Single com 35% de oclusão em primeiro plano e Ângulo Baixo Opressor.
      - **Arquitetura de Iluminação & Chiaroscuro**: Razão Key-to-Fill calculada (16:1 Gordon Willis Noir, 8:1 Suspense Militar, 4:1 Rembrandt), balanço Dual-Kelvin (Key 2800K Tungstênio vs Fill 6500K Ciano/Luar) e névoa volumétrica com feixes Tyndall.
      - **Auditor de Keyframes por Visão Computacional**: Extração automática de tomadas estratégicas (Abertura, Golden Ratio $0.618$, Clímax) com cálculo de energia nos terços (Sobel Gradient), contraste dinâmico chiaroscuro, bias de temperatura de cor e renderização de imagens anotadas com guias translúcidas de enquadramento (Cyan Thirds Grid, Gold Power Points, 2.39:1 CinemaScope crop).
      - **Injeção de Prompts DoP no DarkFactory T2V**: Enriquecimento automático das tomadas MiniMax H3 e Google Veo 2 com parâmetros estritos de câmera, lente, abertura e iluminação.
      - **Comandos CLI**: `python main.py --dop-plan`, `python main.py --audit-keyframe <path>` e `python main.py --extract-keyframes <video_path>`.
-  2. **Motor de Ciência de Cor & Emulação de Película 35mm (`src/video/cinematic_color.py`)**:
+  3. **Motor de Ciência de Cor & Emulação de Película 35mm (`src/video/cinematic_color.py`)**:
      - 6 perfis cinematográficos calibrados: `kodak_2383` (Christopher Nolan), `fuji_eterna` (David Fincher), `bleach_bypass` (Spielberg/Kaminski), `oppenheimer_mono` (Double-X 65mm P&B puro), `cold_war_noir` (documentos confidenciais) e `cyber_tactical` (Denis Villeneuve).
      - Granulação analógica realista (`noise=c0s=X:c0f=t+u`) e matte anamórfico CinemaScope 2.39:1.
      - Comandos CLI: `python main.py --cinematic-profiles` e `python main.py --cinematic-grade <profile> --video-in <path>`.
-  3. **Analisador de Ritmo & Pacing Cinematográfico - "The Editor's Brain" (`src/video/pacing_analyzer.py`)**:
+  4. **Analisador de Ritmo & Pacing Cinematográfico - "The Editor's Brain" (`src/video/pacing_analyzer.py`)**:
      - Cálculo de Mean Shot Length (MSL em segundos), Cortes Por Minuto (CPM), Tension Pacing Index (0 a 100) e penalidade por monotonia rítmica.
      - Comando CLI: `python main.py --analyze-pacing <video_path>`.
-  4. **Ponte de Intercâmbio Universal OpenTimelineIO (`src/video/otio_exporter.py`)**:
+  5. **Ponte de Intercâmbio Universal OpenTimelineIO (`src/video/otio_exporter.py`)**:
      - Geração de timelines padronizadas `.otio` (Pixar / ASWF) compatíveis com **DaVinci Resolve Studio**, Premiere Pro, Final Cut Pro e Blender.
      - Estrutura multitrack completa: V1 (Tomadas Principais), V2 (Grafismos Táticos), A1 (Voz EBU R128), A2 (Trilha Zimmer), A3 (Foley Diegético) e marcadores de capítulos.
      - Comando CLI: `python main.py --export-otio`.
-  5. **Motor de Motion Graphics Tático & Overlays (`src/video/tactical_graphics.py`)**:
+  6. **Motor de Motion Graphics Tático & Overlays (`src/video/tactical_graphics.py`)**:
      - Carimbo militar angulado 'TOP SECRET // DECLASSIFIED // LEVEL 5', HUD de radar militar e Lower-thirds em tipografia monoespaçada.
      - Comandos CLI: `python main.py --tactical-hud` e `python main.py --tactical-stamp`.
-  6. **Cobertura Total de Testes**: **220 testes automatizados passando com 100% de sucesso** (zero regressões).
-- **Última Atualização**: 2026-11-08 03:26
+  7. **Cobertura Total de Testes**: **224 testes automatizados passando com 100% de sucesso** (zero regressões).
+- **Última Atualização**: 2026-11-08 04:14
 - **Modo Operacional**: Dual-Mode (Antigravity & Claude Code via SSOT `PROJECT_CONTEXT.md`)
 
 ---

@@ -562,6 +562,9 @@ def main() -> None:
     video_group.add_argument("--dop-lighting", type=str, default="8_to_1", choices=["16:1", "8_to_1", "4_to_1", "2_to_1"], help="Key-to-Fill chiaroscuro lighting ratio")
     video_group.add_argument("--audit-keyframe", type=str, default=None, help="Audit keyframe composition, rule of thirds adherence, and render visual guides")
     video_group.add_argument("--extract-keyframes", type=str, default=None, help="Extract strategic cinematic keyframes (Opening, Golden Ratio, Climax) from a video")
+    video_group.add_argument("--list-palettes", action="store_true", help="List all calibrated 60-30-10 cinematic color psychology palettes")
+    video_group.add_argument("--color-palette", type=str, default=None, choices=["cold_war_paranoia", "nuclear_dread_siren", "cyber_espionage", "deep_space_void", "bio_pathogen_hazard", "gordon_willis_noir", "fincher_muted_sage"], help="Synthesize 60-30-10 color psychology prompt clause")
+    video_group.add_argument("--audit-palette", type=str, default=None, help="Audit keyframe 60-30-10 color distribution via K-Means clustering and render swatch card")
 
     args = parser.parse_args()
 
@@ -799,6 +802,57 @@ def main() -> None:
         for k in kfs:
             audit = engine.audit_keyframe_composition(k, generate_annotated_grid=True)
             print(f"  • [{k.name}] Thirds: {audit.rule_of_thirds_score:.1f}% | Contrast: {audit.chiaroscuro_contrast_ratio}:1 | Guide: {audit.annotated_guide_path}")
+        return
+
+    if getattr(args, "list_palettes", False):
+        from src.video.color_psychology import ColorPsychologyEngine
+        engine = ColorPsychologyEngine()
+        palettes = engine.list_palettes()
+        print("\n==================================================================")
+        print("🎨 CINEMATIC COLOR PSYCHOLOGY & 60-30-10 PALETTE REGISTRY")
+        print("==================================================================")
+        for p in palettes:
+            print(f"  • [{p['id'].upper()}] {p['name']} ({p['harmony'].upper()})")
+            print(f"    - Tese Semiótica: {p['psychological_thesis']}")
+            print(f"    - 60% Dominante:  {p['dominant_60']['name']} ({p['dominant_60']['hex']})")
+            print(f"    - 30% Secundária: {p['secondary_30']['name']} ({p['secondary_30']['hex']})")
+            print(f"    - 10% Acento:     {p['accent_10']['name']} ({p['accent_10']['hex']})")
+            print(f"    - Referências:    {p['director_references']}\n")
+        return
+
+    if getattr(args, "color_palette", None):
+        pal_id = getattr(args, "color_palette")
+        from src.video.color_psychology import ColorPsychologyEngine
+        engine = ColorPsychologyEngine()
+        pal = engine.get_palette(pal_id)
+        print("\n==================================================================")
+        print(f"🎨 60-30-10 COLOR PROMPT CLAUSE: {pal.name.upper()}")
+        print("==================================================================")
+        print(f"  • Harmonia:      {pal.harmony.value.upper()}")
+        print(f"  • 60% Base:      {pal.dominant_60.name} ({pal.dominant_60.hex_code})")
+        print(f"  • 30% Estrutura: {pal.secondary_30.name} ({pal.secondary_30.hex_code})")
+        print(f"  • 10% Acento:    {pal.accent_10.name} ({pal.accent_10.hex_code})")
+        print("\n  [Color Psychology Prompt Injector]:")
+        print(f"  \"{pal.to_color_prompt()}\"\n")
+        return
+
+    if getattr(args, "audit_palette", None):
+        img_to_audit = getattr(args, "audit_palette")
+        from src.video.color_psychology import ColorPsychologyEngine
+        engine = ColorPsychologyEngine()
+        audit = engine.audit_keyframe_palette(img_to_audit, render_swatch_card=True)
+        print("\n==================================================================")
+        print("🎨 60-30-10 K-MEANS COLOR AUDIT & PSYCHOLOGICAL MAPPING")
+        print("==================================================================")
+        print(f"  • Imagem Auditada:           {audit.image_path}")
+        print(f"  • 60% Base Dominante Real:   {audit.dominant_pct:.1f}% (Hex: {audit.dominant_color_hex})")
+        print(f"  • 30% Secundária Real:       {audit.secondary_pct:.1f}% (Hex: {audit.secondary_color_hex})")
+        print(f"  • 10% Acento Punctum Real:   {audit.accent_pct:.1f}% (Hex: {audit.accent_color_hex})")
+        print(f"  • Score de Aderência 60-30-10: {audit.rule_60_30_10_adherence_score:.1f}/100")
+        print(f"  • Arquétipo Mais Próximo:    {audit.closest_archetype.upper()}")
+        if audit.annotated_palette_card_path:
+            print(f"  • Cartela Visual Anotada:    {audit.annotated_palette_card_path}")
+        print("==================================================================\n")
         return
 
     if args.seasonal:

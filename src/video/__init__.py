@@ -51,6 +51,15 @@ from src.video.cinematography_dop import (
     KeyframeCompositionAudit,
     CinematographyEngine,
 )
+from src.video.color_psychology import (
+    ColorHarmonyType,
+    ColorPsychologyArchetype,
+    ColorSwatch,
+    CinematicPalette,
+    PALETTE_REGISTRY,
+    ColorDistributionAudit,
+    ColorPsychologyEngine,
+)
 
 __all__ = [
     "VideoProperties",
@@ -89,4 +98,11 @@ __all__ = [
     "CinematographyShotPlan",
     "KeyframeCompositionAudit",
     "CinematographyEngine",
+    "ColorHarmonyType",
+    "ColorPsychologyArchetype",
+    "ColorSwatch",
+    "CinematicPalette",
+    "PALETTE_REGISTRY",
+    "ColorDistributionAudit",
+    "ColorPsychologyEngine",
 ]

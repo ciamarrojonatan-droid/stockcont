@@ -326,3 +326,65 @@ class TestCinematographyDoP:
         assert "Cinematography & Framing Direction:" in veo_prompt
         assert "Rule of Thirds" in veo_prompt
 
+
+class TestColorPsychology:
+    """Testes do motor de psicologia de cores e regra 60-30-10."""
+
+    def test_palette_registry_completeness(self):
+        from src.video.color_psychology import PALETTE_REGISTRY, ColorPsychologyArchetype
+        assert len(PALETTE_REGISTRY) == len(ColorPsychologyArchetype)
+        for arch, pal in PALETTE_REGISTRY.items():
+            assert pal.dominant_60.role == "dominant_60"
+            assert pal.secondary_30.role == "secondary_30"
+            assert pal.accent_10.role == "accent_10"
+            assert len(pal.dominant_60.rgb) == 3
+            assert pal.dominant_60.hex_code.startswith("#")
+
+    def test_color_prompt_generation(self):
+        from src.video.color_psychology import ColorPsychologyEngine, ColorPsychologyArchetype
+        engine = ColorPsychologyEngine()
+        pal = engine.get_palette(ColorPsychologyArchetype.NUCLEAR_DREAD_SIREN)
+        prompt = pal.to_color_prompt()
+        assert "Nuclear Emergency Red Siren" in prompt
+        assert "60% Dominant Environmental Base" in prompt
+        assert "30% Secondary Subject/Architecture Tone" in prompt
+        assert "10% High-Contrast Punctum Accent" in prompt
+        assert "#FF1122" in prompt or "Red" in prompt
+
+    def test_audit_keyframe_palette_synthetic(self, tmp_path):
+        import numpy as np
+        from PIL import Image
+        from src.video.color_psychology import ColorPsychologyEngine
+
+        # Cria imagem com exatos 60% cinza escuro, 30% verde militar e 10% vermelho alarme
+        w, h = 200, 100
+        total_pixels = w * h
+        arr = np.zeros((h, w, 3), dtype=np.uint8)
+
+        # 60% (linhas 0 a 60)
+        arr[:60, :, :] = [20, 25, 32]
+        # 30% (linhas 60 a 90)
+        arr[60:90, :, :] = [50, 66, 51]
+        # 10% (linhas 90 a 100)
+        arr[90:, :, :] = [255, 17, 34]
+
+        test_img = tmp_path / "synthetic_603010.jpg"
+        Image.fromarray(arr).save(test_img)
+
+        engine = ColorPsychologyEngine()
+        audit = engine.audit_keyframe_palette(test_img, render_swatch_card=True)
+
+        assert pytest.approx(audit.dominant_pct, abs=5.0) == 60.0
+        assert pytest.approx(audit.secondary_pct, abs=5.0) == 30.0
+        assert pytest.approx(audit.accent_pct, abs=5.0) == 10.0
+        assert audit.rule_60_30_10_adherence_score >= 80.0
+        assert audit.annotated_palette_card_path is not None
+        assert Path(audit.annotated_palette_card_path).exists()
+
+    def test_get_palette_fallback(self):
+        from src.video.color_psychology import ColorPsychologyEngine, ColorPsychologyArchetype
+        engine = ColorPsychologyEngine()
+        pal = engine.get_palette("invalid_palette_id")
+        assert pal.archetype == ColorPsychologyArchetype.COLD_WAR_PARANOIA
+
+
