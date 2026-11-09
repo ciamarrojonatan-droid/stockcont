@@ -1,27 +1,16 @@
 # StockCont Pipeline State
 > Sincronizado automaticamente por hooks e comandos do ecossistema.
 
-## Sprint Atual: Ableton Live 'Complex Pro' Warp Engine para Locução Neural — Preservação de Formantes e Eliminação de Artefatos Robóticos
-- **Status da Sprint**: [CONCLUÍDO] Solução de alta fidelidade acústica para desaceleração natural de voz sem timbragem robótica:
-  1. **Diagnóstico da Causa Raiz do Efeito Robótico**:
-     - *1ª Causa*: O Edge-TTS recebia parâmetros de taxa negativa (`rate="-3%"` a `rate="-14%"`), acionando o algoritmo interno simples WSOLA do servidor, que gera cancelamento de fase (*phase comb filtering*) e tremolo metálico.
-     - *2ª Causa*: O FFmpeg executava `rubberband=pitch=0.94:tempo=0.98` com os parâmetros default da biblioteca (`formant=shifted`, `transients=crisp`), projetados para percussão, fatiando micro-transientes da fala e alterando as ressonâncias do trato vocal humano.
-  2. **Arquitetura do Modo 'Complex Pro' (Ableton Live / zplane élastique)**:
-     - No Ableton Live, o modo *Complex* usa um **Phase Vocoder** polifônico no domínio da frequência. O *Complex Pro* adiciona **Preservação de Formantes (100%)** e controle de envelope espectral para isolar a cavidade ressonante da garganta/boca humana, impedindo que a voz soe sintética ou robótica quando desacelerada.
-  3. **Implementação do Complex Pro via Rubber Band Library**:
-     - Implementado em `src/video/ffmpeg_processor.py` (`time_stretch_audio_complex_pro`):
-       `rubberband=tempo=...:pitch=...:formant=preserved:transients=smooth:window=long:smoothing=on:pitchq=quality`
-     - Atualizado em `darkfactory/src/cosyvoice_master.py`: Masterização documental barítono desacelera com formantes travados.
-     - Atualizado em `darkfactory/src/generate_pilot_audio.py`: Síntese neural pura em cadência nativa (`rate="+0%"`), transferindo a desaceleração para o Phase Vocoder de alta precisão.
-  4. **Validação & Testes**:
-     - Nova suíte `tests/test_audio_warp_complex_pro.py` (2 testes unitários passando).
-     - Testes de pipeline de vídeo e booster 100% verdes (233 testes no StockCont + 76 testes no DarkFactory).
-   5. **Instalação e Integração Autônoma do DarkFactory**:
-      - Repositório clonado e configurado: `https://github.com/ciamarrojonatan-droid/darkfactory` em `Downloads/darkfactory`.
-      - Ambiente virtual dedicado `venv` (Python 3.11.9) criado e provisionado com 100% das dependências (FastAPI, Uvicorn, Edge-TTS, ImageIO-FFmpeg, Pillow, Pytest, SoundFile, Playwright, Google APIs).
-      - Directory junction criada em `Nova pasta/darkfactory` para interoperabilidade instantânea.
-      - Suíte de 76 testes unitários executada com 100% de sucesso (76 passed).
-- **Última Atualização**: 2026-11-09 19:20
+## Sprint Atual: Auditoria e Padronização de Geração Nativa via Gemini API (DarkFactory & StockCont)
+- **Status da Sprint**: [EM ANDAMENTO / PRONTO PARA EXECUÇÃO]:
+  1. **Auditoria de Capacidades Nativas**:
+     - Plugin oficial `gemini-api` v2.4.0 e SDK `google-genai` 3.0.0 provisionados.
+     - Suíte unificada de testes implementada em `scripts/test_gemini_suite.py` cobrindo os 4 pilares: Roteiro & Pacing de Retenção, Thumbnails (Imagen 3), Narração Sem Fallback (Gemini Audio) e Músicas/SFX.
+  2. **Validação & Testes Automatizados**:
+     - Suíte `tests/test_gemini_api.py` criada com 3 testes unitários passando (100% green).
+  3. **Sincronização de Credenciais**:
+     - `.env` do DarkFactory sincronizado com a configuração de chave do StockCont.
+- **Última Atualização**: 2026-11-09 20:15
 - **Modo Operacional**: Dual-Mode (Antigravity & Claude Code via SSOT `PROJECT_CONTEXT.md`)
 
 ---
