@@ -37,6 +37,8 @@ gh.zip
 gh-cli/
 
 data/logs/
+data/models/
+*.exe
 
 darkfactory/
 

@@ -1,16 +1,22 @@
 # StockCont Pipeline State
 > Sincronizado automaticamente por hooks e comandos do ecossistema.
 
-## Sprint Atual: Auditoria e Padronização de Geração Nativa via Gemini API (DarkFactory & StockCont)
-- **Status da Sprint**: [EM ANDAMENTO / PRONTO PARA EXECUÇÃO]:
-  1. **Auditoria de Capacidades Nativas**:
-     - Plugin oficial `gemini-api` v2.4.0 e SDK `google-genai` 3.0.0 provisionados.
-     - Suíte unificada de testes implementada em `scripts/test_gemini_suite.py` cobrindo os 4 pilares: Roteiro & Pacing de Retenção, Thumbnails (Imagen 3), Narração Sem Fallback (Gemini Audio) e Músicas/SFX.
-  2. **Validação & Testes Automatizados**:
-     - Suíte `tests/test_gemini_api.py` criada com 3 testes unitários passando (100% green).
-  3. **Sincronização de Credenciais**:
-     - `.env` do DarkFactory sincronizado com a configuração de chave do StockCont.
-- **Última Atualização**: 2026-11-09 20:15
+## Sprint Atual: Auditoria e Padronização de Geração Nativa (Gemini API & Kokoro-82M TTS)
+- **Status da Sprint**: [CONCLUÍDO & TESTADO COM SUCESSO]:
+  1. **Locução Neural Local com Kokoro-82M (Breakthrough)**:
+     - Motor Kokoro-82M (ONNX Runtime) instalado e calibrado com sucesso localmente em `data/models/kokoro/` (325MB model + 5.7MB voices).
+     - Áudio piloto documental sintetizado com a voz masculina solene `am_adam` em `data/staging/kokoro_pilot_voice.wav` (11.41s, 24kHz, 547KB).
+     - Testes automatizados adicionados em `tests/test_kokoro_voice.py` (2/2 passing).
+     - 100% offline, zero dependência de nuvem, zero custos de API.
+  2. **Auditoria de Capacidades Nativas da Gemini API (Free Tier)**:
+     - **Roteiro & Pacing**: `gemini-3.8-flash` 100% operacional com JSON estruturado e gancho de 15s.
+     - **Thumbnails & Imagens**: `gemini-nano-banana-2.1`, `imagen-3.0` bloqueados com cota 0 no Free Tier (exigem Pay-as-you-go). Workflow mantido no RunningHub ComfyUI.
+     - **Vídeo (T2V)**: `gemini-omni-flash-preview` bloqueado com cota 0 no Free Tier.
+     - **Música**: Sem endpoint público na Gemini Developer API gratuita.
+  3. **Validação & Testes Automatizados**:
+     - Suíte `tests/test_gemini_api.py` (3/3 passing).
+     - Suíte `tests/test_kokoro_voice.py` (2/2 passing).
+- **Última Atualização**: 2026-11-09 20:58
 - **Modo Operacional**: Dual-Mode (Antigravity & Claude Code via SSOT `PROJECT_CONTEXT.md`)
 
 ---
