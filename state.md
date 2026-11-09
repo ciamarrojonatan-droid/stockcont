@@ -15,8 +15,13 @@
      - Atualizado em `darkfactory/src/generate_pilot_audio.py`: Síntese neural pura em cadência nativa (`rate="+0%"`), transferindo a desaceleração para o Phase Vocoder de alta precisão.
   4. **Validação & Testes**:
      - Nova suíte `tests/test_audio_warp_complex_pro.py` (2 testes unitários passando).
-     - Testes de pipeline de vídeo e booster 100% verdes (39 testes no StockCont + 5 testes no DarkFactory).
-- **Última Atualização**: 2026-11-08 18:52
+     - Testes de pipeline de vídeo e booster 100% verdes (233 testes no StockCont + 76 testes no DarkFactory).
+   5. **Instalação e Integração Autônoma do DarkFactory**:
+      - Repositório clonado e configurado: `https://github.com/ciamarrojonatan-droid/darkfactory` em `Downloads/darkfactory`.
+      - Ambiente virtual dedicado `venv` (Python 3.11.9) criado e provisionado com 100% das dependências (FastAPI, Uvicorn, Edge-TTS, ImageIO-FFmpeg, Pillow, Pytest, SoundFile, Playwright, Google APIs).
+      - Directory junction criada em `Nova pasta/darkfactory` para interoperabilidade instantânea.
+      - Suíte de 76 testes unitários executada com 100% de sucesso (76 passed).
+- **Última Atualização**: 2026-11-09 19:20
 - **Modo Operacional**: Dual-Mode (Antigravity & Claude Code via SSOT `PROJECT_CONTEXT.md`)
 
 ---
