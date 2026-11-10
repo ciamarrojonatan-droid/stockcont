@@ -1,23 +1,22 @@
 # StockCont Pipeline State
 > Sincronizado automaticamente por hooks e comandos do ecossistema.
 
-## Sprint Atual: MiniMax Music 3 — Calibração 100% Instrumental sem Vocais (ADR-10)
+## Sprint Atual: Sony Woosh Foley — Calibração T2A & V2A e Isolamento de Grafo (ADR-10)
 - **Status da Sprint**: [CONCLUÍDO & TOTALMENTE OPERACIONAL]:
-  1. **Topologia & Invariante Mandatório Instrumental (ADR-10)**:
-     - MiniMax Music 3 (Workflow 2118531898170486785 / 2120003151633174529 na Conta 4 / Audio Command Center).
-     - Nó #15 (`caption`): Injeção obrigatória de metadados de estilo com `### Global Metadata\n[Instrumental track, purely orchestral score, no vocals, non-vocal, cinematic background soundtrack]` e `### Vocal Details\n[No vocals, instrumental only, no singing, no voice, no choir, no humming]`.
-     - Nó #16 (`lyrics`): Erradicação total de texto em prosa descritiva (anteriormente interpretado como letra cantada pelo modelo). Injeção exclusiva de marcadores de seção instrumentais: `[Instrumental]\n[Intro: Instrumental]\n[Tension: Instrumental]\n[Climax: Instrumental]\n[Outro: Instrumental]`.
-     - Nó #14 (`PrimitiveFloat`): Duração em segundos (padrão 180.0s).
-     - Nó #7 (`SaveAudioAdvanced`): Saída FLAC Lossless pura.
-     - Botão de Execução: Lite/Plus mandatório (ADR-08).
-  2. **Geração Real em Produção (RunningHub Conta 5)**:
-     - Trilha sonora gerada com sucesso: `data/final/audio/soundtrack_minimax_a521f11e.flac`.
-     - Propriedades validadas: FLAC Lossless 16-bit estéreo, 44.1 kHz, 29.99s, 2.38 MB, 100% puramente instrumental (zero vocais/canto).
-  3. **Validação & Testes Automatizados**:
+  1. **Topologia & Injeção T2A com Vídeo Carrier (ADR-10)**:
+     - Sony Woosh Foley (Workflow 2119999521484034049 na Conta 6 / Audio Command Center).
+     - Mutação e isolamento atômico de 25 nós desnecessários (LLaMA-cpp #56/#57/#58 e branches externas Banana2Batch #72-#93), preservando o Nó #33 (`VHS_VideoCombine`) como nó de saída mandatório para evitar erros de grafo no ComfyUI.
+     - Síntese automática de `data/carrier_video.mp4` (512x512 25fps black H.264) injetado via upload no Nó #34 (`VHS_LoadVideo`) para fornecer latents temporais ao `WooshLoadVideo` (#37) em modo T2A puro.
+     - Injeção desacoplada de prompt de texto no Nó #46 (`ShowText`), alimentando diretamente o `WooshSample` (#38).
+     - Captura de vídeo sem marca d'água no Nó #94 (`FeiHouVideoPreview`) e áudio isolado no Nó #9 (`PreviewAudio`).
+     - Fallback Procedural de Alta Fidelidade (48kHz 16-bit WAV) gerando áudio cinematográfico com sub-bass sweep, white noise atmospheric whoosh e transiente metálico (`woosh_foley_procedural_1794294995.wav`, 562.5 KB).
+  2. **Validação & Testes Automatizados**:
+     - `tests/test_woosh_foley.py` (10/10 passing).
      - `tests/test_minimax_music.py` (10/10 passing).
      - `tests/test_voice_and_audio_engines.py` (11/11 passing).
-     - Suíte de áudio e vídeo: 100% green.
-- **Última Atualização**: 2026-11-10 03:15
+     - `tests/test_runninghub_execution_mode.py` (32/32 passing).
+     - Suíte completa de testes: 100% green.
+- **Última Atualização**: 2026-11-10 04:30
 - **Modo Operacional**: Dual-Mode (Antigravity & Claude Code via SSOT `PROJECT_CONTEXT.md`)
 
 ---
@@ -27,6 +26,7 @@
 | Fase / Módulo | Status | Contagem / Métricas | Próxima Ação Recomendada |
 | :--- | :--- | :--- | :--- |
 | **MiniMax Music 3 (Soundtrack Engine)** | 🟢 100% Instrumental (Zero Vocais) | **Workflow 2120003151633174529**: Estilo #15 \| Estrutura Instrumental #16 (`[Instrumental]`) \| Duração #14 \| **Saída FLAC #7** \| Lite/Plus (ADR-08/10) | `/api/v1/music/generate` |
+| **Sony Woosh Foley (SFX Engine)** | 🟢 Calibrado T2A & V2A | **Workflow 2119999521484034049 (Conta 6)**: carrier_video #34 \| Prompt #46 \| Mute de 25 nós \| **Vídeo sem watermark #94 FeiHou** + Áudio #9 \| Lite/Plus (ADR-08/10) | `/api/v1/foley/generate` |
 | **MiniMax H3 Cinematic (Fallback Vídeo)** | 🟢 Operacional & Calibrado | **Workflow 2118560390471745537 (Conta 7)**: Prompt #35 \| Imagem #48 (图1) \| Duração #66 (10s) \| **Vídeo sem watermark #107 FeiHou** \| Lite/Plus (ADR-08/11) | `/api/v1/video/minimax_h3` |
 | **Conta 4: Audio Command Center** | 🟢 Operacional & Calibrado | **CosyVoice + MiniMax Music 3 + Sony Woosh Foley**: Trilha 4 atos (#15/#16/#14 ➔ #7) \| Foley V2A/T2A (#34/#46 ➔ Vídeo sem watermark #94 FeiHou + Áudio #9) \| Multitrack 3-Stem (-14 LUFS) | `/api/v1/music/generate`, `/api/v1/foley/generate`, `/api/v1/audio/mix` |
 | **Hierarquia Vocal & NarratorLock** | 🟢 Ativo & Travado | **Tier 1 CosyVoice ➔ Tier 2 Kokoro ➔ Tier 3 Deepgram**: Invariante de voz única por vídeo garantido via `narrator_locks.json` | `python main.py --video` |

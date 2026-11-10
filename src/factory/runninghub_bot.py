@@ -2278,8 +2278,42 @@ def run_factory_bot(
                 elif account in (6, "woosh_foley") or cfg.get("role") == "foley_sony_woosh":
                     in_v_node = cfg.get("input_video_node", 34)
                     p_node = cfg.get("prompt_node", 46)
-                    if custom_video_input:
-                        vid_p = Path(custom_video_input)
+
+                    # Otimização Crítica: mutar nós não essenciais (Llama-cpp #56/#57/#58 e branches de imagem Banana2Batch #72-#93), preservando #33 (VHS_VideoCombine) como nó de saída
+                    try:
+                        mute_res = comfy_frame.evaluate("""() => {
+                            if (typeof window.app === 'undefined' || !window.app.graph) return 0;
+                            const unneeded = [56, 57, 58, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93];
+                            let count = 0;
+                            unneeded.forEach(id => {
+                                const n = window.app.graph.getNodeById(id);
+                                if (n) {
+                                    n.mode = 2; // LiteGraph.NEVER (Mute)
+                                    count++;
+                                }
+                            });
+                            if (window.app.graph.setDirtyCanvas) window.app.graph.setDirtyCanvas(true, true);
+                            return count;
+                        }""")
+                        logger.info(f"⚡ [Woosh Foley] Mutados {mute_res} nós não essenciais (LLaMA-cpp, Banana2Batch) para execução ultrarrápida.")
+                    except Exception as me:
+                        logger.warning(f"Aviso ao mutar nós não essenciais no Woosh Foley: {me}")
+
+                    carrier_path = BASE_DIR / "data" / "carrier_video.mp4"
+                    if not carrier_path.exists():
+                        try:
+                            from src.video.ffmpeg_processor import get_ffmpeg_binary
+                            ffmpeg_bin = get_ffmpeg_binary()
+                            subprocess.run([
+                                ffmpeg_bin, "-y", "-f", "lavfi", "-i", "color=c=black:s=512x512:d=5",
+                                "-c:v", "libx264", "-pix_fmt", "yuv420p", str(carrier_path)
+                            ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                        except Exception as ce:
+                            logger.warning(f"Aviso ao gerar carrier_video: {ce}")
+
+                    effective_video = custom_video_input or (str(carrier_path) if carrier_path.exists() else None)
+                    if effective_video:
+                        vid_p = Path(effective_video)
                         if vid_p.exists():
                             logger.info(f"📤 [Woosh Foley] Injetando vídeo ({vid_p.name}) no Nó #{in_v_node} (VHS_LoadVideo)...")
                             upload_image_to_node(page, comfy_frame, in_v_node, vid_p)
@@ -2674,8 +2708,10 @@ def run_factory_bot(
                             logger.info(f"⏳ [Woosh Foley] Monitorando Nós #{v_out_node} (Vídeo) e #{a_out_node} (Áudio)... ({elapsed_sec}s decorridos)")
                             last_heartbeat = now
 
-                        # 1. Checar vídeo limpo sem watermark no Nó #94 (FeiHouVideoPreview)
+                        # 1. Checar vídeo limpo sem watermark no Nó #94 (FeiHouVideoPreview) ou Nó #33 (VHS_VideoCombine)
                         current_node_videos = get_node_videos(page, v_out_node)
+                        if not current_node_videos:
+                            current_node_videos = get_node_videos(page, 33)
                         new_vids = [v for v in current_node_videos if v not in initial_node_videos]
 
                         # 2. Checar áudio isolado no Nó #9 (PreviewAudio)
