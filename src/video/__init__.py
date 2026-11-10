@@ -61,6 +61,17 @@ from src.video.color_psychology import (
     ColorDistributionAudit,
     ColorPsychologyEngine,
 )
+from src.video.voice_engine import (
+    DeepgramVoiceEngine,
+    VoiceSynthesisResult,
+    DEEPGRAM_VOICE_CATALOG,
+    DEFAULT_DARKFACTORY_VOICE,
+)
+from src.video.audio_engine import (
+    DarkFactoryAudioEngine,
+    SoundtrackResult,
+    ACOUSTIC_PROFILES,
+)
 
 __all__ = [
     "VideoProperties",
@@ -107,4 +118,11 @@ __all__ = [
     "PALETTE_REGISTRY",
     "ColorDistributionAudit",
     "ColorPsychologyEngine",
+    "DeepgramVoiceEngine",
+    "VoiceSynthesisResult",
+    "DEEPGRAM_VOICE_CATALOG",
+    "DEFAULT_DARKFACTORY_VOICE",
+    "DarkFactoryAudioEngine",
+    "SoundtrackResult",
+    "ACOUSTIC_PROFILES",
 ]

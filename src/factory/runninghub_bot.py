@@ -7,6 +7,7 @@ import base64
 import uuid
 import re
 import urllib.request
+import subprocess
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Union
 from dotenv import load_dotenv
@@ -106,8 +107,8 @@ CONTA_VIDEO_CONFIG = {
 CONTA_COSYVOICE_CONFIG = {
     "account": 4,
     "role": "audio_narration_cosyvoice",
-    "workflow_url": os.getenv("RUNNINGHUB_COSYVOICE_WORKFLOW_URL", "https://www.runninghub.ai/pt-br/workflow/cosyvoice?source=workspace"),
-    "workflow_id": os.getenv("RUNNINGHUB_COSYVOICE_WORKFLOW_ID", "cosyvoice"),
+    "workflow_url": os.getenv("RUNNINGHUB_COSYVOICE_WORKFLOW_URL", "https://www.runninghub.ai/pt-br/workflow/2118531898170486785?source=workspace"),
+    "workflow_id": os.getenv("RUNNINGHUB_COSYVOICE_WORKFLOW_ID", "2118531898170486785"),
     "script_node": int(os.getenv("RUNNINGHUB_COSYVOICE_SCRIPT_NODE", "345")),       # CR Prompt Text: node #345
     "emotion_node": int(os.getenv("RUNNINGHUB_COSYVOICE_EMOTION_NODE", "355")),    # CR Prompt Text (Instruct): node #355
     "speed_node": int(os.getenv("RUNNINGHUB_COSYVOICE_SPEED_NODE", "352")),        # FL_CosyVoice3_Instruct2: node #352
@@ -1634,6 +1635,101 @@ def click_runninghub_execute(page: Page, mode: str = "lite_plus") -> bool:
     return clicked
 
 
+def ensure_chrome_cdp_desktop(account: int, workflow_url: str) -> bool:
+    """
+    Garante que uma instância do Google Chrome esteja em execução na área de trabalho
+    interativa do Windows (WinSta0\\Default) com a porta de depuração 9222 ativa e pronta
+    para conexões CDP sem falhas de desktop isolado.
+    """
+    import urllib.request
+    try:
+        with urllib.request.urlopen("http://localhost:9222/json/version", timeout=1) as resp:
+            logger.info("⚡ Porta 9222 já está ativa e pronta para conexão CDP!")
+            return True
+    except Exception:
+        pass
+
+    if sys.platform != "win32":
+        return False
+
+    chrome_candidates = [
+        Path("C:/Program Files/Google/Chrome/Application/chrome.exe"),
+        Path("C:/Program Files (x86)/Google/Chrome/Application/chrome.exe"),
+    ]
+    chrome_path = next((p for p in chrome_candidates if p.exists()), None)
+    if not chrome_path:
+        return False
+
+    local_app_data = os.environ.get("LOCALAPPDATA", "")
+    if not local_app_data:
+        local_app_data = str(Path.home() / "AppData" / "Local")
+    base_user_data = Path(local_app_data) / "Google" / "Chrome" / "User Data"
+    debug_user_data = Path(local_app_data) / "Google" / "Chrome" / "User Data Debug"
+
+    # Clonar sessão ativa para o ambiente de depuração (preserva logins e cookies do RunningHub)
+    if base_user_data.exists() and not debug_user_data.exists():
+        try:
+            import shutil
+            debug_user_data.mkdir(parents=True, exist_ok=True)
+            for item in ["Local State", "Default"]:
+                s = base_user_data / item
+                d = debug_user_data / item
+                if s.exists() and not d.exists():
+                    if s.is_dir():
+                        shutil.copytree(s, d, ignore=shutil.ignore_patterns("Cache*", "Code Cache*", "GPUCache*"))
+                    else:
+                        shutil.copy2(s, d)
+            logger.info(f"📂 Perfil do Chrome clonado com sucesso para ambiente CDP ({debug_user_data})")
+        except Exception as e:
+            logger.warning(f"Aviso ao clonar perfil do Chrome: {e}")
+
+    # Limpar eventuais locks órfãos
+    singleton_lock = debug_user_data / "SingletonLock"
+    if singleton_lock.exists():
+        try:
+            singleton_lock.unlink()
+        except Exception:
+            pass
+
+    si = subprocess.STARTUPINFO()
+    try:
+        import ctypes
+        user32 = ctypes.windll.user32
+        hdesk = user32.OpenDesktopW("Default", 0, False, 0x01FF)
+        if hdesk:
+            si.lpDesktop = r"WinSta0\Default"
+    except Exception:
+        pass
+
+    target_profile = debug_user_data if debug_user_data.exists() else (BASE_DIR / "data" / "sessions" / f"chrome_cdp_acc{account}")
+    target_profile.mkdir(parents=True, exist_ok=True)
+
+    cmd = [
+        str(chrome_path),
+        "--remote-debugging-port=9222",
+        "--remote-allow-origins=*",
+        f"--user-data-dir={target_profile}",
+        workflow_url,
+    ]
+
+    try:
+        flags = 0x00000008 | 0x00000200  # DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP
+        proc = subprocess.Popen(cmd, startupinfo=si, creationflags=flags)
+        logger.info(f"🚀 Chrome iniciado na área de trabalho interativa (WinSta0\\Default) com porta 9222 (PID: {proc.pid})!")
+        for _ in range(15):
+            time.sleep(1)
+            try:
+                with urllib.request.urlopen("http://localhost:9222/json/version", timeout=1):
+                    logger.info("⚡ Porta 9222 confirmada online via CDP!")
+                    return True
+            except Exception:
+                pass
+    except Exception as e:
+        logger.warning(f"Falha ao iniciar Chrome interativo com porta 9222: {e}")
+
+    return False
+
+
 def run_factory_bot(
     account: Union[int, str] = DEFAULT_ACCOUNT,
     output_node_id: Optional[int] = None,
@@ -1744,6 +1840,9 @@ def run_factory_bot(
         "avg_sec_per_image": 0.0,
         "saved_files": [],
     }
+
+    # Garantir que o Chrome com porta 9222 esteja ativo na área de trabalho interativa
+    ensure_chrome_cdp_desktop(account, workflow_url)
 
     with sync_playwright() as p:
         browser = None

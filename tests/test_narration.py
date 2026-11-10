@@ -105,7 +105,8 @@ def test_api_narration_items(client, tmp_path, monkeypatch):
 
 
 def test_api_v1_narrate_endpoint(client, tmp_path, monkeypatch):
-    """Test POST /api/v1/narrate mocked execution."""
+    """Test POST /api/v1/narrate mocked execution with CosyVoice."""
+    monkeypatch.delenv("DEEPGRAM_API_KEY", raising=False)
     test_audio_dir = tmp_path / "audio"
     test_audio_dir.mkdir()
     sample_file = test_audio_dir / "narration_mock_abc.flac"
@@ -126,6 +127,7 @@ def test_api_v1_narrate_endpoint(client, tmp_path, monkeypatch):
                 "script": "Testing Soviet nuclear siren narration.",
                 "emotion": "Deep baritone rising dread",
                 "speed": 1.0,
+                "engine": "cosyvoice",
             },
         )
         assert resp.status_code == 200
@@ -133,3 +135,41 @@ def test_api_v1_narrate_endpoint(client, tmp_path, monkeypatch):
         assert payload["success"] is True
         assert payload["audio_file"] == sample_file.name
         assert "/api/audio/file/" in payload["audio_url"]
+
+
+def test_api_v1_narrate_deepgram_mocked(client, tmp_path, monkeypatch):
+    """Test POST /api/v1/narrate with Deepgram Aura engine."""
+    monkeypatch.setenv("DEEPGRAM_API_KEY", "fake_mock_key_123456789")
+    test_audio_dir = tmp_path / "audio"
+    test_audio_dir.mkdir()
+    monkeypatch.setattr(readers, "FINAL_AUDIO_DIR", test_audio_dir)
+
+    from src.video.voice_engine import VoiceSynthesisResult
+
+    mock_synth = VoiceSynthesisResult(
+        audio_path=test_audio_dir / "narration_dg_mock.mp3",
+        filename="narration_dg_mock.mp3",
+        duration_seconds=3.5,
+        filesize_bytes=1024,
+        char_count=50,
+        word_count=8,
+        estimated_cost_usd=0.00075,
+        voice_used="aura-helios-en",
+    )
+    (test_audio_dir / "narration_dg_mock.mp3").write_bytes(b"mock mp3 bytes")
+
+    with patch("src.video.voice_engine.DeepgramVoiceEngine.synthesize", return_value=mock_synth):
+        resp = client.post(
+            "/api/v1/narrate",
+            json={
+                "script": "Deepgram Aura synthesis test.",
+                "engine": "deepgram",
+                "voice": "aura-helios-en",
+            },
+        )
+        assert resp.status_code == 200
+        payload = resp.json()
+        assert payload["success"] is True
+        assert payload["audio_file"] == "narration_dg_mock.mp3"
+        assert payload["provider"] == "deepgram"
+        assert payload["cost_usd"] == 0.00075

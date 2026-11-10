@@ -31,14 +31,20 @@ def test_kokoro_default_voice_bm_george():
     import sys
     base_dir = Path(__file__).resolve().parent.parent
     df_src = base_dir / "darkfactory" / "src"
+    added = False
     if str(df_src) not in sys.path:
-        sys.path.insert(0, str(df_src))
+        sys.path.append(str(df_src))
+        added = True
 
-    from kokoro_fallback import DEFAULT_VOICE, KokoroNarrator
-    assert DEFAULT_VOICE == "bm_george", f"Expected bm_george, got {DEFAULT_VOICE}"
+    try:
+        from kokoro_fallback import DEFAULT_VOICE, KokoroNarrator
+        assert DEFAULT_VOICE == "bm_george", f"Expected bm_george, got {DEFAULT_VOICE}"
 
-    profile = KokoroNarrator.map_instruct_to_voice_profile("")
-    assert profile["voice"] == "bm_george"
+        profile = KokoroNarrator.map_instruct_to_voice_profile("")
+        assert profile["voice"] == "bm_george"
+    finally:
+        if added and str(df_src) in sys.path:
+            sys.path.remove(str(df_src))
 
 
 def test_kokoro_mastered_audio_assets_exist():

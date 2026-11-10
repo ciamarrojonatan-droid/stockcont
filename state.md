@@ -1,27 +1,29 @@
 # StockCont Pipeline State
 > Sincronizado automaticamente por hooks e comandos do ecossistema.
 
-## Sprint Atual: Kokoro-82M Local Neural Narration (`bm_george` Default Voice)
+## Sprint Atual: RunningHub CosyVoice REST API Bridge & Desktop CDP Automation (SaveAudio #346)
 - **Status da Sprint**: [CONCLUÍDO & TOTALMENTE OPERACIONAL]:
-  1. **Motor Local Neural Kokoro-82M ONNX (Custo Zero)**:
-     - Voz padrão oficial para documentários: **`bm_george`** (Narrador britânico clássico com gravidade, barítono solene no estilo BBC / Christopher Nolan).
-     - Roteamento e seleção dinâmica: suporte a **`bm_lewis`** (urgência e tensão da Guerra Fria), **`am_adam`** e outros via `--voice <id>` em tempo de execução.
-     - Detecção automática de idioma (`en-gb` para vozes britânicas `b*`, `en-us` para americanas `a*`).
-  2. **Cadeia de Masterização Broadcast (Curva Ableton Live Complex Pro)**:
-     - Filtro passa-altas 60Hz + Boost de calor 90Hz (+2.5dB) + Corte de lama 350Hz (-1.5dB) + Presença 3.5kHz (+2.0dB).
-     - Compressão dinâmica (threshold -18dB, ratio 3:1) + Normalização EBU R128 (-14 LUFS).
-     - Geração dupla de masters: WAV 24-bit 48kHz para timeline de edição e MP3 320kbps 44.1kHz para visualização instantânea.
-     - Legendas sincronizadas SRT (`pilot_bm_george_full.srt`, `pilot_bm_lewis_full.srt`) geradas automaticamente.
-  3. **Comandos CLI Operacionais**:
-     - `py darkfactory/src/generate_pilot_audio.py` (executa narração e masterização padrão com `bm_george`)
-     - `py darkfactory/src/generate_pilot_audio.py --voice bm_lewis` (executa com voz alternativa)
-     - `py darkfactory/src/kokoro_fallback.py --voice bm_george --scene 1`
+  1. **Bridge REST CosyVoice no RunningHub (`http://localhost:8501/api/v1/narrate`)**:
+     - Transforma a tela do ComfyUI no RunningHub (workflow `2118531898170486785`) em uma API REST de alta fidelidade para narrações com controle de emoção e velocidade.
+     - Injeção dinâmica no **Nó #345** (Roteiro), **Nó #355** (Instrução de emoção/tom) e **Nó #352** (Velocidade `speed`).
+     - Execução automática via botão **Lite/Plus** no RunningHub.
+     - Captura direta do áudio no **Nó #346 (`SaveAudio`)** com salvamento atômico em `data/final/audio/narration_<id>.flac` (lossless FLAC de alta resolução).
+     - Auto-cancelamento atômico pós-gravação para poupar GPU e ignorar com sucesso qualquer falha nos nós residuais #357 e #370.
+  2. **Arquitetura Anti-Isolamento de Desktop Windows (CDP Bridge)**:
+     - Resolução definitiva do isolamento de desktops (`Desktop: exebox` vs `Desktop: Default`) no Windows Sandbox via `ensure_chrome_cdp_desktop()`.
+     - Iniciação de Chrome interativo no monitor do usuário (`WinSta0\Default`) com porta de depuração `9222` e clonagem automática de perfil/cookies para evitar re-logins.
+     - Conexão e controle via Chrome DevTools Protocol (CDP) com reconexão resiliente.
+  3. **Endpoints REST Ativos**:
+     - `POST /api/v1/narrate` (Geração síncrona com resposta JSON contendo `audio_file`, `duration_sec`, `size_bytes`).
+     - `POST /api/narration/generate` (Alias síncrono).
+     - `POST /api/narration/task` (Disparo assíncrono em background).
+     - `GET /api/narration/items` (Listagem de áudios gerados com metadata).
+     - `GET /api/audio/file/{filename}` (Streaming e download direto de áudio).
   4. **Validação & Testes Automatizados**:
-     - `tests/test_kokoro_voice.py` (4/4 passing)
-     - `tests/test_gemini_api.py` (3/3 passing)
-     - `darkfactory/tests/test_kokoro_fallback.py` (7/7 passing)
-     - Suíte DarkFactory completa (77/77 passing) e StockCont (238/238 passing).
-- **Última Atualização**: 2026-11-09 21:35
+     - `tests/test_narration.py` (7/7 passing)
+     - Suíte de testes completa do repositório: **257/257 passing** (100% green).
+     - Geração real validada ponta a ponta: `narration_70acc855.flac` (660,417 bytes) com narração Cold War estilo Christopher Nolan / BBC.
+- **Última Atualização**: 2026-11-09 22:54
 - **Modo Operacional**: Dual-Mode (Antigravity & Claude Code via SSOT `PROJECT_CONTEXT.md`)
 
 ---

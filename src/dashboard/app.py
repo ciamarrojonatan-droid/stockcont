@@ -979,17 +979,53 @@ async def synthesize_video_from_image(req: schemas.VideoI2VRequest):
     return await runner.run_video_i2v_synthesis(req.image_stem)
 
 
-# ── CosyVoice Narration REST Endpoints ───────────────
+# ── CosyVoice & Deepgram Narration REST Endpoints ───────────────
 
 @app.post("/api/v1/narrate", response_model=schemas.NarrationResponse)
 @app.post("/api/narration/generate", response_model=schemas.NarrationResponse)
 async def generate_narration_endpoint(req: schemas.NarrationRequest):
-    """Gera áudio de narração via CosyVoice no RunningHub capturando diretamente no SaveAudio #346."""
+    """Gera áudio de narração via Deepgram Aura API (instantâneo) ou CosyVoice no RunningHub."""
     import asyncio
+    import os
     import time
-    from src.factory.runninghub_bot import run_narration_bot
 
     start_time = time.time()
+    engine_choice = (getattr(req, "engine", "auto") or "auto").lower()
+    has_deepgram_key = bool(os.getenv("DEEPGRAM_API_KEY", "").strip())
+    use_deepgram = engine_choice == "deepgram" or (engine_choice == "auto" and has_deepgram_key)
+
+    if use_deepgram:
+        try:
+            from src.video.voice_engine import DeepgramVoiceEngine
+            engine = DeepgramVoiceEngine(output_dir=readers.FINAL_AUDIO_DIR)
+            if engine.is_available:
+                synth = await asyncio.to_thread(
+                    engine.synthesize,
+                    text=req.script,
+                    voice=getattr(req, "voice", "aura-helios-en") or "aura-helios-en",
+                    speed=req.speed or 1.0,
+                )
+                return schemas.NarrationResponse(
+                    success=True,
+                    message=f"Narração gerada com sucesso via Deepgram Aura ({synth.voice_used})",
+                    audio_file=synth.filename,
+                    audio_url=f"/api/audio/file/{synth.filename}",
+                    duration_sec=synth.duration_seconds,
+                    size_bytes=synth.filesize_bytes,
+                    provider="deepgram",
+                    cost_usd=synth.estimated_cost_usd,
+                )
+        except Exception as dg_err:
+            logger.warning("Deepgram synthesis failed: %s. Tentando fallback...", dg_err)
+            if engine_choice == "deepgram":
+                return schemas.NarrationResponse(
+                    success=False,
+                    message=f"Erro na geração Deepgram: {str(dg_err)}",
+                    duration_sec=time.time() - start_time,
+                )
+
+    # Fallback ou execução explícita via RunningHub CosyVoice
+    from src.factory.runninghub_bot import run_narration_bot
     try:
         res = await asyncio.to_thread(
             run_narration_bot,

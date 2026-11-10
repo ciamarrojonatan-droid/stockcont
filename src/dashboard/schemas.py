@@ -183,6 +183,8 @@ class NarrationRequest(BaseModel):
     emotion: Optional[str] = "Speak with controlled urgency and rising dread, deep baritone documentary tone, sharp articulation."
     speed: Optional[float] = 1.0
     account: Optional[Any] = 4
+    engine: Optional[str] = "auto"  # "auto", "deepgram", "cosyvoice", or "kokoro"
+    voice: Optional[str] = "aura-helios-en"
 
 
 class NarrationResponse(BaseModel):
@@ -192,6 +194,9 @@ class NarrationResponse(BaseModel):
     audio_url: Optional[str] = None
     duration_sec: Optional[float] = None
     size_bytes: Optional[int] = None
+    provider: Optional[str] = None
+    cost_usd: Optional[float] = None
+
 
 
 class NarrationItem(BaseModel):
