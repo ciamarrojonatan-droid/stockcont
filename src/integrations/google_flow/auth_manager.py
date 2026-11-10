@@ -261,7 +261,7 @@ class GoogleFlowAuthManager:
                                 captured_headers[k] = v
 
                 page.on("request", on_req)
-                await page.goto(GOOGLE_FLOW_WEB_URL, wait_until="networkidle", timeout=30000)
+                await page.goto(GOOGLE_FLOW_WEB_URL, wait_until="domcontentloaded", timeout=30000)
 
                 cookies = await context.cookies()
                 cookie_str = "; ".join(f"{c['name']}={c['value']}" for c in cookies)

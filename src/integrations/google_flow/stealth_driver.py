@@ -116,18 +116,21 @@ class GoogleFlowStealthDriver:
         async with async_playwright() as p:
             page = await self.open_page(p)
             logger.info("Opening Google Flow studio dashboard...")
-            await page.goto("https://flow.google.com/", wait_until="networkidle", timeout=40000)
+            await page.goto("https://flow.google.com/", wait_until="domcontentloaded", timeout=40000)
 
             # 1. Click Novo projeto
-            novo_proj_btn = await page.query_selector(
-                "button:has-text('Novo projeto'), [role='button']:has-text('Novo projeto')"
+            novo_proj_btn = await page.wait_for_selector(
+                "button:has-text('Novo projeto'), [role='button']:has-text('Novo projeto')",
+                timeout=25000,
             )
-            if not novo_proj_btn:
-                raise RuntimeError("Button 'Novo projeto' not found on flow.google.com dashboard.")
-
             logger.info("Creating new project on Google Flow...")
             await novo_proj_btn.click()
-            await asyncio.sleep(3.0)
+            
+            # Wait for project URL transition
+            try:
+                await page.wait_for_url(lambda u: "/project/" in u, timeout=25000)
+            except Exception:
+                await asyncio.sleep(3.0)
 
             project_url = page.url
             project_id = project_url.split("/project/")[-1] if "/project/" in project_url else "unknown_project"
@@ -152,15 +155,30 @@ class GoogleFlowStealthDriver:
             logger.info("Triggering generation on Google Flow cloud GPU...")
             await gen_btn.click()
 
-            # 4. Wait for generation to finish (Option 1 image appears)
+            # 4. Wait for generation to finish (Option 1 image/video appears)
             start_poll = time.time()
             opt1 = None
+            last_progress = ""
             while (time.time() - start_poll) < timeout_seconds:
-                opt1 = await page.query_selector("img[alt='Option 1']")
+                opt1 = await page.query_selector(
+                    "img[alt='Option 1'], [aria-label*='Option 1'], img[alt*='Bloco mostrando a imagem'], video"
+                )
                 if opt1:
                     logger.info("🎉 Generation variations completed by Google Flow!")
                     break
-                await asyncio.sleep(3.0)
+
+                try:
+                    body_text = await page.inner_text("body")
+                    for line in body_text.split("\n"):
+                        s = line.strip()
+                        if "%" in s and len(s) <= 5 and s != last_progress:
+                            last_progress = s
+                            logger.info(f"Google Flow GPU progress: {s}")
+                            break
+                except Exception:
+                    pass
+
+                await asyncio.sleep(2.5)
 
             if not opt1:
                 raise TimeoutError("Timed out waiting for Google Flow generation variations.")
