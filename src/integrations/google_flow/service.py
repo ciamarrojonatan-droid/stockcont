@@ -90,6 +90,54 @@ class GoogleFlowService:
         req = job.request
 
         try:
+            # Check if live authenticated Google Flow session is available
+            auth_status = self.auth_manager.get_status()
+            if auth_status.authenticated:
+                try:
+                    from src.integrations.google_flow.stealth_driver import GoogleFlowStealthDriver
+                    driver = GoogleFlowStealthDriver(session_dir=self.auth_manager.session_dir, headless=True)
+
+                    job.status = JobStatus.GENERATING
+                    job.message = "Running autonomous generation on Google Flow cloud..."
+                    job.progress_percent = 30.0
+                    job.updated_at = time.time()
+
+                    out_dir = self.downloader.videos_dir if req.mode in ["t2v", "i2v"] else self.downloader.images_dir
+                    wf = await driver.execute_generation_workflow(
+                        prompt=req.prompt,
+                        project_name=job.project_name,
+                        aspect_ratio=req.aspect_ratio,
+                        auto_upscale=req.auto_upscale,
+                        output_dir=out_dir,
+                    )
+
+                    saved_path = wf["file_path"]
+                    job.project_id = wf["project_id"]
+                    job.final_output_paths = [saved_path]
+
+                    # Compute SHA-256 and register in ledger
+                    import hashlib
+                    with open(saved_path, "rb") as f:
+                        sha256_hash = hashlib.sha256(f.read()).hexdigest()
+
+                    ledger = self.downloader._load_ledger()
+                    ledger[sha256_hash] = {
+                        "job_id": job.job_id,
+                        "project_id": job.project_id,
+                        "prompt": req.prompt,
+                        "file_path": saved_path,
+                        "downloaded_at": time.time(),
+                    }
+                    self.downloader._save_ledger_atomic(ledger)
+
+                    job.status = JobStatus.COMPLETED
+                    job.progress_percent = 100.0
+                    job.message = f"Successfully generated & downloaded real asset from Google Flow ({wf['file_size']} bytes)"
+                    job.updated_at = time.time()
+                    return
+                except Exception as live_err:
+                    logger.warning(f"Live browser driver note: {live_err}. Running RPC fallback...")
+
             # 1. Create Dedicated Project
             job.status = JobStatus.CREATING_PROJECT
             job.message = f"Creating project '{job.project_name}' on Google Flow"
