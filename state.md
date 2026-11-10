@@ -1,28 +1,27 @@
 # StockCont Pipeline State
 > Sincronizado automaticamente por hooks e comandos do ecossistema.
 
-## Sprint Atual: CosyVoice Audio Narration & REST API Bridge (RunningHub)
+## Sprint Atual: Kokoro-82M Local Neural Narration (`bm_george` Default Voice)
 - **Status da Sprint**: [CONCLUÍDO & TOTALMENTE OPERACIONAL]:
-  1. **Bridge REST Local & Automação RunningHub para CosyVoice**:
-     - Integração do workflow `CosyVoice3-instruct2_EmotionControl_api.json` (salvo em `data/templates/cosyvoice_api.json`).
-     - **Topologia de Nós**:
-       - Nó **#345**: Roteiro/Script da narração.
-       - Nó **#355**: Modulação emocional e instrução de tom (urgência, dread, barítono documental).
-       - Nó **#352**: Velocidade da fala (`speed`).
-       - Nó **#346**: Saída do áudio (`SaveAudio`) com captura atômica imediata.
-     - **Blindagem do Erro Residual**: O bot captura e salva o áudio diretamente do Nó #346 no exato momento da geração e executa cancelamento atômico, ignorando quaisquer falhas posteriores dos nós não configurados (#357 / #370).
-  2. **Endpoints REST Implementados (FastAPI localhost:8501)**:
-     - `POST /api/v1/narrate` (e `/api/narration/generate`): Dispara narração e retorna caminho/URL do áudio.
-     - `POST /api/narration/task`: Enfileira geração em subprocesso assíncrono.
-     - `GET /api/narration/items`: Lista áudios de narração gerados.
-     - `GET /api/audio/file/{filename}`: Streaming e download de áudios (`.flac`, `.mp3`, `.wav`).
-  3. **Comandos CLI Expandidos**:
-     - `python main.py --narration --script "..." --emotion "..." --speed 1.0`
-     - `python src/factory/runninghub_bot.py --account 4 --script "..."`
+  1. **Motor Local Neural Kokoro-82M ONNX (Custo Zero)**:
+     - Voz padrão oficial para documentários: **`bm_george`** (Narrador britânico clássico com gravidade, barítono solene no estilo BBC / Christopher Nolan).
+     - Roteamento e seleção dinâmica: suporte a **`bm_lewis`** (urgência e tensão da Guerra Fria), **`am_adam`** e outros via `--voice <id>` em tempo de execução.
+     - Detecção automática de idioma (`en-gb` para vozes britânicas `b*`, `en-us` para americanas `a*`).
+  2. **Cadeia de Masterização Broadcast (Curva Ableton Live Complex Pro)**:
+     - Filtro passa-altas 60Hz + Boost de calor 90Hz (+2.5dB) + Corte de lama 350Hz (-1.5dB) + Presença 3.5kHz (+2.0dB).
+     - Compressão dinâmica (threshold -18dB, ratio 3:1) + Normalização EBU R128 (-14 LUFS).
+     - Geração dupla de masters: WAV 24-bit 48kHz para timeline de edição e MP3 320kbps 44.1kHz para visualização instantânea.
+     - Legendas sincronizadas SRT (`pilot_bm_george_full.srt`, `pilot_bm_lewis_full.srt`) geradas automaticamente.
+  3. **Comandos CLI Operacionais**:
+     - `py darkfactory/src/generate_pilot_audio.py` (executa narração e masterização padrão com `bm_george`)
+     - `py darkfactory/src/generate_pilot_audio.py --voice bm_lewis` (executa com voz alternativa)
+     - `py darkfactory/src/kokoro_fallback.py --voice bm_george --scene 1`
   4. **Validação & Testes Automatizados**:
-     - Nova suíte `tests/test_narration.py` (6/6 passing).
-     - Suíte de regressão do dashboard `tests/test_dashboard.py` (22/22 passing).
-- **Última Atualização**: 2026-11-09 21:26
+     - `tests/test_kokoro_voice.py` (4/4 passing)
+     - `tests/test_gemini_api.py` (3/3 passing)
+     - `darkfactory/tests/test_kokoro_fallback.py` (7/7 passing)
+     - Suíte DarkFactory completa (77/77 passing) e StockCont (238/238 passing).
+- **Última Atualização**: 2026-11-09 21:35
 - **Modo Operacional**: Dual-Mode (Antigravity & Claude Code via SSOT `PROJECT_CONTEXT.md`)
 
 ---
