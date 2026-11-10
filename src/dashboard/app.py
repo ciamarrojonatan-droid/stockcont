@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import List, Optional
 """FastAPI Dashboard Application for StockCont.
 
 Serves the dark-theme SPA and provides read-only REST API
@@ -977,3 +977,76 @@ async def get_reference_images_for_i2v():
 async def synthesize_video_from_image(req: schemas.VideoI2VRequest):
     """Synthesize 4D video prompts for a specific 8K image via Gemini Vision."""
     return await runner.run_video_i2v_synthesis(req.image_stem)
+
+
+# ── CosyVoice Narration REST Endpoints ───────────────
+
+@app.post("/api/v1/narrate", response_model=schemas.NarrationResponse)
+@app.post("/api/narration/generate", response_model=schemas.NarrationResponse)
+async def generate_narration_endpoint(req: schemas.NarrationRequest):
+    """Gera áudio de narração via CosyVoice no RunningHub capturando diretamente no SaveAudio #346."""
+    import asyncio
+    import time
+    from src.factory.runninghub_bot import run_narration_bot
+
+    start_time = time.time()
+    try:
+        res = await asyncio.to_thread(
+            run_narration_bot,
+            script=req.script,
+            emotion=req.emotion,
+            speed=req.speed or 1.0,
+        )
+        saved_files = res.get("saved_files", [])
+        if saved_files:
+            fn = saved_files[-1]
+            dur = time.time() - start_time
+            file_path = readers.FINAL_AUDIO_DIR / fn
+            sz = file_path.stat().st_size if file_path.exists() else 0
+            return schemas.NarrationResponse(
+                success=True,
+                message="Narração gerada com sucesso via CosyVoice (SaveAudio #346)",
+                audio_file=fn,
+                audio_url=f"/api/audio/file/{fn}",
+                duration_sec=dur,
+                size_bytes=sz,
+            )
+        else:
+            return schemas.NarrationResponse(
+                success=False,
+                message="Nenhum áudio salvo durante a execução do workflow CosyVoice.",
+                duration_sec=time.time() - start_time,
+            )
+    except Exception as e:
+        logger.error("Erro na geração de narração CosyVoice: %s", e)
+        return schemas.NarrationResponse(
+            success=False,
+            message=f"Erro na geração de áudio: {str(e)}",
+            duration_sec=time.time() - start_time,
+        )
+
+
+@app.post("/api/narration/task")
+async def trigger_narration_task(req: schemas.NarrationRequest):
+    """Enfileira tarefa de narração em background subprocess."""
+    return await runner.run_narration_task(
+        script=req.script,
+        emotion=req.emotion,
+        speed=req.speed or 1.0,
+    )
+
+
+@app.get("/api/narration/items", response_model=List[schemas.NarrationItem])
+async def list_narration_items():
+    """Lista todos os arquivos de áudio de narração salvos em data/final/audio/."""
+    return readers.get_audio_items()
+
+
+@app.get("/api/audio/file/{filename}")
+async def get_audio_file(filename: str):
+    """Serve o arquivo de áudio para streaming ou download."""
+    path = readers.FINAL_AUDIO_DIR / filename
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="Arquivo de áudio não encontrado")
+    media_type = "audio/mpeg" if path.suffix.lower() == ".mp3" else ("audio/flac" if path.suffix.lower() == ".flac" else "audio/wav")
+    return FileResponse(path, media_type=media_type, filename=path.name)

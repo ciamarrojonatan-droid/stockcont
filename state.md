@@ -1,20 +1,28 @@
 # StockCont Pipeline State
 > Sincronizado automaticamente por hooks e comandos do ecossistema.
 
-## Sprint Atual: Benchmark de Vozes Britânicas (Kokoro-82M bm_george vs bm_lewis)
-- **Status da Sprint**: [CONCLUÍDO & DISPONÍVEL PARA AVALIAÇÃO]:
-  1. **Locução Neural Local com Kokoro-82M (George vs Lewis)**:
-     - Sintetizadas as duas vozes britânicas masculinas clássicas estilo BBC/Nolan:
-       - **bm_george**: 38.88s de narração masterizada, tom sombrio, autoritário e denso.
-       - **bm_lewis**: 38.20s de narração masterizada, tom articulado, tenso e urgente.
-     - Ambas as vozes processadas individualmente por cena (Cenas 1, 2 e 3) e na introdução completa de 38s.
-     - Masterização de transmissão documental aplicada via FFmpeg (EQ 90Hz/350Hz/3.5kHz, compressor dinâmico e -14 LUFS).
-     - Legendas SRT sincronizadas geradas para ambos os narradores.
-     - Arquivos salvos em `data/audio/kokoro_comparison/` e espelhados em `darkfactory/data/audio/`.
-  2. **Validação & Testes Automatizados**:
-     - Suíte `tests/test_gemini_api.py` (3/3 passing).
-     - Suíte `tests/test_kokoro_voice.py` (2/2 passing).
-- **Última Atualização**: 2026-11-09 21:15
+## Sprint Atual: CosyVoice Audio Narration & REST API Bridge (RunningHub)
+- **Status da Sprint**: [CONCLUÍDO & TOTALMENTE OPERACIONAL]:
+  1. **Bridge REST Local & Automação RunningHub para CosyVoice**:
+     - Integração do workflow `CosyVoice3-instruct2_EmotionControl_api.json` (salvo em `data/templates/cosyvoice_api.json`).
+     - **Topologia de Nós**:
+       - Nó **#345**: Roteiro/Script da narração.
+       - Nó **#355**: Modulação emocional e instrução de tom (urgência, dread, barítono documental).
+       - Nó **#352**: Velocidade da fala (`speed`).
+       - Nó **#346**: Saída do áudio (`SaveAudio`) com captura atômica imediata.
+     - **Blindagem do Erro Residual**: O bot captura e salva o áudio diretamente do Nó #346 no exato momento da geração e executa cancelamento atômico, ignorando quaisquer falhas posteriores dos nós não configurados (#357 / #370).
+  2. **Endpoints REST Implementados (FastAPI localhost:8501)**:
+     - `POST /api/v1/narrate` (e `/api/narration/generate`): Dispara narração e retorna caminho/URL do áudio.
+     - `POST /api/narration/task`: Enfileira geração em subprocesso assíncrono.
+     - `GET /api/narration/items`: Lista áudios de narração gerados.
+     - `GET /api/audio/file/{filename}`: Streaming e download de áudios (`.flac`, `.mp3`, `.wav`).
+  3. **Comandos CLI Expandidos**:
+     - `python main.py --narration --script "..." --emotion "..." --speed 1.0`
+     - `python src/factory/runninghub_bot.py --account 4 --script "..."`
+  4. **Validação & Testes Automatizados**:
+     - Nova suíte `tests/test_narration.py` (6/6 passing).
+     - Suíte de regressão do dashboard `tests/test_dashboard.py` (22/22 passing).
+- **Última Atualização**: 2026-11-09 21:26
 - **Modo Operacional**: Dual-Mode (Antigravity & Claude Code via SSOT `PROJECT_CONTEXT.md`)
 
 ---

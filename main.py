@@ -480,6 +480,10 @@ def main() -> None:
     parser.add_argument("--qc-mode", choices=["auto", "manual"], default=None, help="QC mode: 'auto' (Gemini Vision default) or 'manual' (Dashboard triage)")
     parser.add_argument("--upscale", action="store_true", help="Upscale all approved staging images to 8K")
     parser.add_argument("--seasonal", action="store_true", help="Display predictive seasonal demand forecast and Blue Ocean niches")
+    parser.add_argument("--narration", action="store_true", help="Generate AI voice narration via CosyVoice on RunningHub")
+    parser.add_argument("--script", type=str, default=None, help="Script text for CosyVoice narration")
+    parser.add_argument("--emotion", type=str, default=None, help="Emotion and tone instruction for CosyVoice")
+    parser.add_argument("--speed", type=float, default=1.0, help="Speech speed for CosyVoice (default: 1.0)")
     parser.add_argument("--dashboard", action="store_true", help="Launch the StockCont web dashboard (http://localhost:8501)")
     parser.add_argument("--port", type=int, default=8501, help="Port for the dashboard server (default: 8501)")
     parser.add_argument("--no-browser", action="store_true", help="Start dashboard without auto-opening browser")
@@ -608,6 +612,16 @@ def main() -> None:
 
     if args.sync_raw:
         run_sync_raw(force=args.force)
+        return
+
+    if getattr(args, "narration", False):
+        from src.factory.runninghub_bot import run_narration_bot
+        script = getattr(args, "script", None) or "At 12:15 AM on September 26, 1983, a red siren illuminated a top-secret Soviet bunker outside Moscow..."
+        emotion = getattr(args, "emotion", None)
+        speed = getattr(args, "speed", 1.0)
+        logger.info("🎙️ Disparando CosyVoice Narration Bot via RunningHub...")
+        res = run_narration_bot(script=script, emotion=emotion, speed=speed)
+        logger.info(f"🏁 Benchmark Narração: {res}")
         return
 
     if getattr(args, "t2v", False):

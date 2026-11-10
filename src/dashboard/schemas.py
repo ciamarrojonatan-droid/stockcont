@@ -174,3 +174,29 @@ class VideoMatrixBatchRequest(BaseModel):
     agency: str
     action: Literal["mark_all", "unmark_all"]
     filenames: Optional[List[str]] = None
+
+
+# ── Audio & Narration Models ─────────────────────────
+
+class NarrationRequest(BaseModel):
+    script: str
+    emotion: Optional[str] = "Speak with controlled urgency and rising dread, deep baritone documentary tone, sharp articulation."
+    speed: Optional[float] = 1.0
+    account: Optional[Any] = 4
+
+
+class NarrationResponse(BaseModel):
+    success: bool
+    message: str
+    audio_file: Optional[str] = None
+    audio_url: Optional[str] = None
+    duration_sec: Optional[float] = None
+    size_bytes: Optional[int] = None
+
+
+class NarrationItem(BaseModel):
+    filename: str
+    path: str
+    size_bytes: int
+    created_at: str
+    audio_url: str

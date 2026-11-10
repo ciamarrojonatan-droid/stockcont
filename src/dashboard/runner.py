@@ -488,3 +488,60 @@ async def run_video_i2v_synthesis(image_stem: str) -> Dict[str, Any]:
             _task_records[task_key]["completed_at"] = datetime.now(timezone.utc).isoformat()
             _task_records[task_key]["last_log"] = f"Failed to start: {e}"
         return {"success": False, "message": str(e), "task_id": None}
+
+
+async def run_narration_task(
+    script: str,
+    emotion: Optional[str] = None,
+    speed: float = 1.0,
+) -> Dict[str, Any]:
+    """Execute CosyVoice narration generation in background subprocess."""
+    import uuid
+    task_key = f"narration-{uuid.uuid4().hex[:8]}"
+    cmd = [
+        PYTHON, "-u", str(MAIN_PY),
+        "--narration",
+        "--script", script,
+    ]
+    if emotion:
+        cmd.extend(["--emotion", emotion])
+    if speed != 1.0:
+        cmd.extend(["--speed", str(speed)])
+
+    logger.info("Starting CosyVoice Narration Task: %s", " ".join(cmd))
+
+    _task_records[task_key] = {
+        "task_id": task_key,
+        "phase": "narration",
+        "cmd": " ".join(cmd),
+        "status": "running",
+        "returncode": None,
+        "started_at": datetime.now(timezone.utc).isoformat(),
+        "completed_at": None,
+        "logs": deque(maxlen=100),
+        "last_log": "Iniciando geração de áudio no CosyVoice...",
+    }
+
+    env = os.environ.copy()
+    env["PYTHONUNBUFFERED"] = "1"
+    env["PYTHONIOENCODING"] = "utf-8"
+    env["PYTHONUTF8"] = "1"
+
+    try:
+        process = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            cwd=str(BASE_DIR),
+            env=env,
+        )
+        _running_tasks[task_key] = process
+        asyncio.create_task(_monitor_task(task_key, process))
+        return {"success": True, "message": "CosyVoice narration task started", "task_id": task_key}
+    except Exception as e:
+        logger.error("Failed to start narration task: %s", e)
+        if task_key in _task_records:
+            _task_records[task_key]["status"] = "failed"
+            _task_records[task_key]["completed_at"] = datetime.now(timezone.utc).isoformat()
+            _task_records[task_key]["last_log"] = f"Failed to start: {e}"
+        return {"success": False, "message": str(e), "task_id": None}

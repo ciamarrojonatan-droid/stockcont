@@ -29,6 +29,7 @@ FINAL_IMAGES_DIR: Path = BASE_DIR / "data" / "final" / "images"
 FINAL_VIDEOS_DIR: Path = BASE_DIR / "data" / "final" / "videos"
 STAGING_VIDEOS_DIR: Path = BASE_DIR / "data" / "staging" / "videos"
 VIDEO_PROMPTS_FILE: Path = BASE_DIR / "data" / "processed" / "video_prompts.json"
+FINAL_AUDIO_DIR: Path = BASE_DIR / "data" / "final" / "audio"
 
 # ══════════════════════════════════════════════════════
 # Dual-Account Topologies & Configurations
@@ -101,6 +102,26 @@ CONTA_VIDEO_CONFIG = {
     "execute_mode": "lite_plus",  # Botão do meio (Lite/Plus - cor amarela/ouro) mandatário em todos os workflows
 }
 
+# CosyVoice Audio Pipeline: Narração e Modulação Emocional de Voz
+CONTA_COSYVOICE_CONFIG = {
+    "account": 4,
+    "role": "audio_narration_cosyvoice",
+    "workflow_url": os.getenv("RUNNINGHUB_COSYVOICE_WORKFLOW_URL", "https://www.runninghub.ai/pt-br/workflow/cosyvoice?source=workspace"),
+    "workflow_id": os.getenv("RUNNINGHUB_COSYVOICE_WORKFLOW_ID", "cosyvoice"),
+    "script_node": int(os.getenv("RUNNINGHUB_COSYVOICE_SCRIPT_NODE", "345")),       # CR Prompt Text: node #345
+    "emotion_node": int(os.getenv("RUNNINGHUB_COSYVOICE_EMOTION_NODE", "355")),    # CR Prompt Text (Instruct): node #355
+    "speed_node": int(os.getenv("RUNNINGHUB_COSYVOICE_SPEED_NODE", "352")),        # FL_CosyVoice3_Instruct2: node #352
+    "output_audio_node": int(os.getenv("RUNNINGHUB_COSYVOICE_OUTPUT_NODE", "346")), # SaveAudio: node #346
+    "output_node": int(os.getenv("RUNNINGHUB_COSYVOICE_OUTPUT_NODE", "346")),
+    "prompt_nodes": [int(os.getenv("RUNNINGHUB_COSYVOICE_SCRIPT_NODE", "345"))],
+    "default_batch_size": 1,
+    "destination_dir": FINAL_AUDIO_DIR,
+    "prefix": "narration",
+    "save_mode": "audio_output",
+    "session_dir_name": "playwright_session_cosyvoice",
+    "execute_mode": "lite_plus",
+}
+
 # Default Active Configuration (Padrão: Conta 1 - Raw Producer)
 DEFAULT_ACCOUNT: int = int(os.getenv("RUNNINGHUB_ACCOUNT", "1"))
 DEFAULT_BATCH_SIZE: int = 210
@@ -115,12 +136,14 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 
 def get_account_config(account: Union[int, str] = 1) -> Dict[str, Any]:
-    """Retorna o dicionário de configuração da conta selecionada ou do pipeline de vídeo."""
+    """Retorna o dicionário de configuração da conta selecionada ou do pipeline de vídeo/áudio."""
     acc_str = str(account).lower()
     if acc_str in ("2", "upscale", "seedvr"):
         return dict(CONTA_2_CONFIG)
     elif acc_str in ("3", "video", "video_4k", "video_generator_4k"):
         return dict(CONTA_VIDEO_CONFIG)
+    elif acc_str in ("4", "cosyvoice", "audio", "narration", "audio_narration_cosyvoice"):
+        return dict(CONTA_COSYVOICE_CONFIG)
     return dict(CONTA_1_CONFIG)
 
 
@@ -869,6 +892,145 @@ def save_video_from_src(
                 pass
     return None
 
+
+def get_node_audios(page: Page, node_id: int) -> List[str]:
+    """Extrai URLs ou referências de áudio gerados no nó SaveAudio (#346) do ComfyUI/LiteGraph."""
+    node_audios = []
+    for frame in page.frames:
+        try:
+            auds = frame.evaluate("""(id) => {
+                let res = [];
+                if (typeof window.app !== 'undefined' && window.app.graph) {
+                    let node = window.app.graph.getNodeById(id);
+                    if (node) {
+                        if (node.audio) {
+                            if (Array.isArray(node.audio)) {
+                                res.push(...node.audio.map(a => a.src || a.currentSrc || a).filter(Boolean));
+                            } else if (node.audio.src || node.audio.currentSrc) {
+                                res.push(node.audio.src || node.audio.currentSrc);
+                            } else if (typeof node.audio === 'string') {
+                                res.push(node.audio);
+                            }
+                        }
+                        if (node.widgets) {
+                            for (let w of node.widgets) {
+                                if (w.element) {
+                                    const aEls = w.element.tagName === 'AUDIO' ? [w.element] : Array.from(w.element.querySelectorAll('audio'));
+                                    for (let a of aEls) {
+                                        if (a.src || a.currentSrc) res.push(a.src || a.currentSrc);
+                                    }
+                                }
+                                if (w.value) {
+                                    if (typeof w.value === 'string' && (w.value.endsWith('.flac') || w.value.endsWith('.mp3') || w.value.endsWith('.wav'))) {
+                                        res.push('/view?filename=' + encodeURIComponent(w.value) + '&type=output');
+                                        res.push('/view?filename=' + encodeURIComponent(w.value) + '&type=temp');
+                                    } else if (typeof w.value === 'object' && w.value !== null) {
+                                        const fn = w.value.filename || w.value.name;
+                                        if (fn && typeof fn === 'string') {
+                                            const sub = w.value.subfolder ? '&subfolder=' + encodeURIComponent(w.value.subfolder) : '';
+                                            res.push('/view?filename=' + encodeURIComponent(fn) + '&type=output' + sub);
+                                            res.push('/view?filename=' + encodeURIComponent(fn) + '&type=temp' + sub);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        if (node.preview && (node.preview.src || node.preview.currentSrc)) {
+                            res.push(node.preview.src || node.preview.currentSrc);
+                        }
+                    }
+                }
+                const domAudios = Array.from(document.querySelectorAll('audio'));
+                for (let a of domAudios) {
+                    const src = a.src || a.currentSrc;
+                    if (src && (src.includes('audio') || src.includes('.flac') || src.includes('.mp3') || src.includes('.wav') || src.includes('view?'))) {
+                        res.push(src);
+                    }
+                }
+                return Array.from(new Set(res.filter(Boolean)));
+            }""", node_id)
+            if auds:
+                node_audios.extend(auds)
+        except Exception:
+            pass
+    return list(dict.fromkeys(node_audios))
+
+
+def save_audio_from_src(
+    page: Page,
+    src: str,
+    destination_dir: Optional[Path] = None,
+    prefix: str = "narration",
+) -> Optional[str]:
+    """Salva o áudio do canvas/DOM/blob em disco de forma transacional (.tmp) (ADR-02)."""
+    target_dir = destination_dir or FINAL_AUDIO_DIR
+    target_dir.mkdir(parents=True, exist_ok=True)
+    ext = ".flac" if ".flac" in src.lower() else (".wav" if ".wav" in src.lower() else ".mp3")
+    filename = target_dir / f"{prefix}_{uuid.uuid4().hex[:8]}{ext}"
+    while filename.exists():
+        filename = target_dir / f"{prefix}_{uuid.uuid4().hex[:8]}{ext}"
+    tmp_filename = filename.with_suffix(".tmp")
+
+    try:
+        data: Optional[bytes] = None
+        if src.startswith("data:audio"):
+            header, encoded = src.split(",", 1)
+            raw_data = base64.b64decode(encoded)
+            if len(raw_data) > 5000:
+                data = raw_data
+        elif src.startswith("blob:") or src.startswith("http") or src.startswith("/"):
+            for frame in page.frames:
+                try:
+                    b64_url = frame.evaluate("""async (url) => {
+                        try {
+                            const resp = await fetch(url, { credentials: 'include' });
+                            if (!resp.ok) return null;
+                            const blob = await resp.blob();
+                            return new Promise((resolve) => {
+                                const reader = new FileReader();
+                                reader.onloadend = () => resolve(reader.result);
+                                reader.onerror = () => resolve(null);
+                                reader.readAsDataURL(blob);
+                            });
+                        } catch (e) {
+                            return null;
+                        }
+                    }""", src)
+                    if b64_url and "," in b64_url:
+                        header, encoded = b64_url.split(",", 1)
+                        raw_data = base64.b64decode(encoded)
+                        if len(raw_data) > 5000:
+                            data = raw_data
+                            break
+                except Exception:
+                    pass
+
+            if data is None and src.startswith("http"):
+                try:
+                    req = urllib.request.Request(src, headers={"User-Agent": "Mozilla/5.0"})
+                    with urllib.request.urlopen(req, timeout=30) as response:
+                        http_data = response.read()
+                        if len(http_data) > 5000:
+                            data = http_data
+                except Exception:
+                    pass
+
+        if data:
+            with open(tmp_filename, "wb") as f:
+                f.write(data)
+            tmp_filename.replace(filename)
+            logger.info("🎙️ Áudio de narração gravado com sucesso: %s (%d KB)", filename.name, len(data) // 1024)
+            return filename.name
+    except Exception as e:
+        logger.error("Erro ao salvar áudio de '%s': %s", src[:60], e)
+        if tmp_filename.exists():
+            try:
+                tmp_filename.unlink()
+            except Exception:
+                pass
+    return None
+
+
 def upload_zip_to_node(page: Page, frame: Optional[Frame], node_id: int, zip_path: Path) -> bool:
     """
     Injeta o arquivo ZIP empacotado no Nó ComfyUI (ex: Nó #5 'Load Images (zip)').
@@ -1483,20 +1645,26 @@ def run_factory_bot(
     session_dir: Optional[Path] = None,
     input_image_path: Optional[Path] = None,
     custom_prompt_text: Optional[str] = None,
+    custom_script_text: Optional[str] = None,
+    custom_emotion_text: Optional[str] = None,
+    custom_speed: Optional[float] = None,
     upload_wait_sec: Optional[int] = None,
     execute_mode: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
-    Executa a Fábrica RPA adaptando o comportamento entre Conta 1, Conta 2 e Pipeline de Vídeo 4K:
+    Executa a Fábrica RPA adaptando o comportamento entre Conta 1, Conta 2, Pipeline de Vídeo 4K e CosyVoice:
     - Conta 1 (Raw Producer): Injeta prompts (#128-#254) e salva todas as imagens brutas no Nó #121.
     - Conta 2 (SeedVR 8K Upscaler): Ingestão zip no Nó #5 e monitoramento tempo real 1 a 1 no Nó #55.
-    - Pipeline de Vídeo 4K (Conta 3): Ingestão de imagem no Nó #164, Prompt no Nó #17 e saída de vídeo 4K no Nó #185 (Feihou Preview Video sem watermark).
+    - Pipeline de Vídeo 4K (Conta 3): Ingestão de imagem no Nó #164, Prompt no Nó #17 e saída de vídeo 4K no Nó #185.
+    - CosyVoice (Conta 4): Roteiro no Nó #345, Emoção no Nó #355, e captura direta no SaveAudio #346 com cancelamento pós-gravação.
     """
     if isinstance(account, str):
         if account.isdigit():
             account = int(account)
         elif account.lower() in ("video", "video_4k"):
             account = 3
+        elif account.lower() in ("cosyvoice", "audio", "narration"):
+            account = 4
     cfg = get_account_config(account)
     out_node = output_node_id if output_node_id is not None else cfg["output_node"]
     input_node = cfg.get("input_node", 5)
@@ -1811,9 +1979,40 @@ def run_factory_bot(
                         time.sleep(chunk)
                     logger.info(f"✅ [Nó #{input_node} Load Image] Janela de {effective_wait}s concluída com sucesso! Imagem pronta.")
 
+                elif account == 4:
+                    s_node = cfg.get("script_node", 345)
+                    e_node = cfg.get("emotion_node", 355)
+                    sp_node = cfg.get("speed_node", 352)
+                    s_text = custom_script_text or custom_prompt_text or (batch_prompts[0] if batch_prompts else "At 12:15 AM on September 26, 1983, a red siren illuminated a top-secret Soviet bunker outside Moscow...")
+                    e_text = custom_emotion_text or "Speak with controlled urgency and rising dread, deep baritone documentary tone, sharp articulation."
+                    logger.info(f"🎙️ [CosyVoice] Injetando roteiro no Nó #{s_node} e emoção no Nó #{e_node}...")
+                    inject_video_prompt_to_node(comfy_frame, s_node, s_text)
+                    inject_video_prompt_to_node(comfy_frame, e_node, e_text)
+                    if custom_speed is not None:
+                        try:
+                            comfy_frame.evaluate("""({nodeId, speed}) => {
+                                if (typeof window.app !== 'undefined' && window.app.graph) {
+                                    const node = window.app.graph.getNodeById(nodeId);
+                                    if (node && node.widgets) {
+                                        const spW = node.widgets.find(w => w.name === 'speed');
+                                        if (spW) {
+                                            spW.value = speed;
+                                            if (spW.callback) spW.callback(speed);
+                                        }
+                                    }
+                                }
+                            }""", {"nodeId": sp_node, "speed": custom_speed})
+                        except Exception:
+                            pass
+                    time.sleep(1.0)
+
                 # Captura pré-existente no nó de saída
-                initial_node_images = get_node_images(page, out_node) if account != 3 else []
+                initial_node_images = get_node_images(page, out_node) if account not in (3, 4) else []
                 initial_node_videos: List[str] = []
+                initial_node_audios: List[str] = []
+                if account == 4:
+                    initial_node_audios = get_node_audios(page, out_node)
+                    logger.info(f"🚫 [CosyVoice] Registrados {len(initial_node_audios)} áudios pré-existentes na blacklist antes da execução no Nó #{out_node}.")
                 if account == 3:
                     # Registrar todos os vídeos presentes no nó e no DOM como blacklist permanente antes do disparo
                     initial_node_videos = get_node_videos(page, out_node)
@@ -2056,6 +2255,52 @@ def run_factory_bot(
 
                     # NUNCA cancelar a tarefa no RunningHub para Conta 3 (Vídeo), deixando o render persistir naturalmente
 
+                # ── ESTRATÉGIA D: COSYVOICE AUDIO NARRATION (SaveAudio #346) ──
+                elif save_mode == "audio_output" or account == 4:
+                    max_wait_audio = int(os.getenv("RUNNINGHUB_AUDIO_MAX_WAIT_SEC", "300"))  # 5 minutos
+                    logger.info(f"⏳ [CosyVoice Narração] Monitorando geração de áudio no Nó #{out_node} (SaveAudio)...")
+                    audio_saved = False
+                    audio_wait_start = time.time()
+                    last_heartbeat = audio_wait_start
+
+                    while True:
+                        page.keyboard.press("Escape")
+                        now = time.time()
+                        elapsed_sec = int(now - audio_wait_start)
+
+                        if now - last_heartbeat >= 10:
+                            logger.info(f"⏳ [CosyVoice Narração] Monitorando Nó #{out_node}... ({elapsed_sec}s decorridos)")
+                            last_heartbeat = now
+
+                        # Capturar áudios gerados no Nó #346
+                        current_node_audios = get_node_audios(page, out_node)
+                        new_auds = [a for a in current_node_audios if a not in initial_node_audios]
+
+                        if new_auds:
+                            for cand in new_auds:
+                                logger.info(f"🎵 Novo áudio detectado no Nó #{out_node}! Extraindo arquivo final...")
+                                saved_name = save_audio_from_src(page, cand, destination_dir=target_dir, prefix=cfg["prefix"])
+                                if saved_name:
+                                    saved_path = target_dir / saved_name
+                                    if saved_path.exists() and saved_path.stat().st_size > 1000:
+                                        images_saved += 1
+                                        batch_saved_files.append(saved_name)
+                                        audio_saved = True
+                                        logger.info(f"✅ Áudio de narração salvo com sucesso: {saved_name} ({saved_path.stat().st_size} bytes) em {target_dir.name}!")
+                                        # Cancelar imediatamente para economizar GPU e ignorar erro subsequente dos nós 357/370
+                                        cancel_runninghub_task(page)
+                                        break
+                                    else:
+                                        logger.warning("⚠️ Arquivo de áudio temporário ou incompleto detectado. Continuando monitoramento...")
+                        if audio_saved:
+                            break
+
+                        if elapsed_sec > max_wait_audio:
+                            logger.warning(f"⚠️ Limite máximo de espera por áudio de narração atingido ({max_wait_audio}s).")
+                            break
+
+                        time.sleep(2)
+
                 # ── ESTRATÉGIA B: CONTA 2 (Real-Time Single — 1 a 1 antes de sobrescrever) ──
                 else:
                     logger.info(f"⚡ [Conta 2] Monitoramento contínuo no Nó #{out_node} (salvando 1 a 1 em tempo real sem timeout)...")
@@ -2159,14 +2404,34 @@ def run_factory_bot(
                 pass
 
 
+def run_narration_bot(
+    script: str,
+    emotion: Optional[str] = None,
+    speed: float = 1.0,
+    destination_dir: Optional[Path] = None,
+    timeout_sec: int = 300,
+) -> Dict[str, Any]:
+    """Dispara a geração de áudio no CosyVoice via RunningHub e retorna os metadados do áudio gerado."""
+    return run_factory_bot(
+        account=4,
+        destination_dir=destination_dir or FINAL_AUDIO_DIR,
+        custom_script_text=script,
+        custom_emotion_text=emotion,
+        custom_speed=speed,
+    )
+
+
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="RunningHub ComfyUI Automation Bot (Dual-Account)")
-    parser.add_argument("--account", type=int, default=1, choices=[1, 2], help="RunningHub Account: 1 (Raw Producer) or 2 (SeedVR 8K Upscaler)")
-    parser.add_argument("--node", type=int, default=None, help="Output Node ID (default: 121 for Conta 1, 55 for Conta 2)")
+    parser.add_argument("--account", default="1", help="RunningHub Account: 1 (Raw Producer), 2 (SeedVR 8K), 3 (Video 4K), 4 (CosyVoice Narration)")
+    parser.add_argument("--node", type=int, default=None, help="Output Node ID (default: 121 for Conta 1, 55 for Conta 2, 346 for CosyVoice)")
     parser.add_argument("--batch-size", type=int, default=210, help="Number of images per batch (default: 210)")
     parser.add_argument("--batches", type=int, default=1, help="Number of consecutive batches (default: 1)")
     parser.add_argument("--all-batches", action="store_true", help="Run until queue is exhausted")
+    parser.add_argument("--script", type=str, default=None, help="Script text for CosyVoice narration")
+    parser.add_argument("--emotion", type=str, default=None, help="Emotion and tone instruction for CosyVoice")
+    parser.add_argument("--speed", type=float, default=1.0, help="Voice speed (default: 1.0)")
     args = parser.parse_args()
 
     run_factory_bot(
@@ -2175,4 +2440,7 @@ if __name__ == "__main__":
         batch_size=args.batch_size,
         max_batches=args.batches,
         all_batches=args.all_batches,
+        custom_script_text=args.script,
+        custom_emotion_text=args.emotion,
+        custom_speed=args.speed,
     )
