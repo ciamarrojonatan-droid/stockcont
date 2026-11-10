@@ -1,29 +1,26 @@
 # StockCont Pipeline State
 > Sincronizado automaticamente por hooks e comandos do ecossistema.
 
-## Sprint Atual: RunningHub CosyVoice REST API Bridge & Desktop CDP Automation (SaveAudio #346)
+## Sprint Atual: Deepgram Aura Neural Narration & Cinematic Audio Engine
 - **Status da Sprint**: [CONCLUÍDO & TOTALMENTE OPERACIONAL]:
-  1. **Bridge REST CosyVoice no RunningHub (`http://localhost:8501/api/v1/narrate`)**:
-     - Transforma a tela do ComfyUI no RunningHub (workflow `2118531898170486785`) em uma API REST de alta fidelidade para narrações com controle de emoção e velocidade.
-     - Injeção dinâmica no **Nó #345** (Roteiro), **Nó #355** (Instrução de emoção/tom) e **Nó #352** (Velocidade `speed`).
-     - Execução automática via botão **Lite/Plus** no RunningHub.
-     - Captura direta do áudio no **Nó #346 (`SaveAudio`)** com salvamento atômico em `data/final/audio/narration_<id>.flac` (lossless FLAC de alta resolução).
-     - Auto-cancelamento atômico pós-gravação para poupar GPU e ignorar com sucesso qualquer falha nos nós residuais #357 e #370.
-  2. **Arquitetura Anti-Isolamento de Desktop Windows (CDP Bridge)**:
-     - Resolução definitiva do isolamento de desktops (`Desktop: exebox` vs `Desktop: Default`) no Windows Sandbox via `ensure_chrome_cdp_desktop()`.
-     - Iniciação de Chrome interativo no monitor do usuário (`WinSta0\Default`) com porta de depuração `9222` e clonagem automática de perfil/cookies para evitar re-logins.
-     - Conexão e controle via Chrome DevTools Protocol (CDP) com reconexão resiliente.
-  3. **Endpoints REST Ativos**:
-     - `POST /api/v1/narrate` (Geração síncrona com resposta JSON contendo `audio_file`, `duration_sec`, `size_bytes`).
-     - `POST /api/narration/generate` (Alias síncrono).
-     - `POST /api/narration/task` (Disparo assíncrono em background).
-     - `GET /api/narration/items` (Listagem de áudios gerados com metadata).
-     - `GET /api/audio/file/{filename}` (Streaming e download direto de áudio).
+  1. **Motor de Voz Deepgram Aura REST API (Instantâneo & Comercial)**:
+     - Integração direta em `src/video/voice_engine.py` utilizando os **$200 USD em créditos comerciais gratuitos** (sem cartão e sem expiração).
+     - Voz padrão oficial para DarkFactory: **`aura-helios-en`** (Barítono britânico profundo, estilo Christopher Nolan / BBC).
+     - Catálogo de vozes ativas: `aura-helios-en`, `aura-asteria-en`, `aura-arcas-en`, `aura-zeus-en`, `aura-orpheus-en`, `aura-athena-en`, `aura-luna-en`, `aura-angus-en`.
+     - Síntese instantânea em ~1.5s via chamada HTTP REST pura (zero RPA, zero navegador aberto).
+     - Geração automática de legendas sincronizadas `.srt`.
+     - Endpoints REST `/api/v1/narrate` e `/api/narration/generate` atualizados para priorizar Deepgram quando configurado, com fallback gracioso para CosyVoice/Kokoro.
+  2. **Motor de Trilha Sonora Procedural & Ducking (`src/video/audio_engine.py`)**:
+     - Síntese acústica autônoma 48kHz 16-bit com arquitetura Hans Zimmer / Ludwig Göransson: drone sub-bass (55Hz), modulação LFO, dissonância e relógio analógico de tensão a 60 BPM (estilo Dunkirk / Oppenheimer).
+     - Perfis acústicos nativos: `cold_war_espionage`, `deep_space_scifi`, `cyber_warfare`, `historical_tragedy`.
+     - Mixagem profissional via FFmpeg com ducking inteligente (reduz a trilha quando a narração atua, garantindo 100% de inteligibilidade vocal).
+  3. **Bridge REST CosyVoice no RunningHub (`http://localhost:8501/api/v1/narrate`)**:
+     - Suporte mantido para workflow `2118531898170486785` no RunningHub com injeção no Nó #345, Nó #355 e Nó #352 e captura no Nó #346 (`SaveAudio`).
   4. **Validação & Testes Automatizados**:
-     - `tests/test_narration.py` (7/7 passing)
-     - Suíte de testes completa do repositório: **257/257 passing** (100% green).
-     - Geração real validada ponta a ponta: `narration_70acc855.flac` (660,417 bytes) com narração Cold War estilo Christopher Nolan / BBC.
-- **Última Atualização**: 2026-11-09 22:54
+     - `tests/test_voice_and_audio_engines.py` (10/10 passing).
+     - `tests/test_narration.py` (7/7 passing).
+     - Suíte de testes completa do repositório: **257/257 testes aprovados (100% green)**.
+- **Última Atualização**: 2026-11-09 22:56
 - **Modo Operacional**: Dual-Mode (Antigravity & Claude Code via SSOT `PROJECT_CONTEXT.md`)
 
 ---
