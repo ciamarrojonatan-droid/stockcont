@@ -50,6 +50,8 @@ class H3VideoResult:
     engine: str  # 'minimax_h3_cinematic_runninghub' or 'procedural_fallback'
     filesize_bytes: int
     has_watermark: bool = False
+    has_audio: bool = False
+    audio_codec: Optional[str] = None
 
 
 class MiniMaxH3VideoEngine:
@@ -131,6 +133,15 @@ class MiniMaxH3VideoEngine:
                     target_file = self.output_dir / fn
                     if target_file.exists() and target_file.suffix.lower() in (".mp4", ".mov", ".webm"):
                         logger.info(f"✅ MiniMax H3 video extracted without watermark from Node #107: {target_file.name}")
+                        has_audio = False
+                        audio_codec = None
+                        try:
+                            from src.video.ffmpeg_processor import probe_video
+                            props = probe_video(target_file)
+                            has_audio = props.has_audio
+                            audio_codec = props.audio_codec
+                        except Exception as pe:
+                            logger.warning(f"Aviso ao analisar streams do vídeo {target_file.name}: {pe}")
                         return H3VideoResult(
                             video_path=target_file,
                             filename=target_file.name,
@@ -140,6 +151,8 @@ class MiniMaxH3VideoEngine:
                             engine="minimax_h3_cinematic_runninghub",
                             filesize_bytes=target_file.stat().st_size,
                             has_watermark=False,
+                            has_audio=has_audio,
+                            audio_codec=audio_codec,
                         )
             except Exception as e:
                 logger.warning(
@@ -147,14 +160,23 @@ class MiniMaxH3VideoEngine:
                     f"Activating procedural cinematic fallback synthesis."
                 )
 
-        # Procedural fallback synthesis (generates high-definition 16:9 cinematic motion video)
+        # Procedural fallback synthesis (generates high-definition 16:9 cinematic motion video with audio)
         out_video = self._generate_procedural_video(
             prompt=prompt,
             reference_image_path=ref_p,
             duration_sec=duration_sec,
             destination_path=destination_path,
         )
-        logger.info(f"✅ MiniMax H3 video generated via procedural fallback: {out_video.name}")
+        has_audio = False
+        audio_codec = None
+        try:
+            from src.video.ffmpeg_processor import probe_video
+            props = probe_video(out_video)
+            has_audio = props.has_audio
+            audio_codec = props.audio_codec
+        except Exception:
+            pass
+        logger.info(f"✅ MiniMax H3 video generated via procedural fallback: {out_video.name} (has_audio={has_audio}, audio_codec={audio_codec})")
         return H3VideoResult(
             video_path=out_video,
             filename=out_video.name,
@@ -164,6 +186,8 @@ class MiniMaxH3VideoEngine:
             engine="procedural_fallback",
             filesize_bytes=out_video.stat().st_size,
             has_watermark=False,
+            has_audio=has_audio,
+            audio_codec=audio_codec,
         )
 
     def _generate_procedural_video(
@@ -173,10 +197,14 @@ class MiniMaxH3VideoEngine:
         duration_sec: float = 10.0,
         destination_path: Optional[Union[Path, str]] = None,
     ) -> Path:
-        """Synthesizes a 1080p widescreen 16:9 cinematic MP4 video clip with subtle motion drift.
+        """Synthesizes a 1080p widescreen 16:9 cinematic MP4 video clip with motion drift and audio.
 
         Ensures zero watermark and deterministic high-definition video output.
         """
+        import subprocess
+        import wave
+        from src.video.ffmpeg_processor import get_ffmpeg_binary
+
         width = 1920
         height = 1080
         fps = 24
@@ -188,6 +216,10 @@ class MiniMaxH3VideoEngine:
         else:
             timestamp = int(time.time())
             out_p = self.output_dir / f"minimax_h3_cinematic_{timestamp}.mp4"
+
+        # Temporary files for silent video and synthesized tension audio
+        temp_silent = out_p.with_name(f"{out_p.stem}_silent.mp4")
+        temp_audio = out_p.with_name(f"{out_p.stem}_audio.wav")
 
         # Load reference base image if available, else build a dramatic film noir gradient canvas
         base_canvas = None
@@ -208,9 +240,9 @@ class MiniMaxH3VideoEngine:
             base_canvas[:, :, 1] = y_coords  # Green
             base_canvas[:, :, 2] = (y_coords * 0.8).astype(np.uint8)  # Red
 
-        # Initialize VideoWriter
+        # Initialize VideoWriter for temporary silent stream
         fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-        writer = cv2.VideoWriter(str(out_p), fourcc, fps, (width, height))
+        writer = cv2.VideoWriter(str(temp_silent), fourcc, fps, (width, height))
 
         max_dx = base_canvas.shape[1] - width
         max_dy = base_canvas.shape[0] - height
@@ -233,4 +265,60 @@ class MiniMaxH3VideoEngine:
             writer.write(noisy_frame)
 
         writer.release()
+
+        # Synthesize 48kHz cinematic tension audio
+        sample_rate = 48000
+        n_samples = int(sample_rate * duration_sec)
+        t = np.linspace(0, duration_sec, n_samples, endpoint=False)
+        # Deep tension drone (55Hz) with subtle harmonic (110Hz) and gentle breathing tremolo
+        drone = np.sin(2 * np.pi * 55 * t) * (0.35 + 0.05 * np.sin(2 * np.pi * 0.5 * t))
+        harm = np.sin(2 * np.pi * 110 * t) * 0.12
+        ambience = np.random.normal(0, 0.01, n_samples)
+        audio = drone + harm + ambience
+        # 0.2s fade-in and fade-out
+        fade_len = min(int(0.2 * sample_rate), n_samples // 4)
+        if fade_len > 0:
+            audio[:fade_len] *= np.linspace(0, 1, fade_len)
+            audio[-fade_len:] *= np.linspace(1, 0, fade_len)
+        int_audio = (np.clip(audio, -1.0, 1.0) * 32767).astype(np.int16)
+        stereo_audio = np.column_stack((int_audio, int_audio)).flatten()
+
+        with wave.open(str(temp_audio), "wb") as wf:
+            wf.setnchannels(2)
+            wf.setsampwidth(2)
+            wf.setframerate(sample_rate)
+            wf.writeframes(stereo_audio.tobytes())
+
+        # Mux video and audio via FFmpeg
+        try:
+            ffmpeg_bin = get_ffmpeg_binary()
+            subprocess.run([
+                ffmpeg_bin, "-y",
+                "-i", str(temp_silent),
+                "-i", str(temp_audio),
+                "-c:v", "libx264",
+                "-pix_fmt", "yuv420p",
+                "-c:a", "aac",
+                "-b:a", "192k",
+                "-shortest",
+                str(out_p)
+            ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        except Exception as e:
+            logger.warning(f"Aviso ao muxar áudio com FFmpeg ({e}). Usando vídeo original: {temp_silent.name}")
+            if temp_silent.exists():
+                if out_p.exists():
+                    out_p.unlink()
+                temp_silent.replace(out_p)
+        finally:
+            if temp_silent.exists():
+                try:
+                    temp_silent.unlink()
+                except Exception:
+                    pass
+            if temp_audio.exists():
+                try:
+                    temp_audio.unlink()
+                except Exception:
+                    pass
+
         return out_p

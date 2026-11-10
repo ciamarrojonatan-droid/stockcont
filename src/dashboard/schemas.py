@@ -269,3 +269,5 @@ class MiniMaxH3VideoResponse(BaseModel):
     engine: Optional[str] = None
     size_bytes: Optional[int] = None
     has_watermark: bool = False
+    has_audio: bool = False
+    audio_codec: Optional[str] = None

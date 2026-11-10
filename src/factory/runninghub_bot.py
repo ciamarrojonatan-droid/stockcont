@@ -858,6 +858,13 @@ def get_node_videos(page: Page, node_id: int) -> List[str]:
                         }
                     }
                 }
+                // Também coletar elementos <video> renderizados no DOM do frame (ex: FeiHou Video Preview)
+                const domVids = Array.from(document.querySelectorAll('video'));
+                for (let v of domVids) {
+                    const isOld = v && v.getAttribute && v.getAttribute('data-pre-existing') === 'true';
+                    const s = v ? (v.src || v.currentSrc) : null;
+                    if (s && !isOld) res.push(s);
+                }
                 return Array.from(new Set(res.filter(Boolean)));
             }""", node_id)
             if vids:
@@ -995,6 +1002,13 @@ def get_node_audios(page: Page, node_id: int) -> List[str]:
                     if (src && (src.includes('audio') || src.includes('.flac') || src.includes('.mp3') || src.includes('.wav') || src.includes('view?'))) {
                         res.push(src);
                     }
+                }
+                // Também coletar elementos <video> renderizados no DOM do frame (ex: FeiHou Video Preview)
+                const domVids = Array.from(document.querySelectorAll('video'));
+                for (let v of domVids) {
+                    const isOld = v && v.getAttribute && v.getAttribute('data-pre-existing') === 'true';
+                    const s = v ? (v.src || v.currentSrc) : null;
+                    if (s && !isOld) res.push(s);
                 }
                 return Array.from(new Set(res.filter(Boolean)));
             }""", node_id)
@@ -2063,16 +2077,12 @@ def run_factory_bot(
                         if pending_v:
                             v_item = pending_v[0]
                             p_text_video = v_item.prompt_text
+                    # MiniMax H3 opera por padrão em modo T2V (Text-to-Video).
+                    # Load Image (Nó #48) só é acionado se explicitamente solicitado via input_image_path (I2V / REF2V).
                     if input_image_path and Path(input_image_path).exists():
                         ref_img = Path(input_image_path)
-                    elif v_item and v_item.reference_image:
-                        cand = BASE_DIR / v_item.reference_image if not Path(v_item.reference_image).is_absolute() else Path(v_item.reference_image)
-                        if cand.exists():
-                            ref_img = cand
-                    if not ref_img and FINAL_IMAGES_DIR.exists():
-                        cand_imgs = sorted(list(FINAL_IMAGES_DIR.glob("*.jpg")) + list(FINAL_IMAGES_DIR.glob("*.png")), key=lambda f: f.stat().st_mtime, reverse=True)
-                        if cand_imgs:
-                            ref_img = cand_imgs[0]
+                    else:
+                        ref_img = None
 
                 batch_count += 1
                 batch_prompts = [p.prompt_text for p in current_pending]
@@ -2247,11 +2257,21 @@ def run_factory_bot(
                     dur_node = cfg.get("duration_node", 66)
                     dur_val = float(custom_video_duration or 10.0)
 
+                    # Injeção de imagem APENAS quando explicitamente solicitado (I2V / REF2V)
                     if ref_img and ref_img.exists():
                         target_ar = "16:9"
                         upload_ref = optimize_reference_image_for_video(ref_img, aspect_ratio=target_ar)
-                        logger.info(f"📤 [MiniMax H3] Injetando imagem de referência ({upload_ref.name}) no Nó #{in_img_node} (Load Image 图1)...")
+                        logger.info(f"📤 [MiniMax H3] Modo I2V/REF2V: Injetando imagem de referência ({upload_ref.name}) no Nó #{in_img_node} (Load Image 图1)...")
                         upload_image_to_node(page, comfy_frame, in_img_node, upload_ref)
+                        effective_wait = upload_wait_sec if upload_wait_sec is not None else cfg.get("upload_wait_sec", DEFAULT_IMAGE_UPLOAD_WAIT_SEC)
+                        logger.info(f"⏳ [MiniMax H3] Aguardando {effective_wait}s para o servidor carregar a imagem no Nó #{in_img_node}...")
+                        for s in range(effective_wait, 0, -5):
+                            chunk = min(5, s)
+                            logger.info(f"⏳ [Nó #{in_img_node} Load Image] Carregando imagem... {s}s restantes")
+                            time.sleep(chunk)
+                        logger.info(f"✅ [Nó #{in_img_node} Load Image] Imagem pronta.")
+                    else:
+                        logger.info("🎬 [MiniMax H3] Modo T2V (Text-to-Video) ativo: Geração 100% por prompt, sem injeção de imagem.")
 
                     if p_text_video:
                         logger.info(f"📝 [MiniMax H3] Injetando prompt cinemático no Nó #{p_node}...")
@@ -2274,14 +2294,6 @@ def run_factory_bot(
                         logger.info(f"⏱️ [MiniMax H3] Duração configurada para {dur_val}s no Nó #{dur_node}.")
                     except Exception as e:
                         logger.warning(f"⚠️ Aviso ao configurar duração no Nó #{dur_node}: {e}")
-
-                    effective_wait = upload_wait_sec if upload_wait_sec is not None else cfg.get("upload_wait_sec", DEFAULT_IMAGE_UPLOAD_WAIT_SEC)
-                    logger.info(f"⏳ [MiniMax H3] Aguardando {effective_wait}s para o servidor carregar a imagem no Nó #{in_img_node} (Load Image) antes de acionar Executar (Lite/Plus)...")
-                    for s in range(effective_wait, 0, -5):
-                        chunk = min(5, s)
-                        logger.info(f"⏳ [Nó #{in_img_node} Load Image] Carregando imagem no servidor... {s}s restantes antes de liberar o botão Executar")
-                        time.sleep(chunk)
-                    logger.info(f"✅ [Nó #{in_img_node} Load Image] Janela de {effective_wait}s concluída com sucesso! Imagem pronta.")
 
                 # Captura pré-existente no nó de saída
                 initial_node_images = get_node_images(page, out_node) if account not in (3, 4, 5, 7) and cfg.get("role") not in ("video_4k_generator", "video_minimax_h3_cinematic", "audio_narration_cosyvoice", "soundtrack_minimax_music") else []
@@ -2464,7 +2476,8 @@ def run_factory_bot(
                                                      /Fila/i.test(bodyText);
                                 const timerMatch = bodyText.match(/Gerando\s+(\d{1,2}:\d{2})/);
                                 const timer = timerMatch ? timerMatch[1] : null;
-                                const hasFailed = bodyText.includes('TarefaFalha') && !isGenerating;
+                                const activeError = document.querySelector('.ant-modal-confirm-error, .ant-notification-notice-error, .ant-message-error');
+                                const hasFailed = !!activeError && !isGenerating;
                                 return { isGenerating, timer, hasFailed };
                             }""")
                         except Exception:
@@ -2493,13 +2506,7 @@ def run_factory_bot(
                                 logger.info(f"⏳ [{tag_v}] Aguardando início do processamento no servidor ({elapsed_sec}s decorridos)...")
                             last_heartbeat = now
 
-                        # Se reportou falha na tarefa
-                        if has_failed and generation_started:
-                            logger.error("❌ Tarefa reportou 'TarefaFalha' no painel do RunningHub!")
-                            break
-
-                        # 2. Só verificar e extrair o vídeo NOVO quando NÃO estiver mais 'Gerando'
-                        # E com segurança adicional de que não seja um resíduo pré-existente
+                        # 2. Verificar e extrair o vídeo NOVO (quando não estiver gerando ou decorridos 180s)
                         if (not is_generating and generation_started) or (elapsed_sec >= 180 and not is_generating):
                             current_node_videos = get_node_videos(page, out_node)
                             new_vids = [v for v in current_node_videos if v not in initial_node_videos]
@@ -2510,8 +2517,8 @@ def run_factory_bot(
                                     saved_name = save_video_from_src(page, candidate_vid, destination_dir=target_dir, prefix=cfg["prefix"])
                                     if saved_name:
                                         saved_path = target_dir / saved_name
-                                        # Validação de tamanho: vídeo finalizado deve ter tamanho consistente (> 1 MB)
-                                        if saved_path.exists() and saved_path.stat().st_size > 1000000:
+                                        # Validação de tamanho: vídeo finalizado deve ter tamanho consistente (> 100 KB)
+                                        if saved_path.exists() and saved_path.stat().st_size > 100000:
                                             images_saved += 1
                                             batch_saved_files.append(saved_name)
                                             video_saved = True
@@ -2524,11 +2531,13 @@ def run_factory_bot(
                                                 logger.info("🛑 Cancelando tarefa ativa no RunningHub pós-salvamento para economizar créditos GPU...")
                                                 cancel_runninghub_task(page)
                                             break
-                                        else:
-                                            sz = saved_path.stat().st_size // 1024 if saved_path.exists() else 0
-                                            logger.warning(f"⚠️ Vídeo temporário detectado possui tamanho reduzido ({sz} KB). Continuando espera pelo render completo...")
                                 if video_saved:
                                     break
+
+                        # Se reportou falha e nenhum vídeo pôde ser resgatado
+                        if has_failed and generation_started:
+                            logger.error("❌ Tarefa reportou erro ativo no painel do RunningHub!")
+                            break
 
                         # Timeout de segurança de 30/60 minutos
                         if elapsed_sec > max_wait_video:

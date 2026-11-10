@@ -69,6 +69,22 @@ class TestMiniMaxH3VideoEngine:
         assert result.filesize_bytes > 1000
         assert result.has_watermark is False
         assert result.duration_seconds == 1.0
+        assert result.has_audio is True
+        assert result.audio_codec == "aac"
+
+    def test_procedural_fallback_4_seconds_with_audio(self, tmp_path):
+        engine = MiniMaxH3VideoEngine(output_dir=tmp_path)
+        result = engine.generate_video(
+            prompt="Soviet duty officer inside bunker 4 seconds",
+            duration_sec=4.0,
+            force_procedural=True,
+        )
+        assert isinstance(result, H3VideoResult)
+        assert result.engine == "procedural_fallback"
+        assert result.duration_seconds == 4.0
+        assert result.has_audio is True
+        assert result.audio_codec == "aac"
+        assert result.has_watermark is False
 
     def test_procedural_fallback_with_reference_image(self, tmp_path):
         # Create a dummy reference image

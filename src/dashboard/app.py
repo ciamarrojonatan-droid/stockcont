@@ -1214,6 +1214,8 @@ async def generate_minimax_h3_endpoint(req: schemas.MiniMaxH3VideoRequest):
             engine=res.engine,
             size_bytes=res.filesize_bytes,
             has_watermark=res.has_watermark,
+            has_audio=res.has_audio,
+            audio_codec=res.audio_codec,
         )
     except Exception as e:
         logger.error(f"Erro na geração de vídeo MiniMax H3: {e}")

@@ -10,17 +10,21 @@
      - Nó #14 (`PrimitiveFloat`): Duração em segundos (padrão 180.0s).
      - Nó #7 (`SaveAudioAdvanced`): Saída FLAC Lossless pura.
      - Botão Lite/Plus mandatório (ADR-08).
-  2. **MiniMax H3 Cinematic V2 Turbo — Fallback de Vídeo sem Marca D'água (ADR-11)**:
+  2. **MiniMax H3 Cinematic V2 Turbo — T2V Puro com Áudio e Saída sem Marca D'água (ADR-11)**:
      - Workflow 2118560390471745537 na Conta 7 (`minimax_h3`).
-     - Nó #35 (Prompt cinematográfico) + Nó #48 (Imagem de referência 图1) + Nó #66 (Duração 10.0s).
-     - Nó #107 (`FeiHouVideoPreview`): Saída final de vídeo sem watermark do RunningHub.
+     - Nó #35 (Prompt cinematográfico) + Nó #66 (Duração parametrizada, ex: 4.0s).
+     - Modo T2V Puro: Ingestão de imagem desativada (Node #48 `LoadImage` é acionado EXCLUSIVAMENTE para I2V/REF2V sob demanda).
+     - Nó #107 (`FeiHouVideoPreview`): Saída final de vídeo MP4 1080p com áudio sincronizado (AAC) sem watermark do RunningHub.
      - Botão Lite/Plus mandatório (ADR-08).
+     - Render validado em GPU real: `minimax_h3_t2v_real_8b2b728d.mp4` (2.06 MB, 4.46s, 1824x1024 @ 24fps, áudio AAC, sem marca d'água).
+     - Resiliência RPA aprimorada: detecção de vídeo via DOM no nó FeiHou e blindagem contra falsos positivos de `TarefaFalha` de tarefas históricas.
   3. **Validação & Testes Automatizados**:
+     - `tests/test_minimax_h3_video.py` (13/13 passing).
      - `tests/test_minimax_music.py` (10/10 passing).
      - `tests/test_voice_and_audio_engines.py` (11/11 passing).
      - `tests/test_runninghub_execution_mode.py` (31/31 passing).
-     - Suíte completa de testes: 100% green.
-- **Última Atualização**: 2026-11-10 05:15
+     - Suíte completa de testes: 312 testes 100% green.
+- **Última Atualização**: 2026-11-10 06:05
 - **Modo Operacional**: Dual-Mode (Antigravity & Claude Code via SSOT `PROJECT_CONTEXT.md`)
 
 ---
@@ -30,7 +34,7 @@
 | Fase / Módulo | Status | Contagem / Métricas | Próxima Ação Recomendada |
 | :--- | :--- | :--- | :--- |
 | **MiniMax Music 3 (Soundtrack Engine)** | 🟢 100% Instrumental (Zero Vocais) | **Workflow 2120003151633174529**: Estilo #15 \| Estrutura Instrumental #16 (`[Instrumental]`) \| Duração #14 \| **Saída FLAC #7** \| Lite/Plus (ADR-08/10) | `/api/v1/music/generate` |
-| **MiniMax H3 Cinematic (Fallback Vídeo)** | 🟢 Operacional & Calibrado | **Workflow 2118560390471745537 (Conta 7)**: Prompt #35 \| Imagem #48 (图1) \| Duração #66 (10s) \| **Vídeo sem watermark #107 FeiHou** \| Lite/Plus (ADR-08/11) | `/api/v1/video/minimax_h3` |
+| **MiniMax H3 Cinematic (T2V & Áudio)** | 🟢 Operacional & Calibrado | **Workflow 2118560390471745537 (Conta 7)**: Prompt #35 \| Duração #66 (4.0s) \| T2V Puro (sem imagem) \| **Vídeo com áudio AAC sem watermark #107 FeiHou** \| Lite/Plus (ADR-08/11) | `/api/v1/video/minimax_h3` |
 | **Conta 4: Audio Command Center** | 🟢 Operacional & Calibrado | **CosyVoice + MiniMax Music 3**: Trilha 4 atos (#15/#16/#14 ➔ #7 FLAC) \| Narração Lossless CosyVoice (#345/#355 ➔ #346) \| Multitrack 3-Stem (-14 LUFS) | `/api/v1/music/generate`, `/api/v1/audio/mix` |
 | **Hierarquia Vocal & NarratorLock** | 🟢 Ativo & Travado | **Tier 1 CosyVoice ➔ Tier 2 Kokoro ➔ Tier 3 Deepgram**: Invariante de voz única por vídeo garantido via `narrator_locks.json` | `python main.py --video` |
 | **Google Flow Industrial API & RPA** | 🟢 Operacional & Calibrado | **FastAPI REST Server (`src/integrations/google_flow/`)**: Swagger em `/docs` \| Família Veo 3.1 (Quality/Fast/Lite, 8s) + Omni 1.2 Flash (5s) + Imagen 3 \| Auto-aprovação autônoma de permissão de créditos ('Sempre aprovar') \| Anti-race condition com verificação de busy/spinners \| Detecção resiliente de tiles (`flow-video-tile`, `flow-grid-tile-container`) \| Download com upscale nativo 1K/2K/4K com fallback 720p \| Audio stripping não-bloqueante (`-an`) \| Proteção contra profile lock (`try...finally`) \| Ledger SHA-256 \| Ativo gerado e baixado em disco: `Soviet_radar_bunker_rotating_beacon_faedd1a6.mp4` (3.78 MB) | `python main.py --flow-serve` ou `--flow-generate` |
