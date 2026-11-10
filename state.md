@@ -1,26 +1,25 @@
 # StockCont Pipeline State
 > Sincronizado automaticamente por hooks e comandos do ecossistema.
 
-## Sprint Atual: Deepgram Aura Neural Narration & Cinematic Audio Engine
+## Sprint Atual: Master Voice Router & Invariante de Narrador Único por Vídeo (ADR-09)
 - **Status da Sprint**: [CONCLUÍDO & TOTALMENTE OPERACIONAL]:
-  1. **Motor de Voz Deepgram Aura REST API (Instantâneo & Comercial)**:
-     - Integração direta em `src/video/voice_engine.py` utilizando os **$200 USD em créditos comerciais gratuitos** (sem cartão e sem expiração).
-     - Voz padrão oficial para DarkFactory: **`aura-helios-en`** (Barítono britânico profundo, estilo Christopher Nolan / BBC).
-     - Catálogo de vozes ativas: `aura-helios-en`, `aura-asteria-en`, `aura-arcas-en`, `aura-zeus-en`, `aura-orpheus-en`, `aura-athena-en`, `aura-luna-en`, `aura-angus-en`.
-     - Síntese instantânea em ~1.5s via chamada HTTP REST pura (zero RPA, zero navegador aberto).
-     - Geração automática de legendas sincronizadas `.srt`.
-     - Endpoints REST `/api/v1/narrate` e `/api/narration/generate` atualizados para priorizar Deepgram quando configurado, com fallback gracioso para CosyVoice/Kokoro.
-  2. **Motor de Trilha Sonora Procedural & Ducking (`src/video/audio_engine.py`)**:
-     - Síntese acústica autônoma 48kHz 16-bit com arquitetura Hans Zimmer / Ludwig Göransson: drone sub-bass (55Hz), modulação LFO, dissonância e relógio analógico de tensão a 60 BPM (estilo Dunkirk / Oppenheimer).
-     - Perfis acústicos nativos: `cold_war_espionage`, `deep_space_scifi`, `cyber_warfare`, `historical_tragedy`.
-     - Mixagem profissional via FFmpeg com ducking inteligente (reduz a trilha quando a narração atua, garantindo 100% de inteligibilidade vocal).
-  3. **Bridge REST CosyVoice no RunningHub (`http://localhost:8501/api/v1/narrate`)**:
-     - Suporte mantido para workflow `2118531898170486785` no RunningHub com injeção no Nó #345, Nó #355 e Nó #352 e captura no Nó #346 (`SaveAudio`).
+  1. **Hierarquia Oficial de Narração Estabelecida**:
+     - **Tier 1 (Padrão Ouro Lossless)**: CosyVoice Neural via ComfyUI no RunningHub (Workflow `2118531898170486785`, nós #345/#355/#352 e captura lossless FLAC #346).
+     - **Tier 2 (Fallback 1)**: Kokoro Neural LOCAL (`bm_george` britânico BBC / Nolan, zero custo, local CPU).
+     - **Tier 3 (Fallback 2)**: Deepgram Aura REST API (`aura-helios-en` barítono, 1.6s, $200 USD comerciais).
+  2. **Invariante Mandatório de Unidade Vocal (`NarratorLock`)**:
+     - Módulo `src/video/voice_router.py` implementado com persistência atômica em `data/processed/narrator_locks.json`.
+     - Uma vez que a **Cena 1** define o narrador/motor do vídeo, todas as cenas seguintes do mesmo projeto ficam estritamente travadas naquele motor e voz.
+     - Bloqueio ativo contra contaminação vocal: alternância de narradores no mesmo vídeo gera `NarratorConsistencyViolationError`.
+  3. **Diagnóstico Hugging Face MusicGen & Estratégia RunningHub**:
+     - Constatado que a infraestrutura gratuita de serverless do Hugging Face (`hf-inference`) descontinuou inferência gratuita em GPU para modelos pesados como MusicGen (`inference: None`).
+     - Mapeamento e especificação dos workflows recomendados do RunningHub para Música (AudioCraft / Stable Audio Open / ACE-Step), SFX/Foley (MMAudio / FoleyCrafter) e Dublagem/Lipsync (CosyVoice 2 / F5-TTS / LivePortrait).
   4. **Validação & Testes Automatizados**:
+     - `tests/test_voice_router.py` (5/5 passing).
      - `tests/test_voice_and_audio_engines.py` (10/10 passing).
      - `tests/test_narration.py` (7/7 passing).
-     - Suíte de testes completa do repositório: **257/257 testes aprovados (100% green)**.
-- **Última Atualização**: 2026-11-09 22:56
+     - Suíte de testes completa do repositório: **262/262 testes aprovados (100% green)**.
+- **Última Atualização**: 2026-11-09 23:50
 - **Modo Operacional**: Dual-Mode (Antigravity & Claude Code via SSOT `PROJECT_CONTEXT.md`)
 
 ---

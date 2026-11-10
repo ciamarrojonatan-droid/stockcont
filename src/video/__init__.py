@@ -72,6 +72,17 @@ from src.video.audio_engine import (
     SoundtrackResult,
     ACOUSTIC_PROFILES,
 )
+from src.video.voice_router import (
+    MasterVoiceRouter,
+    NarratorLock,
+    RoutedNarrationResult,
+    NarratorConsistencyViolationError,
+    ENGINE_COSYVOICE,
+    ENGINE_KOKORO_LOCAL,
+    ENGINE_DEEPGRAM,
+    DEFAULT_KOKORO_VOICE,
+    DEFAULT_DEEPGRAM_VOICE,
+)
 
 __all__ = [
     "VideoProperties",
@@ -125,4 +136,13 @@ __all__ = [
     "DarkFactoryAudioEngine",
     "SoundtrackResult",
     "ACOUSTIC_PROFILES",
+    "MasterVoiceRouter",
+    "NarratorLock",
+    "RoutedNarrationResult",
+    "NarratorConsistencyViolationError",
+    "ENGINE_COSYVOICE",
+    "ENGINE_KOKORO_LOCAL",
+    "ENGINE_DEEPGRAM",
+    "DEFAULT_KOKORO_VOICE",
+    "DEFAULT_DEEPGRAM_VOICE",
 ]

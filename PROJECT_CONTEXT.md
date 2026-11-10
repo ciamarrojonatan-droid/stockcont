@@ -312,6 +312,18 @@ Diferente de fluxos manuais de geração com IA generativa, o StockCont opera co
 - **Contexto**: O botão 'Standard' no RunningHub possui limitações de recursos e alocação inadequada de nós para esteiras de produção em escala de microstock.
 - **Decisão**: Todos os workflows (Conta 1 Raw Producer, Conta 2 SeedVR 8K Upscaler e Conta 3/Vídeo 4K) devem acionar EXCLUSIVAMENTE o botão 'Lite/Plus' (botão do meio). O botão 'Standard' é terminantemente proibido; qualquer tentativa de acioná-lo é interceptada e redirecionada em nível de código para 'Lite/Plus'.
 
+### ADR-09: Hierarquia de Narração e Invariante de Narrador Único por Vídeo
+- **Contexto**: A narração é a espinha dorsal de retenção e autoridade dos documentários do DarkFactory. Mudar de voz ou motor no meio de um vídeo (ex: cena 1 com CosyVoice e cena 2 com Kokoro) quebra a ilusão cinematográfica e destrói a retenção do espectador.
+- **Decisão**: Estabelecer hierarquia oficial tripartite gerenciada pelo `src/video/voice_router.py`:
+  1. **Tier 1 (Padrão Ouro Lossless)**: CosyVoice Neural no RunningHub ComfyUI (Workflow 2118531898170486785, nós #345/#355/#352 e saída lossless FLAC no #346).
+  2. **Tier 2 (Fallback 1)**: Kokoro Neural LOCAL (`bm_george` britânico solene / BBC / Nolan, zero custo, inferência local CPU).
+  3. **Tier 3 (Fallback 2)**: Deepgram Aura REST API (`aura-helios-en` barítono, 1.6s latência, créditos comerciais de $200).
+- **Invariante Mandatório de Unidade Vocal (`NarratorLock`)**:
+  - O narrador e motor selecionados na **Cena 1** ficam travados em `data/processed/narrator_locks.json`.
+  - Todas as cenas subsequentes (2..N) do mesmo vídeo DEVEM obrigatoriamente utilizar o mesmo narrador. É terminantemente proibido alternar vozes ou motores dentro do mesmo vídeo.
+  - Se o motor travado falhar no meio da produção, o sistema lança `NarratorConsistencyViolationError` e impede a contaminação do vídeo, oferecendo re-renderização uniforme de todas as cenas caso o usuário opte por trocar de motor.
+
+
 
 
 ---
