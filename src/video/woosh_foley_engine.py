@@ -110,6 +110,27 @@ class SonyWooshFoleyEngine:
                     elif pv.exists() and pv.suffix.lower() in (".mp4", ".mov", ".webm"):
                         found_video = pv
 
+                # Se o vídeo foi salvo no Nó #94 mas o áudio separado não foi capturado, extrair o áudio do vídeo via FFmpeg
+                if not found_audio and found_video and found_video.exists():
+                    try:
+                        from src.video.ffmpeg_processor import get_ffmpeg_binary
+                        ffmpeg_bin = get_ffmpeg_binary()
+                        extracted_wav = self.audio_output_dir / f"{found_video.stem}_extracted.wav"
+                        import subprocess
+                        cmd = [
+                            ffmpeg_bin, "-y",
+                            "-i", str(found_video),
+                            "-vn", "-acodec", "pcm_s16le",
+                            "-ar", "48000", "-ac", "2",
+                            str(extracted_wav),
+                        ]
+                        subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                        if extracted_wav.exists() and extracted_wav.stat().st_size > 1000:
+                            found_audio = extracted_wav
+                            logger.info(f"🔊 Áudio Foley extraído com sucesso do vídeo do Nó #94 FeiHou: {extracted_wav.name}")
+                    except Exception as fe:
+                        logger.warning(f"Aviso ao extrair áudio do vídeo de Foley via FFmpeg: {fe}")
+
                 if found_audio:
                     logger.info(f"✅ Sony Woosh Foley audio generated via RunningHub: {found_audio.name}")
                     return FoleyResult(

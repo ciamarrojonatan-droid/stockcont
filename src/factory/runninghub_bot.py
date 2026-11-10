@@ -2287,6 +2287,22 @@ def run_factory_bot(
                     if custom_sfx_prompt or custom_prompt_text:
                         sfx_txt = custom_sfx_prompt or custom_prompt_text
                         logger.info(f"💥 [Woosh Foley] Injetando prompt de SFX no Nó #{p_node}: '{sfx_txt[:60]}...'")
+                        # Em modo T2A ou com prompt customizado, desconectar eventuais links de entrada (ex: de Llama-cpp) para priorizar o prompt explícito
+                        try:
+                            comfy_frame.evaluate("""(id) => {
+                                if (typeof window.app !== 'undefined' && window.app.graph) {
+                                    const node = window.app.graph.getNodeById(id);
+                                    if (node && node.inputs) {
+                                        for (let i = 0; i < node.inputs.length; i++) {
+                                            if (node.inputs[i].link != null) {
+                                                node.disconnectInput(i);
+                                            }
+                                        }
+                                    }
+                                }
+                            }""", p_node)
+                        except Exception as e:
+                            logger.warning(f"Aviso ao desconectar links no Nó #{p_node}: {e}")
                         inject_video_prompt_to_node(comfy_frame, p_node, sfx_txt)
                         time.sleep(1.0)
 
