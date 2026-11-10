@@ -13,7 +13,12 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from src.integrations.google_flow.config import GOOGLE_FLOW_SESSION_DIR, GOOGLE_FLOW_WEB_URL
+from src.integrations.google_flow.config import (
+    GOOGLE_FLOW_SESSION_DIR,
+    GOOGLE_FLOW_WEB_URL,
+    MODEL_DEFAULT_DURATIONS,
+    MODEL_FORMAL_NAMES,
+)
 
 logger = logging.getLogger("GoogleFlowStealthDriver")
 
@@ -123,9 +128,13 @@ class GoogleFlowStealthDriver:
 
         # 0. Format prompt directives for Google Flow AI Agent
         dispatch_prompt = prompt.strip()
-        if is_video and not any(k in dispatch_prompt.lower() for k in ["vídeo", "video", "veo"]):
+        model_key = model.lower().strip()
+        formal_model = MODEL_FORMAL_NAMES.get(model_key, "Veo 3.1 - Quality")
+        calibrated_duration = MODEL_DEFAULT_DURATIONS.get(model_key, duration_seconds)
+
+        if is_video and not any(k in dispatch_prompt.lower() for k in ["vídeo", "video", "veo", "omni"]):
             dispatch_prompt = (
-                f"Crie um vídeo cinemático em {aspect_ratio} ({duration_seconds}s) usando Veo 2: {dispatch_prompt}"
+                f"Crie um vídeo cinemático em {aspect_ratio} com duração de {calibrated_duration}s usando o modelo {formal_model}: {dispatch_prompt}"
             )
         elif not is_video and not any(k in dispatch_prompt.lower() for k in ["imagem", "image", "foto", "photo"]):
             dispatch_prompt = (
@@ -212,14 +221,45 @@ class GoogleFlowStealthDriver:
 
                 try:
                     body_text = await page.inner_text("body")
+                    lower_body = body_text.lower()
+
                     for line in body_text.split("\n"):
                         s = line.strip()
                         if "%" in s and len(s) <= 5 and s != last_progress:
                             last_progress = s
                             logger.info(f"Google Flow GPU progress: {s}")
                             break
-                except Exception:
-                    pass
+
+                    # Check if Flow Agent paused with a clarification question in chat
+                    if (time.time() - start_poll) > 6.0 and any(
+                        q in lower_body
+                        for q in [
+                            "como gostaria de prosseguir",
+                            "modelos de vídeo disponíveis",
+                            "sobre as opções de duração",
+                            "não está disponível no google flow",
+                        ]
+                    ):
+                        logger.info("🤖 Flow Agent abriu diálogo de desambiguação no chat. Resolvendo autonomamente...")
+                        if "veo 3.1" in lower_body:
+                            reply_choice = "2" if "2. usar o veo 3.1" in lower_body or "2. usar o veo" in lower_body else "Usar Veo 3.1 com 8 segundos"
+                        else:
+                            reply_choice = "1"
+
+                        chat_input = await page.query_selector("div[aria-label='O que você quer criar?']")
+                        if chat_input:
+                            await chat_input.click()
+                            await page.keyboard.type(reply_choice, delay=12)
+                            await asyncio.sleep(0.5)
+                            send_btn = await page.query_selector("button[aria-label='Iniciar geração']")
+                            if send_btn and await send_btn.is_enabled():
+                                await send_btn.click()
+                            else:
+                                await page.keyboard.press("Enter")
+                            logger.info(f"✅ [AUTO-DISAMBIGUATE] Resposta enviada ao Flow Agent: '{reply_choice}'")
+                            await asyncio.sleep(4.0)
+                except Exception as disambig_err:
+                    logger.debug(f"Disambiguation check note: {disambig_err}")
 
                 await asyncio.sleep(2.5)
 

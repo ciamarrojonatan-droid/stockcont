@@ -69,6 +69,7 @@ def test_generation_request_validation():
     assert req.duration_seconds == 5
     assert req.variations_count == 2
     assert req.mode == "t2v"
+    assert req.model == "veo-3.1-quality"
 
     # Reject invalid duration
     with pytest.raises(ValueError, match="Invalid duration"):

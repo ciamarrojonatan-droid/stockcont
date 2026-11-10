@@ -50,13 +50,43 @@ JOB_TIMEOUT_SECONDS = float(os.getenv("GOOGLE_FLOW_JOB_TIMEOUT", "360.0"))
 HEARTBEAT_INTERVAL_MINUTES = int(os.getenv("GOOGLE_FLOW_HEARTBEAT_MINUTES", "45"))
 
 # Model Registries & Constraints
-SUPPORTED_VIDEO_MODELS: List[str] = ["veo-2.0", "veo-3.0", "veo-fast"]
+SUPPORTED_VIDEO_MODELS: List[str] = [
+    "veo-3.1-quality",
+    "veo-3.1-fast",
+    "veo-3.1-lite",
+    "veo-3.1",
+    "omni-1.2-flash",
+    "veo-2.0",
+    "veo-3.0",
+]
 SUPPORTED_IMAGE_MODELS: List[str] = ["imagen-3.0", "imagen-3.0-generate-002"]
 SUPPORTED_MODES: List[str] = ["t2v", "i2v", "frames2v", "t2i"]
 SUPPORTED_ASPECT_RATIOS: List[str] = ["16:9", "9:16", "1:1", "4:3", "2.39:1"]
 SUPPORTED_DURATIONS: List[int] = [5, 8]
 SUPPORTED_VARIATIONS: List[int] = [1, 2, 4]
 SUPPORTED_SELECTION_STRATEGIES: List[str] = ["best_by_ai", "upscale_all", "first"]
+
+# Formal platform mappings for Google Flow AI Agent
+MODEL_FORMAL_NAMES: dict[str, str] = {
+    "veo-3.1-quality": "Veo 3.1 - Quality",
+    "veo-3.1-fast": "Veo 3.1 - Fast",
+    "veo-3.1-lite": "Veo 3.1 - Lite",
+    "veo-3.1": "Veo 3.1 - Quality",
+    "omni-1.2-flash": "Omni 1.2 Flash",
+    "veo-2.0": "Veo 3.1 - Quality",
+    "veo-3.0": "Veo 3.1 - Quality",
+    "imagen-3.0": "Imagen 3",
+}
+
+MODEL_DEFAULT_DURATIONS: dict[str, int] = {
+    "veo-3.1-quality": 8,
+    "veo-3.1-fast": 8,
+    "veo-3.1-lite": 8,
+    "veo-3.1": 8,
+    "omni-1.2-flash": 5,
+    "veo-2.0": 8,
+    "veo-3.0": 8,
+}
 
 # Create prerequisite directories
 for d in [PROCESSED_DIR, FINAL_VIDEOS_DIR, FINAL_IMAGES_DIR, GOOGLE_FLOW_SESSION_DIR]:

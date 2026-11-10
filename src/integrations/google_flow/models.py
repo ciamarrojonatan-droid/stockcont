@@ -84,9 +84,9 @@ class GenerationRequest(BaseModel):
     """Comprehensive generation request payload."""
     prompt: str = Field(..., description="Cinematic text prompt", min_length=5)
     mode: str = Field("t2v", description="Generation mode: t2v, i2v, frames2v, t2i")
-    model: str = Field("veo-2.0", description="Target model name")
+    model: str = Field("veo-3.1-quality", description="Target model name")
     aspect_ratio: str = Field("16:9", description="Media framing ratio")
-    duration_seconds: int = Field(5, description="Video duration in seconds")
+    duration_seconds: int = Field(8, description="Video duration in seconds (8s for Veo 3.1, 5s for Omni)")
     variations_count: int = Field(1, description="Number of variations (1, 2, or 4)")
     ingredients: List[str] = Field(
         default_factory=list,
@@ -124,6 +124,15 @@ class GenerationRequest(BaseModel):
         if v not in SUPPORTED_MODES:
             raise ValueError(f"Invalid mode '{v}'. Supported: {SUPPORTED_MODES}")
         return v
+
+    @field_validator("model")
+    @classmethod
+    def validate_model(cls, v: str) -> str:
+        v_clean = v.lower().strip()
+        # Auto-map legacy or generic model aliases to current Google Flow models
+        if v_clean in ["veo-2.0", "veo-3.0", "veo-3.1", "veo"]:
+            return "veo-3.1-quality"
+        return v_clean
 
     @field_validator("aspect_ratio")
     @classmethod
