@@ -88,11 +88,6 @@ from src.video.minimax_music_engine import (
     MusicTrackResult,
     MUSIC_PRESETS,
 )
-from src.video.woosh_foley_engine import (
-    SonyWooshFoleyEngine,
-    FoleyResult,
-    FOLEY_PRESETS,
-)
 from src.video.minimax_h3_engine import (
     MiniMaxH3VideoEngine,
     H3VideoResult,
@@ -162,9 +157,6 @@ __all__ = [
     "MiniMaxMusicEngine",
     "MusicTrackResult",
     "MUSIC_PRESETS",
-    "SonyWooshFoleyEngine",
-    "FoleyResult",
-    "FOLEY_PRESETS",
     "MiniMaxH3VideoEngine",
     "H3VideoResult",
 ]

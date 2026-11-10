@@ -197,27 +197,6 @@ def test_api_v1_music_generate_endpoint(client, tmp_path, monkeypatch):
     assert payload["engine"] == "procedural_fallback"
 
 
-def test_api_v1_foley_generate_endpoint(client, tmp_path, monkeypatch):
-    """Test POST /api/v1/foley/generate endpoint."""
-    test_audio_dir = tmp_path / "audio"
-    test_audio_dir.mkdir()
-    monkeypatch.setattr(readers, "FINAL_AUDIO_DIR", test_audio_dir)
-
-    resp = client.post(
-        "/api/v1/foley/generate",
-        json={
-            "mode": "t2a",
-            "sfx_prompt": "heavy steel vault door slam",
-            "use_runninghub": False,
-        },
-    )
-    assert resp.status_code == 200
-    payload = resp.json()
-    assert payload["success"] is True
-    assert payload["audio_file"] is not None
-    assert "/api/audio/file/" in payload["audio_url"]
-
-
 def test_api_v1_audio_mix_endpoint(client, tmp_path, monkeypatch):
     """Test POST /api/v1/audio/mix endpoint with 3-stem mixer."""
     test_audio_dir = tmp_path / "audio"

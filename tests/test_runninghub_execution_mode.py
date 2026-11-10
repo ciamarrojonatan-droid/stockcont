@@ -11,7 +11,6 @@ from src.factory.runninghub_bot import (
     CONTA_VIDEO_CONFIG,
     CONTA_COSYVOICE_CONFIG,
     CONTA_MINIMAX_MUSIC_CONFIG,
-    CONTA_WOOSH_FOLEY_CONFIG,
     CONTA_MINIMAX_H3_CONFIG,
     get_account_config,
     click_runninghub_execute,
@@ -36,16 +35,13 @@ class TestRunningHubExecutionModeDefaults:
     def test_conta_minimax_music_execute_mode_is_lite_plus(self):
         assert CONTA_MINIMAX_MUSIC_CONFIG.get("execute_mode") == "lite_plus"
 
-    def test_conta_woosh_foley_execute_mode_is_lite_plus(self):
-        assert CONTA_WOOSH_FOLEY_CONFIG.get("execute_mode") == "lite_plus"
-
     def test_conta_minimax_h3_execute_mode_is_lite_plus(self):
         assert CONTA_MINIMAX_H3_CONFIG.get("execute_mode") == "lite_plus"
 
     @pytest.mark.parametrize("account_id", [
-        1, 2, 3, 4, 5, 6, 7,
+        1, 2, 3, 4, 5, 7,
         "video", "video_4k", "upscale", "seedvr", "cosyvoice", "narration",
-        "minimax_music", "music", "woosh_foley", "foley",
+        "minimax_music", "music",
         "minimax_h3", "h3", "h3_cinematic", "minimax_video"
     ])
     def test_get_account_config_always_lite_plus(self, account_id):

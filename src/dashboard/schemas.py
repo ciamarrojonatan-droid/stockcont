@@ -228,26 +228,6 @@ class MusicResponse(BaseModel):
     size_bytes: Optional[int] = None
 
 
-# ── Foley & SFX Models ──────────────────────────────
-
-class FoleyRequest(BaseModel):
-    mode: Optional[str] = "t2a"  # "t2a" or "v2a"
-    sfx_prompt: Optional[str] = None
-    preset: Optional[str] = "espionage_bunker"
-    video_path: Optional[str] = None
-    use_runninghub: Optional[bool] = True
-
-
-class FoleyResponse(BaseModel):
-    success: bool
-    message: str
-    audio_file: Optional[str] = None
-    audio_url: Optional[str] = None
-    video_file: Optional[str] = None
-    video_url: Optional[str] = None
-    engine: Optional[str] = None
-    size_bytes: Optional[int] = None
-
 
 # ── 3-Stem Multitrack Audio Mix Models ──────────────
 

@@ -1125,44 +1125,6 @@ async def generate_music_endpoint(req: schemas.MusicRequest):
         )
 
 
-# ── Sony Woosh Foley & SFX Endpoints ────────────────
-
-@app.post("/api/v1/foley/generate", response_model=schemas.FoleyResponse)
-@app.post("/api/foley/generate", response_model=schemas.FoleyResponse)
-async def generate_foley_endpoint(req: schemas.FoleyRequest):
-    """Gera efeitos sonoros/Foley via Sony Woosh (V2A/T2A) com extração de vídeo sem watermark."""
-    import asyncio
-    from src.video.woosh_foley_engine import SonyWooshFoleyEngine
-
-    engine = SonyWooshFoleyEngine()
-    try:
-        foley = await asyncio.to_thread(
-            engine.generate_foley,
-            mode=req.mode or "t2a",
-            video_path=req.video_path,
-            sfx_prompt=req.sfx_prompt,
-            preset_name=req.preset,
-            force_procedural=not req.use_runninghub,
-        )
-        v_url = f"/api/video/file/{foley.video_path.name}" if foley.video_path and foley.video_path.exists() else None
-        return schemas.FoleyResponse(
-            success=True,
-            message=f"Foley SFX gerado com sucesso via {foley.engine} (mode={foley.mode})",
-            audio_file=foley.audio_path.name,
-            audio_url=f"/api/audio/file/{foley.audio_path.name}",
-            video_file=foley.video_path.name if foley.video_path else None,
-            video_url=v_url,
-            engine=foley.engine,
-            size_bytes=foley.filesize_bytes,
-        )
-    except Exception as e:
-        logger.error(f"Erro na geração de Foley: {e}")
-        return schemas.FoleyResponse(
-            success=False,
-            message=f"Erro na geração de Foley: {str(e)}",
-        )
-
-
 # ── 3-Stem Multitrack Documentary Audio Mix ─────────
 
 @app.post("/api/v1/audio/mix", response_model=schemas.AudioMixResponse)

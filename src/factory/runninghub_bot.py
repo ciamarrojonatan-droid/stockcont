@@ -143,28 +143,6 @@ CONTA_MINIMAX_MUSIC_CONFIG = {
     "execute_mode": "lite_plus",  # Lite/Plus mandatório (ADR-08)
 }
 
-# Sony Woosh Foley Audio & Video Pipeline: Efeitos Sonoros / Foley T2A e V2A
-CONTA_WOOSH_FOLEY_CONFIG = {
-    "account": 6,
-    "role": "foley_sony_woosh",
-    "workflow_url": os.getenv("RUNNINGHUB_WOOSH_FOLEY_WORKFLOW_URL", "https://www.runninghub.ai/pt-br/workflow/2119999521484034049?source=workspace"),
-    "workflow_id": os.getenv("RUNNINGHUB_WOOSH_FOLEY_WORKFLOW_ID", "2119999521484034049"),
-    "input_video_node": int(os.getenv("RUNNINGHUB_WOOSH_INPUT_NODE", "34")),      # VHS_LoadVideo: node #34
-    "input_node": int(os.getenv("RUNNINGHUB_WOOSH_INPUT_NODE", "34")),
-    "prompt_node": int(os.getenv("RUNNINGHUB_WOOSH_PROMPT_NODE", "46")),         # ShowText / Llama prompt: node #46
-    "duration_node": int(os.getenv("RUNNINGHUB_WOOSH_DURATION_NODE", "37")),     # WooshLoadVideo: node #37
-    "output_audio_node": int(os.getenv("RUNNINGHUB_WOOSH_OUTPUT_AUDIO_NODE", "9")), # PreviewAudio: node #9
-    "output_video_node": int(os.getenv("RUNNINGHUB_WOOSH_OUTPUT_VIDEO_NODE", "94")), # FeiHou Preview Video: node #94 (sem watermark!)
-    "output_node": int(os.getenv("RUNNINGHUB_WOOSH_OUTPUT_VIDEO_NODE", "94")),
-    "prompt_nodes": [int(os.getenv("RUNNINGHUB_WOOSH_PROMPT_NODE", "46"))],
-    "default_batch_size": 1,
-    "destination_dir": FINAL_AUDIO_DIR,
-    "prefix": "woosh_foley",
-    "save_mode": "woosh_output",
-    "session_dir_name": "playwright_session_cosyvoice",
-    "upload_wait_sec": int(os.getenv("RUNNINGHUB_VIDEO_UPLOAD_WAIT_SEC", "30")),
-    "execute_mode": "lite_plus",  # Lite/Plus mandatório (ADR-08)
-}
 
 # MiniMax H3 Cinematic V2 Turbo: Fallback Cinemático de Vídeo (Workflow 2118560390471745537)
 CONTA_MINIMAX_H3_CONFIG = {
@@ -213,8 +191,6 @@ def get_account_config(account: Union[int, str] = 1) -> Dict[str, Any]:
         return dict(CONTA_COSYVOICE_CONFIG)
     elif acc_str in ("5", "minimax_music", "minimax", "music", "soundtrack", "soundtrack_minimax_music"):
         return dict(CONTA_MINIMAX_MUSIC_CONFIG)
-    elif acc_str in ("6", "woosh_foley", "woosh", "foley", "sfx", "foley_sony_woosh"):
-        return dict(CONTA_WOOSH_FOLEY_CONFIG)
     elif acc_str in ("7", "minimax_h3", "minimax_video", "h3", "h3_cinematic", "video_minimax_h3_cinematic"):
         return dict(CONTA_MINIMAX_H3_CONFIG)
     return dict(CONTA_1_CONFIG)
@@ -1819,22 +1795,18 @@ def run_factory_bot(
     custom_music_style: Optional[str] = None,
     custom_music_structure: Optional[str] = None,
     custom_music_duration: Optional[float] = None,
-    custom_video_input: Optional[Union[str, Path]] = None,
-    custom_sfx_prompt: Optional[str] = None,
     custom_video_duration: Optional[float] = None,
-    foley_mode: str = "v2a",
     upload_wait_sec: Optional[int] = None,
     execute_mode: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Executa a Fábrica RPA adaptando o comportamento entre Conta 1, Conta 2, Pipeline de Vídeo 4K, CosyVoice,
-    MiniMax Music 3 e Sony Woosh Foley:
+    MiniMax Music 3 e MiniMax H3 Cinematic:
     - Conta 1 (Raw Producer): Injeta prompts (#128-#254) e salva todas as imagens brutas no Nó #121.
     - Conta 2 (SeedVR 8K Upscaler): Ingestão zip no Nó #5 e monitoramento tempo real 1 a 1 no Nó #55.
     - Pipeline de Vídeo 4K (Conta 3): Ingestão de imagem no Nó #164, Prompt no Nó #17 e saída de vídeo 4K no Nó #185.
     - CosyVoice (Conta 4): Roteiro no Nó #345, Emoção no Nó #355, e captura direta no SaveAudio #346.
     - MiniMax Music (Conta 5): Estilo no Nó #15, Estrutura no Nó #16, Duração no Nó #14 e captura no SaveAudio #7.
-    - Sony Woosh Foley (Conta 6): Ingestão de vídeo no Nó #34, prompt no Nó #46/#56, saída sem watermark no Nó #94 FeiHou e áudio no Nó #9.
     - MiniMax H3 Cinematic (Conta 7): Ingestão de imagem no Nó #48 (图1), prompt no Nó #35, duração no Nó #66 e saída sem watermark no Nó #107 FeiHou.
     """
     if isinstance(account, str):
@@ -1846,8 +1818,6 @@ def run_factory_bot(
             account = 4
         elif account.lower() in ("minimax_music", "minimax", "music", "soundtrack"):
             account = 5
-        elif account.lower() in ("woosh_foley", "woosh", "foley", "sfx"):
-            account = 6
         elif account.lower() in ("minimax_h3", "minimax_video", "h3", "h3_cinematic", "video_minimax_h3_cinematic"):
             account = 7
     cfg = get_account_config(account)
@@ -1857,7 +1827,7 @@ def run_factory_bot(
     target_nodes = prompt_nodes if prompt_nodes is not None else cfg["prompt_nodes"]
     target_dir = destination_dir if destination_dir is not None else cfg["destination_dir"]
     target_dir.mkdir(parents=True, exist_ok=True)
-    save_mode = cfg["save_mode"]  # 'batch_all', 'realtime_single', 'video_output', 'audio_output', 'woosh_output'
+    save_mode = cfg["save_mode"]  # 'batch_all', 'realtime_single', 'video_output', 'audio_output'
     effective_execute_mode = execute_mode or cfg.get("execute_mode", "lite_plus")
     if effective_execute_mode.strip().lower() == "standard":
         logger.warning("⚠️ Modo 'standard' bloqueado por diretriz: Lite/Plus é mandatório em todos os workflows do RunningHub. Redirecionando para 'lite_plus'.")
@@ -1916,11 +1886,6 @@ def run_factory_bot(
         logger.info(f"  • Nó Estilo Musical:  #{cfg.get('style_node', 15)}")
         logger.info(f"  • Nó Estrutura/Letra: #{cfg.get('structure_node', 16)}")
         logger.info(f"  • Nó Duração:         #{cfg.get('duration_node', 14)}")
-    elif account == 6:
-        logger.info("💥 INICIANDO FÁBRICA RPA — SONY WOOSH FOLEY / SFX (V2A / T2A)")
-        logger.info(f"  • Modo de Salvamento: VÍDEO SEM WATERMARK (Nó #94 FeiHou) & ÁUDIO (Nó #9)")
-        logger.info(f"  • Nó Ingestão Vídeo:  #{cfg.get('input_video_node', 34)}")
-        logger.info(f"  • Nó Prompt SFX:      #{cfg.get('prompt_node', 46)}")
     elif account == 7 or cfg.get("role") == "video_minimax_h3_cinematic":
         logger.info("🎬 INICIANDO FÁBRICA RPA — MINIMAX H3 CINEMÁTICO V2 TURBO (FALLBACK)")
         logger.info(f"  • Modo de Salvamento: VÍDEO SEM WATERMARK (Nó #107 FeiHou)")
@@ -2067,7 +2032,7 @@ def run_factory_bot(
                 if not all_batches and batch_count >= max_batches:
                     break
 
-                current_pending = queue_mgr.get_pending_prompts(batch_size=b_size) if account not in (3, 4, 5, 6, 7) and cfg.get("role") not in ("video_4k_generator", "video_minimax_h3_cinematic", "audio_narration_cosyvoice", "soundtrack_minimax_music", "foley_sony_woosh") else []
+                current_pending = queue_mgr.get_pending_prompts(batch_size=b_size) if account not in (3, 4, 5, 7) and cfg.get("role") not in ("video_4k_generator", "video_minimax_h3_cinematic", "audio_narration_cosyvoice", "soundtrack_minimax_music") else []
                 v_item = None
                 ref_img = None
                 p_text_video = ""
@@ -2275,70 +2240,6 @@ def run_factory_bot(
                         logger.warning(f"⚠️ Aviso ao configurar duração no Nó #{dur_node}: {e}")
                     time.sleep(1.0)
 
-                elif account in (6, "woosh_foley") or cfg.get("role") == "foley_sony_woosh":
-                    in_v_node = cfg.get("input_video_node", 34)
-                    p_node = cfg.get("prompt_node", 46)
-
-                    # Otimização Crítica: mutar nós não essenciais (Llama-cpp #56/#57/#58 e branches de imagem Banana2Batch #72-#93), preservando #33 (VHS_VideoCombine) como nó de saída
-                    try:
-                        mute_res = comfy_frame.evaluate("""() => {
-                            if (typeof window.app === 'undefined' || !window.app.graph) return 0;
-                            const unneeded = [56, 57, 58, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93];
-                            let count = 0;
-                            unneeded.forEach(id => {
-                                const n = window.app.graph.getNodeById(id);
-                                if (n) {
-                                    n.mode = 2; // LiteGraph.NEVER (Mute)
-                                    count++;
-                                }
-                            });
-                            if (window.app.graph.setDirtyCanvas) window.app.graph.setDirtyCanvas(true, true);
-                            return count;
-                        }""")
-                        logger.info(f"⚡ [Woosh Foley] Mutados {mute_res} nós não essenciais (LLaMA-cpp, Banana2Batch) para execução ultrarrápida.")
-                    except Exception as me:
-                        logger.warning(f"Aviso ao mutar nós não essenciais no Woosh Foley: {me}")
-
-                    carrier_path = BASE_DIR / "data" / "carrier_video.mp4"
-                    if not carrier_path.exists():
-                        try:
-                            from src.video.ffmpeg_processor import get_ffmpeg_binary
-                            ffmpeg_bin = get_ffmpeg_binary()
-                            subprocess.run([
-                                ffmpeg_bin, "-y", "-f", "lavfi", "-i", "color=c=black:s=512x512:d=5",
-                                "-c:v", "libx264", "-pix_fmt", "yuv420p", str(carrier_path)
-                            ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                        except Exception as ce:
-                            logger.warning(f"Aviso ao gerar carrier_video: {ce}")
-
-                    effective_video = custom_video_input or (str(carrier_path) if carrier_path.exists() else None)
-                    if effective_video:
-                        vid_p = Path(effective_video)
-                        if vid_p.exists():
-                            logger.info(f"📤 [Woosh Foley] Injetando vídeo ({vid_p.name}) no Nó #{in_v_node} (VHS_LoadVideo)...")
-                            upload_image_to_node(page, comfy_frame, in_v_node, vid_p)
-                            time.sleep(2.0)
-                    if custom_sfx_prompt or custom_prompt_text:
-                        sfx_txt = custom_sfx_prompt or custom_prompt_text
-                        logger.info(f"💥 [Woosh Foley] Injetando prompt de SFX no Nó #{p_node}: '{sfx_txt[:60]}...'")
-                        # Em modo T2A ou com prompt customizado, desconectar eventuais links de entrada (ex: de Llama-cpp) para priorizar o prompt explícito
-                        try:
-                            comfy_frame.evaluate("""(id) => {
-                                if (typeof window.app !== 'undefined' && window.app.graph) {
-                                    const node = window.app.graph.getNodeById(id);
-                                    if (node && node.inputs) {
-                                        for (let i = 0; i < node.inputs.length; i++) {
-                                            if (node.inputs[i].link != null) {
-                                                node.disconnectInput(i);
-                                            }
-                                        }
-                                    }
-                                }
-                            }""", p_node)
-                        except Exception as e:
-                            logger.warning(f"Aviso ao desconectar links no Nó #{p_node}: {e}")
-                        inject_video_prompt_to_node(comfy_frame, p_node, sfx_txt)
-                        time.sleep(1.0)
 
                 elif account in (7, "minimax_h3") or cfg.get("role") == "video_minimax_h3_cinematic":
                     in_img_node = cfg.get("input_image_node", 48)
@@ -2383,16 +2284,12 @@ def run_factory_bot(
                     logger.info(f"✅ [Nó #{in_img_node} Load Image] Janela de {effective_wait}s concluída com sucesso! Imagem pronta.")
 
                 # Captura pré-existente no nó de saída
-                initial_node_images = get_node_images(page, out_node) if account not in (3, 4, 5, 6, 7) and cfg.get("role") not in ("video_4k_generator", "video_minimax_h3_cinematic", "audio_narration_cosyvoice", "soundtrack_minimax_music", "foley_sony_woosh") else []
+                initial_node_images = get_node_images(page, out_node) if account not in (3, 4, 5, 7) and cfg.get("role") not in ("video_4k_generator", "video_minimax_h3_cinematic", "audio_narration_cosyvoice", "soundtrack_minimax_music") else []
                 initial_node_videos: List[str] = []
                 initial_node_audios: List[str] = []
                 if account in (4, 5) or cfg.get("role") in ("audio_narration_cosyvoice", "soundtrack_minimax_music"):
                     initial_node_audios = get_node_audios(page, out_node)
                     logger.info(f"🚫 [{cfg['role']}] Registrados {len(initial_node_audios)} áudios pré-existentes na blacklist antes da execução no Nó #{out_node}.")
-                if account in (6, "woosh_foley") or cfg.get("role") == "foley_sony_woosh":
-                    initial_node_videos = get_node_videos(page, cfg.get("output_video_node", 94))
-                    initial_node_audios = get_node_audios(page, cfg.get("output_audio_node", 9))
-                    logger.info(f"🚫 [Woosh Foley] Registrados {len(initial_node_videos)} vídeos (Nó #94) e {len(initial_node_audios)} áudios (Nó #9) pré-existentes na blacklist.")
                 if account in (3, 7) or cfg.get("role") in ("video_4k_generator", "video_minimax_h3_cinematic"):
                     tag_v = "MiniMax H3" if (account in (7, "minimax_h3") or cfg.get("role") == "video_minimax_h3_cinematic") else "Vídeo 4K"
                     # Registrar todos os vídeos presentes no nó e no DOM como blacklist permanente antes do disparo
@@ -2689,65 +2586,6 @@ def run_factory_bot(
 
                         time.sleep(2)
 
-                # ── ESTRATÉGIA E: SONY WOOSH FOLEY (FeiHou Nó #94 sem watermark & PreviewAudio #9) ──
-                elif save_mode == "woosh_output" or account in (6, "woosh_foley"):
-                    max_wait_woosh = int(os.getenv("RUNNINGHUB_WOOSH_MAX_WAIT_SEC", "360"))  # 6 minutos
-                    v_out_node = cfg.get("output_video_node", 94)
-                    a_out_node = cfg.get("output_audio_node", 9)
-                    logger.info(f"⏳ [Woosh Foley] Monitorando vídeo sem watermark no Nó #{v_out_node} FeiHou e áudio no Nó #{a_out_node}...")
-                    woosh_saved = False
-                    woosh_wait_start = time.time()
-                    last_heartbeat = woosh_wait_start
-
-                    while True:
-                        page.keyboard.press("Escape")
-                        now = time.time()
-                        elapsed_sec = int(now - woosh_wait_start)
-
-                        if now - last_heartbeat >= 10:
-                            logger.info(f"⏳ [Woosh Foley] Monitorando Nós #{v_out_node} (Vídeo) e #{a_out_node} (Áudio)... ({elapsed_sec}s decorridos)")
-                            last_heartbeat = now
-
-                        # 1. Checar vídeo limpo sem watermark no Nó #94 (FeiHouVideoPreview) ou Nó #33 (VHS_VideoCombine)
-                        current_node_videos = get_node_videos(page, v_out_node)
-                        if not current_node_videos:
-                            current_node_videos = get_node_videos(page, 33)
-                        new_vids = [v for v in current_node_videos if v not in initial_node_videos]
-
-                        # 2. Checar áudio isolado no Nó #9 (PreviewAudio)
-                        current_node_audios = get_node_audios(page, a_out_node)
-                        new_auds = [a for a in current_node_audios if a not in initial_node_audios]
-
-                        if new_vids or new_auds:
-                            if new_vids:
-                                for cand_v in new_vids:
-                                    v_name = save_video_from_src(page, cand_v, destination_dir=FINAL_VIDEOS_DIR, prefix="woosh_foley_preview")
-                                    if v_name:
-                                        batch_saved_files.append(v_name)
-                                        images_saved += 1
-                                        woosh_saved = True
-                                        logger.info(f"✅ Vídeo de Foley sem watermark salvo no Nó #{v_out_node}: {v_name}")
-                                        break
-                            if new_auds:
-                                for cand_a in new_auds:
-                                    a_name = save_audio_from_src(page, cand_a, destination_dir=target_dir, prefix="woosh_foley_audio")
-                                    if a_name:
-                                        batch_saved_files.append(a_name)
-                                        if not woosh_saved:
-                                            images_saved += 1
-                                        woosh_saved = True
-                                        logger.info(f"✅ Áudio de Foley isolado salvo no Nó #{a_out_node}: {a_name}")
-                                        break
-                            if woosh_saved:
-                                cancel_runninghub_task(page)
-                                break
-
-                        if elapsed_sec > max_wait_woosh:
-                            logger.warning(f"⚠️ Limite máximo de espera por Foley atingido ({max_wait_woosh}s).")
-                            break
-
-                        time.sleep(2)
-
                 # ── ESTRATÉGIA B: CONTA 2 (Real-Time Single — 1 a 1 antes de sobrescrever) ──
                 else:
                     logger.info(f"⚡ [Conta 2] Monitoramento contínuo no Nó #{out_node} (salvando 1 a 1 em tempo real sem timeout)...")
@@ -2885,23 +2723,6 @@ def run_minimax_music_bot(
     )
 
 
-def run_woosh_foley_bot(
-    video_path: Optional[Union[str, Path]] = None,
-    prompt: Optional[str] = None,
-    mode: str = "v2a",
-    destination_dir: Optional[Path] = None,
-    timeout_sec: int = 360,
-) -> Dict[str, Any]:
-    """Dispara a geração de efeitos sonoros / Foley Sony Woosh via RunningHub (V2A/T2A) e salva vídeo limpo no Nó #94 FeiHou."""
-    return run_factory_bot(
-        account="woosh_foley",
-        destination_dir=destination_dir or FINAL_AUDIO_DIR,
-        custom_video_input=video_path,
-        custom_sfx_prompt=prompt,
-        foley_mode=mode,
-    )
-
-
 def run_minimax_h3_video_bot(
     prompt: str,
     reference_image_path: Optional[Union[str, Path]] = None,
@@ -2922,8 +2743,8 @@ def run_minimax_h3_video_bot(
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="RunningHub ComfyUI Automation Bot (Dual-Account / Audio / Video / MiniMax H3)")
-    parser.add_argument("--account", default="1", help="RunningHub Account: 1 (Raw Producer), 2 (SeedVR 8K), 3 (Video 4K), 4 (CosyVoice Narration), 5 (MiniMax Music), 6 (Sony Woosh Foley), 7 (MiniMax H3 Cinematic Fallback)")
-    parser.add_argument("--node", type=int, default=None, help="Output Node ID (default: 121 for Conta 1, 55 for Conta 2, 346 for CosyVoice, 7 for Music, 94 for Foley, 107 for H3)")
+    parser.add_argument("--account", default="1", help="RunningHub Account: 1 (Raw Producer), 2 (SeedVR 8K), 3 (Video 4K), 4 (CosyVoice Narration), 5 (MiniMax Music), 7 (MiniMax H3 Cinematic Fallback)")
+    parser.add_argument("--node", type=int, default=None, help="Output Node ID (default: 121 for Conta 1, 55 for Conta 2, 346 for CosyVoice, 7 for Music, 107 for H3)")
     parser.add_argument("--batch-size", type=int, default=210, help="Number of images per batch (default: 210)")
     parser.add_argument("--batches", type=int, default=1, help="Number of consecutive batches (default: 1)")
     parser.add_argument("--all-batches", action="store_true", help="Run until queue is exhausted")
@@ -2933,9 +2754,6 @@ if __name__ == "__main__":
     parser.add_argument("--music-style", type=str, default=None, help="Style description for MiniMax Music 3")
     parser.add_argument("--music-structure", type=str, default=None, help="Structure/lyrics prompt for MiniMax Music 3")
     parser.add_argument("--music-duration", type=float, default=180.0, help="Music duration in seconds (default: 180.0)")
-    parser.add_argument("--video-input", type=str, default=None, help="Input video path for Woosh Foley (V2A)")
-    parser.add_argument("--sfx-prompt", type=str, default=None, help="Prompt text for Foley SFX")
-    parser.add_argument("--foley-mode", type=str, default="v2a", choices=["v2a", "t2a"], help="Foley mode: v2a or t2a")
     parser.add_argument("--ref-image", type=str, default=None, help="Reference image path for MiniMax H3 / Video")
     parser.add_argument("--video-duration", type=float, default=10.0, help="Video duration in seconds for MiniMax H3")
     args = parser.parse_args()
@@ -2953,8 +2771,5 @@ if __name__ == "__main__":
         custom_music_style=args.music_style,
         custom_music_structure=args.music_structure,
         custom_music_duration=args.music_duration,
-        custom_video_input=args.video_input,
-        custom_sfx_prompt=args.sfx_prompt,
         custom_video_duration=args.video_duration,
-        foley_mode=args.foley_mode,
     )
