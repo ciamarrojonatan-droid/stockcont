@@ -104,14 +104,33 @@ class GoogleFlowStealthDriver:
         project_name: Optional[str] = None,
         aspect_ratio: str = "16:9",
         auto_upscale: bool = True,
+        target_resolution: str = "2k",
+        mode: str = "t2v",
+        model: str = "veo-2.0",
+        duration_seconds: int = 5,
+        variations_count: int = 1,
+        strip_audio: bool = False,
         output_dir: Optional[Path] = None,
         timeout_seconds: int = 180,
     ) -> Dict[str, Any]:
         """Execute end-to-end Google Flow studio creation, generation, upscale and download."""
         from playwright.async_api import async_playwright
 
-        target_dir = output_dir or (Path(__file__).resolve().parent.parent.parent.parent / "data" / "final" / "videos")
+        is_video = mode in ["t2v", "i2v"] or "veo" in model.lower()
+        base_dir = Path(__file__).resolve().parent.parent.parent.parent
+        target_dir = output_dir or (base_dir / "data" / "final" / ("videos" if is_video else "images"))
         target_dir.mkdir(parents=True, exist_ok=True)
+
+        # 0. Format prompt directives for Google Flow AI Agent
+        dispatch_prompt = prompt.strip()
+        if is_video and not any(k in dispatch_prompt.lower() for k in ["vídeo", "video", "veo"]):
+            dispatch_prompt = (
+                f"Crie um vídeo cinemático em {aspect_ratio} ({duration_seconds}s) usando Veo 2: {dispatch_prompt}"
+            )
+        elif not is_video and not any(k in dispatch_prompt.lower() for k in ["imagem", "image", "foto", "photo"]):
+            dispatch_prompt = (
+                f"Crie uma imagem conceitual comercial em {aspect_ratio}: {dispatch_prompt}"
+            )
 
         async with async_playwright() as p:
             page = await self.open_page(p)
@@ -136,6 +155,21 @@ class GoogleFlowStealthDriver:
             project_id = project_url.split("/project/")[-1] if "/project/" in project_url else "unknown_project"
             logger.info(f"Project created: {project_id} ({project_url})")
 
+            # 1.1 Rename project if requested
+            if project_name:
+                try:
+                    title_input = await page.query_selector(
+                        "input.editable-text-input, input[aria-label='Texto editável']"
+                    )
+                    if title_input:
+                        await title_input.click()
+                        await page.keyboard.press("Control+A")
+                        await page.keyboard.type(project_name, delay=10)
+                        await page.keyboard.press("Enter")
+                        logger.info(f"Project renamed to: {project_name}")
+                except Exception as rename_err:
+                    logger.debug(f"Project title rename skipped: {rename_err}")
+
             # 2. Focus prompt input and type with human-like delay
             prompt_input = await page.wait_for_selector(
                 "div[aria-label='O que você quer criar?']",
@@ -143,14 +177,23 @@ class GoogleFlowStealthDriver:
             )
             await prompt_input.click()
             await asyncio.sleep(0.5)
-            logger.info(f"Typing prompt ({len(prompt)} chars)...")
-            await page.keyboard.type(prompt, delay=12)
+            logger.info(f"Typing prompt ({len(dispatch_prompt)} chars): {dispatch_prompt[:70]}...")
+            await page.keyboard.type(dispatch_prompt, delay=12)
             await asyncio.sleep(1.0)
 
             # 3. Click Iniciar geração
             gen_btn = await page.query_selector("button[aria-label='Iniciar geração']")
             if not gen_btn:
                 raise RuntimeError("Button 'Iniciar geração' not found.")
+
+            # Ensure Angular form control registered input event
+            try:
+                is_disabled = await gen_btn.is_disabled()
+                if is_disabled:
+                    await page.keyboard.press("Enter")
+                    await asyncio.sleep(0.5)
+            except Exception:
+                pass
 
             logger.info("Triggering generation on Google Flow cloud GPU...")
             await gen_btn.click()
@@ -161,7 +204,7 @@ class GoogleFlowStealthDriver:
             last_progress = ""
             while (time.time() - start_poll) < timeout_seconds:
                 opt1 = await page.query_selector(
-                    "img[alt='Option 1'], [aria-label*='Option 1'], img[alt*='Bloco mostrando a imagem'], video"
+                    "img[alt='Option 1'], [aria-label*='Option 1'], img[alt*='Bloco mostrando a imagem'], video, flow-grid-tile-container"
                 )
                 if opt1:
                     logger.info("🎉 Generation variations completed by Google Flow!")
@@ -195,12 +238,20 @@ class GoogleFlowStealthDriver:
             await download_btn.click()
             await asyncio.sleep(1.5)
 
-            # 7. Select resolution (2K Aprimorada if auto_upscale, else 1K)
-            res_selector = "button:has-text('2K Aprimorada'), [role='menuitem']:has-text('2K Aprimorada')"
-            if not auto_upscale:
+            # 7. Select resolution (4K, 2K Aprimorada, or 1K Original)
+            res_clean = (target_resolution or "2k").lower().strip()
+            if not auto_upscale or res_clean == "1k":
                 res_selector = "button:has-text('1K'), [role='menuitem']:has-text('1K')"
+            elif res_clean == "4k":
+                res_selector = "button:has-text('4K Aprimorada'), button:has-text('4K'), [role='menuitem']:has-text('4K')"
+            else:
+                res_selector = "button:has-text('2K Aprimorada'), button:has-text('2K'), [role='menuitem']:has-text('2K')"
 
             target_res_btn = await page.query_selector(res_selector)
+            if not target_res_btn and res_clean == "4k":
+                # Fallback to 2K if 4K is not yet rendered for this item
+                target_res_btn = await page.query_selector("button:has-text('2K Aprimorada'), [role='menuitem']:has-text('2K')")
+
             if not target_res_btn:
                 # Fallback to any download button in popup
                 target_res_btn = await page.query_selector(".cdk-overlay-pane button, [role='menuitem']")
@@ -208,7 +259,7 @@ class GoogleFlowStealthDriver:
             if not target_res_btn:
                 raise RuntimeError("Could not find download resolution option in popup.")
 
-            logger.info("Downloading upscaled asset from Google Flow...")
+            logger.info(f"Downloading asset ({res_clean.upper()}) from Google Flow...")
             async with page.expect_download() as download_info:
                 await target_res_btn.click()
             download = await download_info.value
@@ -217,6 +268,12 @@ class GoogleFlowStealthDriver:
             await download.save_as(str(saved_file))
             logger.info(f"✅ Real Google Flow asset saved: {saved_file.name} ({saved_file.stat().st_size} bytes)")
 
+            # Optional audio stripping (-an) for stock compliance if video
+            if is_video and strip_audio and saved_file.suffix.lower() in [".mp4", ".webm", ".mov"]:
+                from src.integrations.google_flow.downloader import GoogleFlowDownloader
+                downloader = GoogleFlowDownloader(videos_dir=target_dir)
+                downloader._strip_audio_inplace(saved_file)
+
             await self.close()
 
             return {
@@ -224,6 +281,8 @@ class GoogleFlowStealthDriver:
                 "project_url": project_url,
                 "file_path": str(saved_file),
                 "file_size": saved_file.stat().st_size,
+                "resolution": res_clean,
+                "media_type": "video" if is_video else "image",
             }
 
     @staticmethod
