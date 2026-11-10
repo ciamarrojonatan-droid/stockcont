@@ -46,6 +46,8 @@ class TestMiniMaxMusicEngine:
         for preset_name in ["hans_zimmer_tension", "ludwig_goransson_action", "cold_war_espionage", "cyber_warfare"]:
             style, struct = engine.build_prompts(preset_name=preset_name)
             assert len(style) > 30
+            assert "no vocals" in style.lower()
+            assert "[Instrumental]" in struct
             assert "[Intro" in struct
             assert "[Tension" in struct
             assert "[Climax" in struct

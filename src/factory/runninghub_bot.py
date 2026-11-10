@@ -2238,14 +2238,20 @@ def run_factory_bot(
                     struct_node = cfg.get("structure_node", 16)
                     dur_node = cfg.get("duration_node", 14)
                     st_text = custom_music_style or custom_prompt_text or (
+                        "### Global Metadata\n"
+                        "[Instrumental track, purely orchestral score, no vocals, non-vocal, cinematic background soundtrack]\n"
+                        "### Vocal Details\n"
+                        "[No vocals, instrumental only, no singing, no voice, no choir, no humming]\n"
+                        "### Style Description\n"
                         "Hans Zimmer style dark cinematic tension soundtrack, 60 BPM pulse, analog synthesizer drones, "
                         "cello swells, subtle acoustic ticking, sub-bass rumble, Nolan thriller soundscape"
                     )
                     struct_text = custom_music_structure or (
-                        "[Intro: Ominous sub-bass and low cello drone]\n"
-                        "[Tension: 60 BPM ticking clockwork with rising brass pads]\n"
-                        "[Climax: Deep resonant percussion hit, acoustic swell, wall of sound]\n"
-                        "[Outro: Slow decrescendo into lingering low-frequency vibration]"
+                        "[Instrumental]\n"
+                        "[Intro: Instrumental]\n"
+                        "[Tension: Instrumental]\n"
+                        "[Climax: Instrumental]\n"
+                        "[Outro: Instrumental]"
                     )
                     dur_val = float(custom_music_duration or 180.0)
                     logger.info(f"🎼 [MiniMax Music] Injetando estilo no Nó #{st_node} e estrutura no Nó #{struct_node}...")

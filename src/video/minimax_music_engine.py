@@ -29,56 +29,56 @@ BASE_DIR: Path = Path(__file__).resolve().parent.parent.parent
 FINAL_AUDIO_DIR: Path = BASE_DIR / "data" / "final" / "audio"
 FINAL_AUDIO_DIR.mkdir(parents=True, exist_ok=True)
 
-# Cinematic Soundtrack Archetypes
+# Cinematic Soundtrack Archetypes (Strictly Instrumental - Zero Vocals)
+INSTRUMENTAL_TAGS: str = (
+    "### Global Metadata\n"
+    "[Instrumental track, purely orchestral score, no vocals, non-vocal, cinematic background soundtrack]\n"
+    "### Vocal Details\n"
+    "[No vocals, instrumental only, no singing, no voice, no choir, no humming]\n"
+    "### Style Description\n"
+)
+
+DEFAULT_INSTRUMENTAL_STRUCTURE: str = (
+    "[Instrumental]\n"
+    "[Intro: Instrumental]\n"
+    "[Tension: Instrumental]\n"
+    "[Climax: Instrumental]\n"
+    "[Outro: Instrumental]"
+)
+
 MUSIC_PRESETS: Dict[str, Dict[str, str]] = {
     "hans_zimmer_tension": {
         "style": (
+            f"{INSTRUMENTAL_TAGS}"
             "Hans Zimmer style acoustic architecture, dark cinematic tension soundtrack, "
             "60 BPM mechanical clockwork pulse, analog modular synth bass drones, swelling cello ostinatos, "
             "resonant Taiko impacts, wall of sound crescendo, Christopher Nolan Oppenheimer thriller soundscape."
         ),
-        "structure": (
-            "[Intro: Ominous low-frequency sub-bass drone and eerie metallic bowed textures]\n"
-            "[Tension: 60 BPM mechanical ticking with rising cello ostinato and swelling brass pads]\n"
-            "[Climax: Massive Hans Zimmer wall of sound, resonant Taiko percussion, full dark string section]\n"
-            "[Outro: Slow decrescendo into lingering low-frequency sub-bass vibration and dying clock ticks]"
-        ),
+        "structure": DEFAULT_INSTRUMENTAL_STRUCTURE,
     },
     "ludwig_goransson_action": {
         "style": (
+            f"{INSTRUMENTAL_TAGS}"
             "Ludwig Göransson modern thriller score, distorted 808 sub-bass, rapid acoustic staccato strings, "
             "metallic industrial percussion, intense suspense pacing, Tenet acoustic reverse motifs, high energy."
         ),
-        "structure": (
-            "[Intro: Glitched electronic pulses and reverse string swells]\n"
-            "[Tension: Accelerating 120 BPM percussive drive, syncopated industrial rhythms]\n"
-            "[Climax: Explosive distorted bass hits, chaotic strings, visceral acoustic power]\n"
-            "[Outro: Abrupt tape stop effect dissolving into atmospheric low drone]"
-        ),
+        "structure": DEFAULT_INSTRUMENTAL_STRUCTURE,
     },
     "cold_war_espionage": {
         "style": (
+            f"{INSTRUMENTAL_TAGS}"
             "Cold War espionage suspense soundtrack, 55 Hz low frequency drone, ominous BBC documentary tone, "
             "subtle analog radar ticks, mysterious cello harmonies, quiet rising dread, historical solemnity."
         ),
-        "structure": (
-            "[Intro: Low sub drone with quiet analog tape hiss]\n"
-            "[Tension: Subtle 60 BPM clockwork second-hand ticking, mournful cello melodies]\n"
-            "[Climax: Intense harmonic dissonance, urgent brass swells, acute historical suspense]\n"
-            "[Outro: Fading radar bleeps and long dark ambient chord decay]"
-        ),
+        "structure": DEFAULT_INSTRUMENTAL_STRUCTURE,
     },
     "cyber_warfare": {
         "style": (
+            f"{INSTRUMENTAL_TAGS}"
             "Cyber warfare grid collapse score, dark ambient synthwave bassline, high tension countdown, "
             "glitching electronic textures, atmospheric sub-bass, sterile cold acoustic design."
         ),
-        "structure": (
-            "[Intro: Digital hum and distant data transmission noises]\n"
-            "[Tension: Pulse of cyber alarm, tight synthesizer sequences, rising panic]\n"
-            "[Climax: Overwhelming sub-bass drop, distorted warning frequencies]\n"
-            "[Outro: System failure shutdown soundbed fading into silent abyss]"
-        ),
+        "structure": DEFAULT_INSTRUMENTAL_STRUCTURE,
     },
 }
 
@@ -108,10 +108,29 @@ class MiniMaxMusicEngine:
         custom_style: Optional[str] = None,
         custom_structure: Optional[str] = None,
     ) -> tuple[str, str]:
-        """Returns (style_prompt, structure_prompt) according to requested style."""
+        """Returns (style_prompt, structure_prompt) according to requested style,
+        enforcing strict instrumental generation (zero vocals, choir, or singing).
+        """
         preset = MUSIC_PRESETS.get(preset_name, MUSIC_PRESETS["hans_zimmer_tension"])
-        style = custom_style or preset["style"]
-        structure = custom_structure or preset["structure"]
+        base_style = custom_style or preset["style"]
+
+        # Ensure explicit instrumental and non-vocal directives are permanently present
+        if "### Vocal Details" not in base_style and "no vocals" not in base_style.lower():
+            style = (
+                f"{INSTRUMENTAL_TAGS}"
+                f"{base_style.strip()}"
+            )
+        else:
+            style = base_style
+
+        # Ensure structure is strictly non-vocal instrumental
+        if custom_structure:
+            structure = custom_structure
+            if "[Instrumental" not in structure:
+                structure = f"[Instrumental]\n{structure}"
+        else:
+            structure = preset["structure"]
+
         return style, structure
 
     def generate_soundtrack(

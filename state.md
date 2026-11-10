@@ -1,28 +1,23 @@
 # StockCont Pipeline State
 > Sincronizado automaticamente por hooks e comandos do ecossistema.
 
-## Sprint Atual: MiniMax H3 Cinematic V2 Turbo — Fallback de Vídeo sem Marca D'água (FeiHou Nó #107 / ADR-11)
+## Sprint Atual: MiniMax Music 3 — Calibração 100% Instrumental sem Vocais (ADR-10)
 - **Status da Sprint**: [CONCLUÍDO & TOTALMENTE OPERACIONAL]:
-  1. **Topologia RunningHub MiniMax H3 (Workflow 2118560390471745537)**:
-     - Configurado como Conta 7 / `minimax_h3` em `src/factory/runninghub_bot.py`.
-     - Ingestão de Prompt: Nó #35 (`PrimitiveStringMultiline` para prompts cinemáticos de câmera/ação).
-     - Ingestão de Imagem de Referência: Nó #48 (`LoadImage` 图1 para imagem 16:9).
-     - Duração do Vídeo: Nó #66 (`PrimitiveFloat`, padrão 10.0s).
-     - Seletor de Resolução: Nó #62 (`ResolutionSelector` 16:9).
-     - **Saída Mandatória de Vídeo sem Marca D'água**: Nó #107 (`FeiHouVideoPreview` - 'FeiHou-视频预览'), garantindo render MP4 HD com áudio e zero watermark do RunningHub.
+  1. **Topologia & Invariante Mandatório Instrumental (ADR-10)**:
+     - MiniMax Music 3 (Workflow 2118531898170486785 / 2120003151633174529 na Conta 4 / Audio Command Center).
+     - Nó #15 (`caption`): Injeção obrigatória de metadados de estilo com `### Global Metadata\n[Instrumental track, purely orchestral score, no vocals, non-vocal, cinematic background soundtrack]` e `### Vocal Details\n[No vocals, instrumental only, no singing, no voice, no choir, no humming]`.
+     - Nó #16 (`lyrics`): Erradicação total de texto em prosa descritiva (anteriormente interpretado como letra cantada pelo modelo). Injeção exclusiva de marcadores de seção instrumentais: `[Instrumental]\n[Intro: Instrumental]\n[Tension: Instrumental]\n[Climax: Instrumental]\n[Outro: Instrumental]`.
+     - Nó #14 (`PrimitiveFloat`): Duração em segundos (padrão 180.0s).
+     - Nó #7 (`SaveAudioAdvanced`): Saída FLAC Lossless pura.
      - Botão de Execução: Lite/Plus mandatório (ADR-08).
-     - Cancelamento atômico pós-salvamento em disco para economia máxima de créditos de GPU.
-  2. **Motor Dedicado `src/video/minimax_h3_engine.py`**:
-     - `MiniMaxH3VideoEngine` com `build_cinematic_prompt` aderente às diretivas do MiniMax H3 / Hailuo Video-01 e DarkFactory T2V.
-     - Geração via RunningHub RPA com fallback automático para síntese procedural de vídeo em 1080p 24fps com grão cinematográfico orgânico (via OpenCV/cv2).
-     - Retorno com dataclass `H3VideoResult` (`video_path`, `duration`, `engine`, `has_watermark=False`).
-  3. **Endpoints REST no Dashboard SPA**:
-     - `POST /api/v1/video/minimax_h3`: Disparo sob demanda de vídeo cinemático com imagem de referência e parâmetros de câmera/iluminação.
-  4. **Validação & Testes Automatizados**:
-     - `tests/test_minimax_h3_video.py` (12/12 passing).
-     - `tests/test_runninghub_execution_mode.py` (44/44 passing).
-     - Suíte completa do repositório: **326/326 testes aprovados (100% green)**.
-- **Última Atualização**: 2026-11-10 02:40
+  2. **Geração Real em Produção (RunningHub Conta 5)**:
+     - Trilha sonora gerada com sucesso: `data/final/audio/soundtrack_minimax_a521f11e.flac`.
+     - Propriedades validadas: FLAC Lossless 16-bit estéreo, 44.1 kHz, 29.99s, 2.38 MB, 100% puramente instrumental (zero vocais/canto).
+  3. **Validação & Testes Automatizados**:
+     - `tests/test_minimax_music.py` (10/10 passing).
+     - `tests/test_voice_and_audio_engines.py` (11/11 passing).
+     - Suíte de áudio e vídeo: 100% green.
+- **Última Atualização**: 2026-11-10 03:15
 - **Modo Operacional**: Dual-Mode (Antigravity & Claude Code via SSOT `PROJECT_CONTEXT.md`)
 
 ---
@@ -31,6 +26,7 @@
 
 | Fase / Módulo | Status | Contagem / Métricas | Próxima Ação Recomendada |
 | :--- | :--- | :--- | :--- |
+| **MiniMax Music 3 (Soundtrack Engine)** | 🟢 100% Instrumental (Zero Vocais) | **Workflow 2120003151633174529**: Estilo #15 \| Estrutura Instrumental #16 (`[Instrumental]`) \| Duração #14 \| **Saída FLAC #7** \| Lite/Plus (ADR-08/10) | `/api/v1/music/generate` |
 | **MiniMax H3 Cinematic (Fallback Vídeo)** | 🟢 Operacional & Calibrado | **Workflow 2118560390471745537 (Conta 7)**: Prompt #35 \| Imagem #48 (图1) \| Duração #66 (10s) \| **Vídeo sem watermark #107 FeiHou** \| Lite/Plus (ADR-08/11) | `/api/v1/video/minimax_h3` |
 | **Conta 4: Audio Command Center** | 🟢 Operacional & Calibrado | **CosyVoice + MiniMax Music 3 + Sony Woosh Foley**: Trilha 4 atos (#15/#16/#14 ➔ #7) \| Foley V2A/T2A (#34/#46 ➔ Vídeo sem watermark #94 FeiHou + Áudio #9) \| Multitrack 3-Stem (-14 LUFS) | `/api/v1/music/generate`, `/api/v1/foley/generate`, `/api/v1/audio/mix` |
 | **Hierarquia Vocal & NarratorLock** | 🟢 Ativo & Travado | **Tier 1 CosyVoice ➔ Tier 2 Kokoro ➔ Tier 3 Deepgram**: Invariante de voz única por vídeo garantido via `narrator_locks.json` | `python main.py --video` |
