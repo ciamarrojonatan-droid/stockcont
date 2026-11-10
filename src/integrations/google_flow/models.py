@@ -97,6 +97,10 @@ class GenerationRequest(BaseModel):
     negative_prompt: Optional[str] = Field(None, description="Optional negative prompt")
     seed: Optional[int] = Field(None, description="Random seed for reproducibility")
     auto_upscale: bool = Field(True, description="Automatically trigger upscale on completion")
+    target_resolution: str = Field(
+        "2k",
+        description="Target resolution for download/upscale: 1k (original), 2k (enhanced), or 4k (ultra)"
+    )
     selection_strategy: str = Field(
         "best_by_ai",
         description="Selection strategy: best_by_ai, upscale_all, or first"

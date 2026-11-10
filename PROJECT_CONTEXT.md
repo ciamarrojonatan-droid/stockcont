@@ -323,6 +323,14 @@ Diferente de fluxos manuais de geração com IA generativa, o StockCont opera co
   - Todas as cenas subsequentes (2..N) do mesmo vídeo DEVEM obrigatoriamente utilizar o mesmo narrador. É terminantemente proibido alternar vozes ou motores dentro do mesmo vídeo.
   - Se o motor travado falhar no meio da produção, o sistema lança `NarratorConsistencyViolationError` e impede a contaminação do vídeo, oferecendo re-renderização uniforme de todas as cenas caso o usuário opte por trocar de motor.
 
+### ADR-10: Arquitetura Multitrack de Áudio (MiniMax Music 3, Sony Woosh Foley & FeiHou Node #94)
+- **Contexto**: Documentários dark e vídeos de alta retenção demandam uma esteira de áudio cinematográfica com 3 stems: (1) Narração solene na voz do narrador travado, (2) Trilha sonora orquestral com tensão Hans Zimmer / Ludwig Göransson, e (3) Efeitos sonoros / Foley (passos, trancas de portas, cliques, estática de rádio). Além disso, a geração de efeitos sonoros em vídeo na plataforma RunningHub adiciona marcas d'água no player convencional.
+- **Decisão**:
+  1. **MiniMax Music 3 (Soundtrack Engine)**: Workflow ComfyUI 2120003151633174529 na Conta 4/Audio Command Center, injetando prompt de estilo no Nó #15 (`Text Multiline`), estrutura sinfônica de 4 atos no Nó #16 (`Text Multiline`), duração no Nó #14 (`PrimitiveFloat`, padrão 180.0s) e saída lossless FLAC no Nó #7 (`SaveAudioAdvanced`), acionando mandatoriamente o botão Lite/Plus (ADR-08).
+  2. **Sony Woosh Foley & SFX (Foley Engine)**: Workflow ComfyUI 2119999521484034049 na Conta 4/Audio Command Center, operando em modo híbrido (V2A via ingestão de vídeo no Nó #34 `VHS_LoadVideo` e T2A via prompt no Nó #46 `ShowText`).
+  3. **Invariante de Vídeo sem Watermark (`FeiHouVideoPreview`)**: A saída final de vídeo do Foley é **OBRIGATORIAMENTE** extraída do **Nó #94 (`FeiHouVideoPreview`)**, garantindo salvamento em alta definição e sem a marca d'água do RunningHub, enquanto o áudio isolado é capturado no Nó #9 (`PreviewAudio`).
+  4. **Mixagem Multitrack 3-Stem (-14 LUFS EBU R128)**: O `DarkFactoryAudioEngine.mix_multitrack_documentary` realiza a mixagem profissional dos 3 stems com compressão sidechain (ducking automático de -14dB na música quando há fala do narrador), balanceando os níveis (Voz 0dB, Trilha -16dB, Foley -12dB) e normalizando para broadcast e YouTube.
+
 
 
 

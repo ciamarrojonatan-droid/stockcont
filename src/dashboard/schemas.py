@@ -205,3 +205,65 @@ class NarrationItem(BaseModel):
     size_bytes: int
     created_at: str
     audio_url: str
+
+
+# ── Music & Soundtrack Models ───────────────────────
+
+class MusicRequest(BaseModel):
+    preset: Optional[str] = "hans_zimmer_tension"
+    style: Optional[str] = None
+    structure: Optional[str] = None
+    duration_sec: Optional[float] = 180.0
+    use_runninghub: Optional[bool] = True
+
+
+class MusicResponse(BaseModel):
+    success: bool
+    message: str
+    audio_file: Optional[str] = None
+    audio_url: Optional[str] = None
+    duration_sec: Optional[float] = None
+    style_used: Optional[str] = None
+    engine: Optional[str] = None
+    size_bytes: Optional[int] = None
+
+
+# ── Foley & SFX Models ──────────────────────────────
+
+class FoleyRequest(BaseModel):
+    mode: Optional[str] = "t2a"  # "t2a" or "v2a"
+    sfx_prompt: Optional[str] = None
+    preset: Optional[str] = "espionage_bunker"
+    video_path: Optional[str] = None
+    use_runninghub: Optional[bool] = True
+
+
+class FoleyResponse(BaseModel):
+    success: bool
+    message: str
+    audio_file: Optional[str] = None
+    audio_url: Optional[str] = None
+    video_file: Optional[str] = None
+    video_url: Optional[str] = None
+    engine: Optional[str] = None
+    size_bytes: Optional[int] = None
+
+
+# ── 3-Stem Multitrack Audio Mix Models ──────────────
+
+class AudioMixRequest(BaseModel):
+    voice_file: str
+    soundtrack_file: Optional[str] = None
+    foley_file: Optional[str] = None
+    output_filename: Optional[str] = None
+    music_volume: Optional[float] = 0.15
+    foley_volume: Optional[float] = 0.35
+    ducking: Optional[bool] = True
+
+
+class AudioMixResponse(BaseModel):
+    success: bool
+    message: str
+    mix_file: Optional[str] = None
+    mix_url: Optional[str] = None
+    size_bytes: Optional[int] = None

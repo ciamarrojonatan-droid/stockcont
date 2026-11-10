@@ -1,27 +1,32 @@
 # StockCont Pipeline State
 > Sincronizado automaticamente por hooks e comandos do ecossistema.
 
-## Sprint Atual: Google Flow Industrial REST API & Automation Engine (Veo 2/3 + Imagen 3)
+## Sprint Atual: Conta 4 Audio Command Center (MiniMax Music 3 + Sony Woosh Foley + CosyVoice + Multitrack 3-Stem)
 - **Status da Sprint**: [CONCLUÍDO & TOTALMENTE OPERACIONAL]:
-  1. **Arquitetura Hybrid Stealth Driver & Sessão Persistente**:
-     - Implementado gerenciador `src/integrations/google_flow/auth_manager.py` com perfil persistente (`google_flow_session/`), suporte a login interativo 1-click headed (2FA/Passkey) e renovação automática de sessão em background via heartbeat.
-     - Interceptor direto de endpoints internos RPC/REST do Google Labs (`src/integrations/google_flow/rpc_client.py`).
-  2. **Ciclo de Vida Completo de Projetos & Geração Multi-Mídia**:
-     - Criação isolada de projetos dedicados no Google Flow por lote/job (`src/integrations/google_flow/models.py`).
-     - Suporte nativo a Text-to-Video (Veo 2/3), Image-to-Video, Frames-to-Video e Text-to-Image (Imagen 3).
-     - Configurações completas: Aspect Ratios (16:9, 9:16, 1:1, 4:3, 2.39:1), Duração (5s/8s), Variações (1, 2, 4), Insumos ("Ingredients").
-  3. **Curadoria Inteligente & Upscale Nativo Automatizado**:
-     - Módulo QC (`src/integrations/google_flow/qc_curator.py`) com triagem multimodal Gemini Vision para eleger o melhor candidato antes do upscale.
-     - Gatilho do Upscaler Nativo do Google Flow (4K/1080p) e download assíncrono com stream sanitizado (`src/integrations/google_flow/downloader.py`).
-     - Ingestão direta em `data/final/videos` ou `data/final/images` com livro-razão SHA-256 (`data/processed/google_flow_history.json`).
-  4. **FastAPI REST Server & Integração CLI StockCont**:
-     - Servidor FastAPI assíncrono (`src/integrations/google_flow/api_server.py`) com documentação interativa Swagger em `http://localhost:8000/docs`.
-     - Endpoints REST completos: `/api/v1/health`, `/api/v1/auth/status`, `/api/v1/auth/login`, `/api/v1/projects`, `/api/v1/generate`, `/api/v1/jobs/{id}`, `/api/v1/jobs/{id}/upscale`, `/api/v1/jobs/{id}/download`.
-     - Integração na CLI raiz do StockCont (`python main.py --flow --help`, `--flow-status`, `--flow-serve`, `--flow-login`, `--flow-generate`, `--flow-process-queue`).
-  5. **Validação & Testes Automatizados**:
-     - `tests/test_google_flow_api.py` (10/10 passing).
-     - Suíte de testes completa do repositório: **272/272 testes aprovados (100% green)**.
-- **Última Atualização**: 2026-11-10 00:35
+  1. **MiniMax Music 3 (Soundtrack Engine)**:
+     - Workflow ComfyUI `2120003151633174529` no RunningHub Conta 4.
+     - Topologia: Nó #15 (`Text Multiline` para estilo musical), Nó #16 (`Text Multiline` para estrutura sinfônica de 4 partes), Nó #14 (`PrimitiveFloat` para duração, padrão 180s) e Nó #7 (`SaveAudioAdvanced` para saída lossless FLAC).
+     - Módulo `src/video/minimax_music_engine.py` com arquétipos sinfônicos (Hans Zimmer, Ludwig Göransson, Cold War Espionage, Cyber Warfare) e fallback procedural resiliente.
+  2. **Sony Woosh Foley & SFX Engine (V2A / T2A)**:
+     - Workflow ComfyUI `2119999521484034049` no RunningHub Conta 4.
+     - Topologia: Nó #34 (`VHS_LoadVideo` para ingestão V2A), Nó #46/56 (`ShowText`/Llama prompt para T2A), Nó #9 (`PreviewAudio` para áudio) e **Nó #94 (`FeiHouVideoPreview` para salvar vídeo em alta definição sem marca d'água do RunningHub)**.
+     - Módulo `src/video/woosh_foley_engine.py` com presets de foley de tensão cinematográfica e fallback procedural offline.
+  3. **Hierarquia Vocal & Unidade Narrativa (ADR-09)**:
+     - `src/video/voice_router.py` com trava imutável de narrador (`NarratorLock`) persistida em `data/processed/narrator_locks.json` (CosyVoice Neural Tier 1, Kokoro Local Tier 2, Deepgram Aura Tier 3).
+  4. **Mixador Multitrack 3-Stem (-14 LUFS EBU R128) (ADR-10)**:
+     - `DarkFactoryAudioEngine.mix_multitrack_documentary` em `src/video/audio_engine.py`: mixagem inteligente de 3 canais (Voz 0dB referência + Trilha sonora com sidechain ducking de -14dB + Foley SFX -12dB).
+  5. **Endpoints REST no Dashboard SPA**:
+     - `/api/v1/music/generate`: Geração de trilha sonora orquestral via MiniMax Music 3.
+     - `/api/v1/foley/generate`: Geração de efeitos sonoros com extração de vídeo sem watermark.
+     - `/api/v1/audio/mix`: Mixagem multitrack 3-stem profissional.
+  6. **Validação & Testes Automatizados**:
+     - `tests/test_minimax_music.py` (10/10 passing).
+     - `tests/test_woosh_foley.py` (10/10 passing).
+     - `tests/test_runninghub_execution_mode.py` (26/26 passing, cobrindo todos os modos e Lite/Plus mandatório).
+     - `tests/test_narration.py` (10/10 passing).
+     - `tests/test_voice_and_audio_engines.py` (11/11 passing).
+     - Suíte de testes completa do repositório: **308/308 testes aprovados (100% green)**.
+- **Última Atualização**: 2026-11-10 02:05
 - **Modo Operacional**: Dual-Mode (Antigravity & Claude Code via SSOT `PROJECT_CONTEXT.md`)
 
 ---
@@ -30,6 +35,8 @@
 
 | Fase / Módulo | Status | Contagem / Métricas | Próxima Ação Recomendada |
 | :--- | :--- | :--- | :--- |
+| **Conta 4: Audio Command Center** | 🟢 Operacional & Calibrado | **CosyVoice + MiniMax Music 3 + Sony Woosh Foley**: Trilha 4 atos (#15/#16/#14 ➔ #7) \| Foley V2A/T2A (#34/#46 ➔ Vídeo sem watermark #94 FeiHou + Áudio #9) \| Multitrack 3-Stem (-14 LUFS) | `/api/v1/music/generate`, `/api/v1/foley/generate`, `/api/v1/audio/mix` |
+| **Hierarquia Vocal & NarratorLock** | 🟢 Ativo & Travado | **Tier 1 CosyVoice ➔ Tier 2 Kokoro ➔ Tier 3 Deepgram**: Invariante de voz única por vídeo garantido via `narrator_locks.json` | `python main.py --video` |
 | **Google Flow Industrial API** | 🟢 Operacional & Calibrado | **FastAPI REST Server (`src/integrations/google_flow/`)**: Swagger em `/docs` \| Veo 2/3 + Imagen 3 \| Perfil persistente \| Upscale 4K \| Ledger SHA-256 | `python main.py --flow-serve` ou `--flow-status` |
 | **DarkFactory Cinema T2V (YouTube Dark)** | 🟢 Operacional & Calibrado | **Motor T2V Dual-Shot (`src/video/darkfactory_t2v.py`)**: 3 cenas narrativas (6 tomadas Dual-Shot prontas) \| Filas MiniMax H3 e Google Veo 2 ativas | `python main.py --video --t2v` |
 | **Pipeline de Vídeo (Fase 3: RunningHub)** | 🟢 Calibrado (Lite/Plus) | **Workflow 2115926169974812674**: Img #164 ➔ Prompt #17 ➔ Vídeo 4K #185 (Feihou Preview sem watermark) | Botão do Meio (Lite/Plus) Ativo | Playwright Stealth Conta 3 | `python main.py --phase 3 --video` |

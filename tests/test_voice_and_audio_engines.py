@@ -166,3 +166,34 @@ def test_audio_engine_mixing_mocked(tmp_path):
         )
         assert mixed.exists()
         assert mixed.stat().st_size > 0
+
+
+def test_audio_engine_3stem_mixing_mocked(tmp_path):
+    """Verify mix_multitrack_documentary mixes voice, music and foley correctly."""
+    engine = DarkFactoryAudioEngine(output_dir=tmp_path)
+
+    v_file = tmp_path / "voice.mp3"
+    m_file = tmp_path / "music.flac"
+    f_file = tmp_path / "foley.wav"
+    out_file = tmp_path / "final_3stem_mix.mp3"
+
+    v_file.write_bytes(b"dummy voice")
+    m_file.write_bytes(b"dummy music")
+    f_file.write_bytes(b"dummy foley")
+
+    def mock_subprocess_run(cmd, **kwargs):
+        out_file.write_bytes(b"mastered 3-stem mix audio")
+        mock_res = MagicMock()
+        mock_res.returncode = 0
+        return mock_res
+
+    with patch("subprocess.run", side_effect=mock_subprocess_run):
+        mixed = engine.mix_multitrack_documentary(
+            voice_path=v_file,
+            soundtrack_path=m_file,
+            foley_path=f_file,
+            output_path=out_file,
+            ducking=True,
+        )
+        assert mixed.exists()
+        assert mixed.stat().st_size > 0

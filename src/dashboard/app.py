@@ -1086,3 +1086,133 @@ async def get_audio_file(filename: str):
         raise HTTPException(status_code=404, detail="Arquivo de áudio não encontrado")
     media_type = "audio/mpeg" if path.suffix.lower() == ".mp3" else ("audio/flac" if path.suffix.lower() == ".flac" else "audio/wav")
     return FileResponse(path, media_type=media_type, filename=path.name)
+
+
+# ── MiniMax Music 3 & Soundtrack Endpoints ──────────
+
+@app.post("/api/v1/music/generate", response_model=schemas.MusicResponse)
+@app.post("/api/music/generate", response_model=schemas.MusicResponse)
+async def generate_music_endpoint(req: schemas.MusicRequest):
+    """Gera trilha sonora orquestral via MiniMax Music 3 (RunningHub) ou fallback procedural."""
+    import asyncio
+    from src.video.minimax_music_engine import MiniMaxMusicEngine
+
+    engine = MiniMaxMusicEngine()
+    try:
+        track = await asyncio.to_thread(
+            engine.generate_soundtrack,
+            preset_name=req.preset or "hans_zimmer_tension",
+            custom_style=req.style,
+            custom_structure=req.structure,
+            duration_sec=req.duration_sec or 180.0,
+            force_procedural=not req.use_runninghub,
+        )
+        return schemas.MusicResponse(
+            success=True,
+            message=f"Trilha sonora gerada com sucesso via {track.engine}",
+            audio_file=track.filename,
+            audio_url=f"/api/audio/file/{track.filename}",
+            duration_sec=track.duration_seconds,
+            style_used=track.style[:120],
+            engine=track.engine,
+            size_bytes=track.filesize_bytes,
+        )
+    except Exception as e:
+        logger.error(f"Erro na geração de trilha sonora: {e}")
+        return schemas.MusicResponse(
+            success=False,
+            message=f"Erro na geração de trilha sonora: {str(e)}",
+        )
+
+
+# ── Sony Woosh Foley & SFX Endpoints ────────────────
+
+@app.post("/api/v1/foley/generate", response_model=schemas.FoleyResponse)
+@app.post("/api/foley/generate", response_model=schemas.FoleyResponse)
+async def generate_foley_endpoint(req: schemas.FoleyRequest):
+    """Gera efeitos sonoros/Foley via Sony Woosh (V2A/T2A) com extração de vídeo sem watermark."""
+    import asyncio
+    from src.video.woosh_foley_engine import SonyWooshFoleyEngine
+
+    engine = SonyWooshFoleyEngine()
+    try:
+        foley = await asyncio.to_thread(
+            engine.generate_foley,
+            mode=req.mode or "t2a",
+            video_path=req.video_path,
+            sfx_prompt=req.sfx_prompt,
+            preset_name=req.preset,
+            force_procedural=not req.use_runninghub,
+        )
+        v_url = f"/api/video/file/{foley.video_path.name}" if foley.video_path and foley.video_path.exists() else None
+        return schemas.FoleyResponse(
+            success=True,
+            message=f"Foley SFX gerado com sucesso via {foley.engine} (mode={foley.mode})",
+            audio_file=foley.audio_path.name,
+            audio_url=f"/api/audio/file/{foley.audio_path.name}",
+            video_file=foley.video_path.name if foley.video_path else None,
+            video_url=v_url,
+            engine=foley.engine,
+            size_bytes=foley.filesize_bytes,
+        )
+    except Exception as e:
+        logger.error(f"Erro na geração de Foley: {e}")
+        return schemas.FoleyResponse(
+            success=False,
+            message=f"Erro na geração de Foley: {str(e)}",
+        )
+
+
+# ── 3-Stem Multitrack Documentary Audio Mix ─────────
+
+@app.post("/api/v1/audio/mix", response_model=schemas.AudioMixResponse)
+@app.post("/api/audio/mix", response_model=schemas.AudioMixResponse)
+async def mix_audio_endpoint(req: schemas.AudioMixRequest):
+    """Realiza mixagem 3-stem (voz + música + foley) via FFmpeg com sidechain ducking."""
+    import asyncio
+    from src.video.audio_engine import DarkFactoryAudioEngine
+
+    audio_engine = DarkFactoryAudioEngine()
+    v_path = readers.FINAL_AUDIO_DIR / req.voice_file
+    if not v_path.exists():
+        staging_v = Path(readers.BASE_DIR) / "data" / "staging" / "narration" / req.voice_file
+        if staging_v.exists():
+            v_path = staging_v
+        else:
+            raise HTTPException(status_code=404, detail=f"Arquivo de narração não encontrado: {req.voice_file}")
+
+    m_path = (readers.FINAL_AUDIO_DIR / req.soundtrack_file) if req.soundtrack_file else None
+    if m_path and not m_path.exists():
+        staging_m = Path(readers.BASE_DIR) / "data" / "staging" / "soundtracks" / req.soundtrack_file
+        if staging_m.exists():
+            m_path = staging_m
+
+    f_path = (readers.FINAL_AUDIO_DIR / req.foley_file) if req.foley_file else None
+
+    out_name = req.output_filename or f"master_mix_{int(time.time())}.mp3"
+    out_path = readers.FINAL_AUDIO_DIR / out_name
+
+    try:
+        mixed_path = await asyncio.to_thread(
+            audio_engine.mix_multitrack_documentary,
+            voice_path=v_path,
+            soundtrack_path=m_path,
+            foley_path=f_path,
+            output_path=out_path,
+            music_volume=req.music_volume or 0.15,
+            foley_volume=req.foley_volume or 0.35,
+            ducking=req.ducking if req.ducking is not None else True,
+        )
+        return schemas.AudioMixResponse(
+            success=True,
+            message="Mixagem multitrack 3-stem criada com sucesso!",
+            mix_file=mixed_path.name,
+            mix_url=f"/api/audio/file/{mixed_path.name}",
+            size_bytes=mixed_path.stat().st_size if mixed_path.exists() else 0,
+        )
+    except Exception as e:
+        logger.error(f"Erro na mixagem de áudio: {e}")
+        return schemas.AudioMixResponse(
+            success=False,
+            message=f"Erro na mixagem de áudio: {str(e)}",
+        )

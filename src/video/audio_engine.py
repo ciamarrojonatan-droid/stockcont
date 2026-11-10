@@ -266,3 +266,94 @@ class DarkFactoryAudioEngine:
 
         logger.info(f"✅ Audio mix successfully created: {out_path.name}")
         return out_path
+
+    def mix_multitrack_documentary(
+        self,
+        voice_path: Path | str,
+        soundtrack_path: Optional[Path | str],
+        foley_path: Optional[Path | str],
+        output_path: Path | str,
+        music_volume: float = 0.15,
+        foley_volume: float = 0.35,
+        ducking: bool = True,
+    ) -> Path:
+        """3-Stem documentary audio mixer (Voiceover + Music + Foley SFX) via FFmpeg.
+
+        Stem 1: Narration (0 dB reference, leads the mix).
+        Stem 2: Soundtrack (-16 to -18 dBFS, dynamically sidechain-ducked by voice).
+        Stem 3: Foley / SFX (-10 to -12 dBFS, positioned alongside speech).
+        Master: Formatted to 320kbps MP3 or 24-bit PCM WAV.
+        """
+        import shutil
+        import subprocess
+        from src.video.ffmpeg_processor import get_ffmpeg_binary
+
+        v_path = Path(voice_path).resolve()
+        if not v_path.exists():
+            raise FileNotFoundError(f"Voice audio file not found: {v_path}")
+
+        m_path = Path(soundtrack_path).resolve() if soundtrack_path else None
+        f_path = Path(foley_path).resolve() if foley_path else None
+
+        # Fallbacks when stems are missing
+        if not m_path and not f_path:
+            out_p = Path(output_path).resolve()
+            out_p.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(v_path, out_p)
+            return out_p
+        if not f_path and m_path:
+            return self.mix_voice_and_soundtrack(v_path, m_path, output_path, music_volume=music_volume, ducking=ducking)
+        if not m_path and f_path:
+            return self.mix_voice_and_soundtrack(v_path, f_path, output_path, music_volume=foley_volume, ducking=False)
+
+        # 3-Stem Mixing
+        out_path = Path(output_path).resolve()
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        temp_out = out_path.with_suffix(f".tmp.{os.getpid()}{out_path.suffix}")
+
+        if ducking:
+            filter_complex = (
+                f"[1:a]volume={music_volume:.2f}[music];"
+                f"[2:a]volume={foley_volume:.2f}[foley];"
+                f"[0:a]asplit=2[voice_main][voice_side];"
+                f"[music][voice_side]sidechaincompress=threshold=0.08:ratio=4:attack=20:release=350[ducked_music];"
+                f"[voice_main][ducked_music][foley]amix=inputs=3:duration=first:dropout_transition=2[outa]"
+            )
+        else:
+            filter_complex = (
+                f"[1:a]volume={music_volume:.2f}[music];"
+                f"[2:a]volume={foley_volume:.2f}[foley];"
+                f"[0:a][music][foley]amix=inputs=3:duration=first:dropout_transition=2[outa]"
+            )
+
+        cmd = [
+            get_ffmpeg_binary(),
+            "-y",
+            "-i", str(v_path),
+            "-stream_loop", "-1",
+            "-i", str(m_path),
+            "-stream_loop", "-1",
+            "-i", str(f_path),
+            "-filter_complex", filter_complex,
+            "-map", "[outa]",
+            "-c:a", "libmp3lame" if out_path.suffix.lower() == ".mp3" else "pcm_s16le",
+            "-b:a", "320k" if out_path.suffix.lower() == ".mp3" else None,
+            str(temp_out),
+        ]
+        cmd = [c for c in cmd if c is not None]
+
+        logger.info(f"Mixing 3-stem multitrack (voice + music + foley) via FFmpeg...")
+        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=120.0)
+
+        if res.returncode != 0:
+            if temp_out.exists():
+                temp_out.unlink()
+            err_msg = res.stderr.decode("utf-8", errors="ignore")
+            logger.error(f"FFmpeg 3-stem audio mixing failed: {err_msg}")
+            raise RuntimeError(f"FFmpeg 3-stem audio mixing failed: {err_msg[:300]}")
+
+        if temp_out.exists():
+            temp_out.replace(out_path)
+
+        logger.info(f"✅ 3-Stem documentary mix successfully created: {out_path.name}")
+        return out_path

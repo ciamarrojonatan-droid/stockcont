@@ -173,3 +173,81 @@ def test_api_v1_narrate_deepgram_mocked(client, tmp_path, monkeypatch):
         assert payload["audio_file"] == "narration_dg_mock.mp3"
         assert payload["provider"] == "deepgram"
         assert payload["cost_usd"] == 0.00075
+
+
+def test_api_v1_music_generate_endpoint(client, tmp_path, monkeypatch):
+    """Test POST /api/v1/music/generate endpoint."""
+    test_audio_dir = tmp_path / "audio"
+    test_audio_dir.mkdir()
+    monkeypatch.setattr(readers, "FINAL_AUDIO_DIR", test_audio_dir)
+
+    resp = client.post(
+        "/api/v1/music/generate",
+        json={
+            "preset": "hans_zimmer_tension",
+            "duration_sec": 3.0,
+            "use_runninghub": False,
+        },
+    )
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert payload["success"] is True
+    assert payload["audio_file"] is not None
+    assert "/api/audio/file/" in payload["audio_url"]
+    assert payload["engine"] == "procedural_fallback"
+
+
+def test_api_v1_foley_generate_endpoint(client, tmp_path, monkeypatch):
+    """Test POST /api/v1/foley/generate endpoint."""
+    test_audio_dir = tmp_path / "audio"
+    test_audio_dir.mkdir()
+    monkeypatch.setattr(readers, "FINAL_AUDIO_DIR", test_audio_dir)
+
+    resp = client.post(
+        "/api/v1/foley/generate",
+        json={
+            "mode": "t2a",
+            "sfx_prompt": "heavy steel vault door slam",
+            "use_runninghub": False,
+        },
+    )
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert payload["success"] is True
+    assert payload["audio_file"] is not None
+    assert "/api/audio/file/" in payload["audio_url"]
+
+
+def test_api_v1_audio_mix_endpoint(client, tmp_path, monkeypatch):
+    """Test POST /api/v1/audio/mix endpoint with 3-stem mixer."""
+    test_audio_dir = tmp_path / "audio"
+    test_audio_dir.mkdir()
+    monkeypatch.setattr(readers, "FINAL_AUDIO_DIR", test_audio_dir)
+
+    v_file = test_audio_dir / "voice.mp3"
+    m_file = test_audio_dir / "music.wav"
+    f_file = test_audio_dir / "foley.wav"
+    v_file.write_bytes(b"voice content")
+    m_file.write_bytes(b"music content")
+    f_file.write_bytes(b"foley content")
+
+    def mock_mix(voice_path, soundtrack_path, foley_path, output_path, **kwargs):
+        Path(output_path).write_bytes(b"mixed multitrack content")
+        return Path(output_path)
+
+    with patch("src.video.audio_engine.DarkFactoryAudioEngine.mix_multitrack_documentary", side_effect=mock_mix):
+        resp = client.post(
+            "/api/v1/audio/mix",
+            json={
+                "voice_file": "voice.mp3",
+                "soundtrack_file": "music.wav",
+                "foley_file": "foley.wav",
+                "output_filename": "test_master_mix.mp3",
+                "ducking": True,
+            },
+        )
+        assert resp.status_code == 200
+        payload = resp.json()
+        assert payload["success"] is True
+        assert payload["mix_file"] == "test_master_mix.mp3"
+        assert "/api/audio/file/" in payload["mix_url"]
