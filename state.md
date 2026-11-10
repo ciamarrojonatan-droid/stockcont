@@ -1,25 +1,27 @@
 # StockCont Pipeline State
 > Sincronizado automaticamente por hooks e comandos do ecossistema.
 
-## Sprint Atual: Master Voice Router & Invariante de Narrador Único por Vídeo (ADR-09)
+## Sprint Atual: Google Flow Industrial REST API & Automation Engine (Veo 2/3 + Imagen 3)
 - **Status da Sprint**: [CONCLUÍDO & TOTALMENTE OPERACIONAL]:
-  1. **Hierarquia Oficial de Narração Estabelecida**:
-     - **Tier 1 (Padrão Ouro Lossless)**: CosyVoice Neural via ComfyUI no RunningHub (Workflow `2118531898170486785`, nós #345/#355/#352 e captura lossless FLAC #346).
-     - **Tier 2 (Fallback 1)**: Kokoro Neural LOCAL (`bm_george` britânico BBC / Nolan, zero custo, local CPU).
-     - **Tier 3 (Fallback 2)**: Deepgram Aura REST API (`aura-helios-en` barítono, 1.6s, $200 USD comerciais).
-  2. **Invariante Mandatório de Unidade Vocal (`NarratorLock`)**:
-     - Módulo `src/video/voice_router.py` implementado com persistência atômica em `data/processed/narrator_locks.json`.
-     - Uma vez que a **Cena 1** define o narrador/motor do vídeo, todas as cenas seguintes do mesmo projeto ficam estritamente travadas naquele motor e voz.
-     - Bloqueio ativo contra contaminação vocal: alternância de narradores no mesmo vídeo gera `NarratorConsistencyViolationError`.
-  3. **Diagnóstico Hugging Face MusicGen & Estratégia RunningHub**:
-     - Constatado que a infraestrutura gratuita de serverless do Hugging Face (`hf-inference`) descontinuou inferência gratuita em GPU para modelos pesados como MusicGen (`inference: None`).
-     - Mapeamento e especificação dos workflows recomendados do RunningHub para Música (AudioCraft / Stable Audio Open / ACE-Step), SFX/Foley (MMAudio / FoleyCrafter) e Dublagem/Lipsync (CosyVoice 2 / F5-TTS / LivePortrait).
-  4. **Validação & Testes Automatizados**:
-     - `tests/test_voice_router.py` (5/5 passing).
-     - `tests/test_voice_and_audio_engines.py` (10/10 passing).
-     - `tests/test_narration.py` (7/7 passing).
-     - Suíte de testes completa do repositório: **262/262 testes aprovados (100% green)**.
-- **Última Atualização**: 2026-11-09 23:50
+  1. **Arquitetura Hybrid Stealth Driver & Sessão Persistente**:
+     - Implementado gerenciador `src/integrations/google_flow/auth_manager.py` com perfil persistente (`google_flow_session/`), suporte a login interativo 1-click headed (2FA/Passkey) e renovação automática de sessão em background via heartbeat.
+     - Interceptor direto de endpoints internos RPC/REST do Google Labs (`src/integrations/google_flow/rpc_client.py`).
+  2. **Ciclo de Vida Completo de Projetos & Geração Multi-Mídia**:
+     - Criação isolada de projetos dedicados no Google Flow por lote/job (`src/integrations/google_flow/models.py`).
+     - Suporte nativo a Text-to-Video (Veo 2/3), Image-to-Video, Frames-to-Video e Text-to-Image (Imagen 3).
+     - Configurações completas: Aspect Ratios (16:9, 9:16, 1:1, 4:3, 2.39:1), Duração (5s/8s), Variações (1, 2, 4), Insumos ("Ingredients").
+  3. **Curadoria Inteligente & Upscale Nativo Automatizado**:
+     - Módulo QC (`src/integrations/google_flow/qc_curator.py`) com triagem multimodal Gemini Vision para eleger o melhor candidato antes do upscale.
+     - Gatilho do Upscaler Nativo do Google Flow (4K/1080p) e download assíncrono com stream sanitizado (`src/integrations/google_flow/downloader.py`).
+     - Ingestão direta em `data/final/videos` ou `data/final/images` com livro-razão SHA-256 (`data/processed/google_flow_history.json`).
+  4. **FastAPI REST Server & Integração CLI StockCont**:
+     - Servidor FastAPI assíncrono (`src/integrations/google_flow/api_server.py`) com documentação interativa Swagger em `http://localhost:8000/docs`.
+     - Endpoints REST completos: `/api/v1/health`, `/api/v1/auth/status`, `/api/v1/auth/login`, `/api/v1/projects`, `/api/v1/generate`, `/api/v1/jobs/{id}`, `/api/v1/jobs/{id}/upscale`, `/api/v1/jobs/{id}/download`.
+     - Integração na CLI raiz do StockCont (`python main.py --flow --help`, `--flow-status`, `--flow-serve`, `--flow-login`, `--flow-generate`, `--flow-process-queue`).
+  5. **Validação & Testes Automatizados**:
+     - `tests/test_google_flow_api.py` (10/10 passing).
+     - Suíte de testes completa do repositório: **272/272 testes aprovados (100% green)**.
+- **Última Atualização**: 2026-11-10 00:35
 - **Modo Operacional**: Dual-Mode (Antigravity & Claude Code via SSOT `PROJECT_CONTEXT.md`)
 
 ---
@@ -28,6 +30,7 @@
 
 | Fase / Módulo | Status | Contagem / Métricas | Próxima Ação Recomendada |
 | :--- | :--- | :--- | :--- |
+| **Google Flow Industrial API** | 🟢 Operacional & Calibrado | **FastAPI REST Server (`src/integrations/google_flow/`)**: Swagger em `/docs` \| Veo 2/3 + Imagen 3 \| Perfil persistente \| Upscale 4K \| Ledger SHA-256 | `python main.py --flow-serve` ou `--flow-status` |
 | **DarkFactory Cinema T2V (YouTube Dark)** | 🟢 Operacional & Calibrado | **Motor T2V Dual-Shot (`src/video/darkfactory_t2v.py`)**: 3 cenas narrativas (6 tomadas Dual-Shot prontas) \| Filas MiniMax H3 e Google Veo 2 ativas | `python main.py --video --t2v` |
 | **Pipeline de Vídeo (Fase 3: RunningHub)** | 🟢 Calibrado (Lite/Plus) | **Workflow 2115926169974812674**: Img #164 ➔ Prompt #17 ➔ Vídeo 4K #185 (Feihou Preview sem watermark) | Botão do Meio (Lite/Plus) Ativo | Playwright Stealth Conta 3 | `python main.py --phase 3 --video` |
 | **Scoring Comercial & Filtros** | 🟢 Ativo & Operacional | **Motor Comercial (`src/analyzer/commercial_scorer.py`)**: 93 ativos analisados \| Score médio: 91.2 pts \| 70 Tier S, 23 Tier A \| 49 com Copy-Space (53%) | Explorar via Dashboard (`/`) |

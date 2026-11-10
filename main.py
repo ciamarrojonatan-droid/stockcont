@@ -570,6 +570,22 @@ def main() -> None:
     video_group.add_argument("--color-palette", type=str, default=None, choices=["cold_war_paranoia", "nuclear_dread_siren", "cyber_espionage", "deep_space_void", "bio_pathogen_hazard", "gordon_willis_noir", "fincher_muted_sage"], help="Synthesize 60-30-10 color psychology prompt clause")
     video_group.add_argument("--audit-palette", type=str, default=None, help="Audit keyframe 60-30-10 color distribution via K-Means clustering and render swatch card")
 
+    # Google Flow Industrial API Options
+    flow_group = parser.add_argument_group("Google Flow Industrial API Options")
+    flow_group.add_argument("--flow", action="store_true", help="Execute Google Flow Industrial API commands")
+    flow_group.add_argument("--flow-login", action="store_true", help="Launch interactive 1-click Google login for Flow")
+    flow_group.add_argument("--flow-status", action="store_true", help="Check Google Flow session status")
+    flow_group.add_argument("--flow-serve", action="store_true", help="Start Google Flow FastAPI REST server")
+    flow_group.add_argument("--flow-port", type=int, default=8000, help="Port for Google Flow API server (default: 8000)")
+    flow_group.add_argument("--flow-generate", type=str, default=None, help="Cinematic prompt to generate via Google Flow")
+    flow_group.add_argument("--flow-model", type=str, default="veo-2.0", help="Google Flow model: veo-2.0, veo-3.0, imagen-3.0")
+    flow_group.add_argument("--flow-ratio", type=str, default="16:9", help="Google Flow aspect ratio: 16:9, 9:16, 1:1, 4:3")
+    flow_group.add_argument("--flow-duration", type=int, default=5, help="Google Flow video duration (5 or 8s)")
+    flow_group.add_argument("--flow-variations", type=int, default=1, help="Google Flow variations count (1, 2, or 4)")
+    flow_group.add_argument("--flow-no-upscale", action="store_true", help="Skip Google Flow automatic upscale")
+    flow_group.add_argument("--flow-strip-audio", action="store_true", help="Strip audio track (-an) for stock upload")
+    flow_group.add_argument("--flow-process-queue", action="store_true", help="Process pending prompts from google_veo_queue.json via Google Flow")
+
     args = parser.parse_args()
 
     # Dashboard mode - launch web UI server
@@ -593,6 +609,42 @@ def main() -> None:
     if args.restore:
         from src.backup.gdrive_backup import run_gdrive_restore
         run_gdrive_restore()
+        return
+
+    # Google Flow Industrial API Command Dispatch
+    if (
+        getattr(args, "flow", False)
+        or getattr(args, "flow_serve", False)
+        or getattr(args, "flow_login", False)
+        or getattr(args, "flow_status", False)
+        or getattr(args, "flow_generate", None)
+        or getattr(args, "flow_process_queue", False)
+    ):
+        from src.integrations.google_flow.cli import main_cli
+        cli_args = []
+        if getattr(args, "flow_login", False):
+            cli_args.append("--login")
+        elif getattr(args, "flow_status", False):
+            cli_args.append("--status")
+        elif getattr(args, "flow_serve", False):
+            cli_args.extend(["--serve", "--port", str(getattr(args, "flow_port", 8000))])
+        elif getattr(args, "flow_generate", None):
+            cli_args.extend([
+                "--generate", args.flow_generate,
+                "--model", getattr(args, "flow_model", "veo-2.0"),
+                "--ratio", getattr(args, "flow_ratio", "16:9"),
+                "--duration", str(getattr(args, "flow_duration", 5)),
+                "--variations", str(getattr(args, "flow_variations", 1)),
+            ])
+            if getattr(args, "flow_no_upscale", False):
+                cli_args.append("--no-upscale")
+            if getattr(args, "flow_strip_audio", False):
+                cli_args.append("--strip-audio")
+        elif getattr(args, "flow_process_queue", False):
+            cli_args.append("--process-queue")
+        else:
+            cli_args.append("--status")
+        main_cli(cli_args)
         return
 
     # If no arguments provided, display status and help
