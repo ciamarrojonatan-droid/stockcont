@@ -153,6 +153,14 @@ class GenerationRequest(BaseModel):
             raise ValueError(f"Invalid selection_strategy '{v}'. Supported: {SUPPORTED_SELECTION_STRATEGIES}")
         return v
 
+    @field_validator("target_resolution")
+    @classmethod
+    def validate_target_resolution(cls, v: str) -> str:
+        v_clean = v.lower().strip()
+        if v_clean not in ["1k", "2k", "4k"]:
+            raise ValueError(f"Invalid target_resolution '{v}'. Supported: ['1k', '2k', '4k']")
+        return v_clean
+
 
 class UpscaleRequest(BaseModel):
     """Payload to request upscale on existing job candidates."""
@@ -160,7 +168,7 @@ class UpscaleRequest(BaseModel):
         None,
         description="Specific candidates to upscale. If empty, uses job's selection_strategy"
     )
-    target_resolution: str = Field("4k", description="Target resolution: 1080p or 4k")
+    target_resolution: str = Field("4k", description="Target resolution: 1k, 2k, or 4k")
 
 
 class JobStatusResponse(BaseModel):
