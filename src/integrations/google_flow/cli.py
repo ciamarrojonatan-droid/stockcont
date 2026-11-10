@@ -41,12 +41,15 @@ def main_cli(args: Optional[list] = None) -> int:
 
     # Direct generation flags
     parser.add_argument("--generate", type=str, help="Cinematic text prompt to generate")
+    parser.add_argument("--mode", default=None, choices=["t2v", "t2i", "i2v"], help="Generation mode: t2v, t2i, i2v")
     parser.add_argument("--model", default="veo-2.0", help="Model: veo-2.0, veo-3.0, imagen-3.0")
-    parser.add_argument("--ratio", default="16:9", help="Aspect ratio: 16:9, 9:16, 1:1, 4:3")
+    parser.add_argument("--ratio", default="16:9", help="Aspect ratio: 16:9, 9:16, 1:1, 4:3, 2.39:1")
     parser.add_argument("--duration", type=int, default=5, help="Duration in seconds (5 or 8)")
     parser.add_argument("--variations", type=int, default=1, help="Variations count (1, 2, 4)")
+    parser.add_argument("--upscale", default="2k", choices=["1k", "2k", "4k"], help="Target upscale resolution (1k, 2k, 4k)")
     parser.add_argument("--no-upscale", action="store_true", help="Disable automatic upscale")
     parser.add_argument("--strip-audio", action="store_true", help="Strip audio track (-an) for stock upload")
+    parser.add_argument("--project-name", default=None, help="Custom project title for Google Flow")
 
     # Queue processing
     parser.add_argument("--process-queue", action="store_true", help="Process pending prompts in google_veo_queue.json")
@@ -77,12 +80,15 @@ def main_cli(args: Optional[list] = None) -> int:
         return asyncio.run(
             _run_single_generation(
                 prompt=parsed.generate,
+                mode=parsed.mode,
                 model=parsed.model,
                 aspect_ratio=parsed.ratio,
                 duration=parsed.duration,
                 variations=parsed.variations,
                 auto_upscale=not parsed.no_upscale,
+                target_resolution=parsed.upscale,
                 strip_audio=parsed.strip_audio,
+                project_name=parsed.project_name,
             )
         )
 
@@ -95,12 +101,15 @@ def main_cli(args: Optional[list] = None) -> int:
 
 async def _run_single_generation(
     prompt: str,
+    mode: Optional[str],
     model: str,
     aspect_ratio: str,
     duration: int,
     variations: int,
     auto_upscale: bool,
+    target_resolution: str,
     strip_audio: bool,
+    project_name: Optional[str] = None,
 ) -> int:
     """Run a single generation from CLI and await completion."""
     service = GoogleFlowService()
@@ -114,15 +123,18 @@ async def _run_single_generation(
         print("    python main.py --flow-login")
         print("=" * 65)
 
+    determined_mode = mode or ("t2v" if "veo" in model.lower() else "t2i")
     req = GenerationRequest(
         prompt=prompt,
-        mode="t2v" if "veo" in model else "t2i",
+        mode=determined_mode,
         model=model,
         aspect_ratio=aspect_ratio,
         duration_seconds=duration,
         variations_count=variations,
         auto_upscale=auto_upscale,
+        target_resolution=target_resolution,
         strip_audio=strip_audio,
+        project_name=project_name,
     )
     print(f"\n🚀 Enqueuing generation for prompt: {prompt[:60]}...")
     job = await service.enqueue_generation(req)

@@ -82,6 +82,13 @@ def test_generation_request_validation():
     with pytest.raises(ValueError, match="Invalid selection_strategy"):
         GenerationRequest(prompt="Test prompt", selection_strategy="random_pick")
 
+    # Target resolution validation
+    req_4k = GenerationRequest(prompt="Test prompt", target_resolution="4k")
+    assert req_4k.target_resolution == "4k"
+
+    with pytest.raises(ValueError, match="Invalid target_resolution"):
+        GenerationRequest(prompt="Test prompt", target_resolution="8k")
+
 
 # ══════════════════════════════════════════════════════
 # 2. Auth Manager Tests
@@ -359,3 +366,15 @@ def test_fastapi_endpoints(tmp_path):
     # 7. Non-existent job returns 404
     res = client.get("/api/v1/jobs/non_existent_job_123")
     assert res.status_code == 404
+
+    # 8. Query Models Capabilities
+    res = client.get("/api/v1/models")
+    assert res.status_code == 200
+    models_data = res.json()
+    assert "veo-2.0" in models_data["video_models"]
+    assert any(r["ratio"] == "16:9" for r in models_data["aspect_ratios"])
+
+    # 9. Query Ledger History
+    res = client.get("/api/v1/history")
+    assert res.status_code == 200
+    assert isinstance(res.json(), dict)

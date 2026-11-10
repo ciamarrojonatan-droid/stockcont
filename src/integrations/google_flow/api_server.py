@@ -82,6 +82,29 @@ def create_app(service: Optional[GoogleFlowService] = None) -> FastAPI:
             "active_jobs_count": len(flow_service.list_jobs()),
         }
 
+    @app.get("/api/v1/models", tags=["Capabilities"])
+    async def get_model_capabilities() -> Dict[str, Any]:
+        """List all supported video and image models, aspect ratios, durations, and resolutions."""
+        return {
+            "modes": SUPPORTED_MODES,
+            "video_models": SUPPORTED_VIDEO_MODELS,
+            "image_models": SUPPORTED_IMAGE_MODELS,
+            "aspect_ratios": [
+                {"ratio": "16:9", "name": "Landscape (Widescreen)", "use_case": "YouTube / Desktop / Stock Footage"},
+                {"ratio": "9:16", "name": "Vertical (Portrait)", "use_case": "Shorts / Reels / TikTok"},
+                {"ratio": "1:1", "name": "Square", "use_case": "Social Feed / Microstock Icons"},
+                {"ratio": "4:3", "name": "Classic Television", "use_case": "Editorial / Archival"},
+                {"ratio": "2.39:1", "name": "Anamorphic Cinema", "use_case": "Cinematic Trailers / Ultra-Wide"},
+            ],
+            "durations_seconds": [5, 8],
+            "target_resolutions": [
+                {"id": "1k", "name": "1K Tamanho original", "upscale": False},
+                {"id": "2k", "name": "2K Aprimorada", "upscale": True},
+                {"id": "4k", "name": "4K Aprimorada", "upscale": True},
+            ],
+            "variations_count": [1, 2, 4],
+        }
+
     # ══════════════════════════════════════════════════════
     # Authentication Management Endpoints
     # ══════════════════════════════════════════════════════
@@ -196,6 +219,11 @@ def create_app(service: Optional[GoogleFlowService] = None) -> FastAPI:
         file_path = job.final_output_paths[asset_index]
         media_type = "video/mp4" if file_path.endswith(".mp4") else "image/jpeg"
         return FileResponse(path=file_path, media_type=media_type, filename=file_path.split("\\")[-1])
+
+    @app.get("/api/v1/history", tags=["Ledger"])
+    async def get_generation_history() -> Dict[str, Any]:
+        """Query the full cryptographic SHA-256 download and generation history ledger."""
+        return flow_service.get_history()
 
     return app
 

@@ -54,6 +54,10 @@ class GoogleFlowService:
         """List all tracked jobs."""
         return list(self._jobs.values())
 
+    def get_history(self) -> Dict[str, Any]:
+        """Retrieve full cryptographic download ledger."""
+        return self.downloader._load_ledger()
+
     async def enqueue_generation(self, request: GenerationRequest) -> JobStatusResponse:
         """Enqueue a new generation job and launch background runner."""
         job_id = f"job_flow_{uuid.uuid4().hex[:12]}"
@@ -108,6 +112,12 @@ class GoogleFlowService:
                         project_name=job.project_name,
                         aspect_ratio=req.aspect_ratio,
                         auto_upscale=req.auto_upscale,
+                        target_resolution=req.target_resolution,
+                        mode=req.mode,
+                        model=req.model,
+                        duration_seconds=req.duration_seconds,
+                        variations_count=req.variations_count,
+                        strip_audio=req.strip_audio,
                         output_dir=out_dir,
                     )
 

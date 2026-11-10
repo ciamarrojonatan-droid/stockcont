@@ -592,12 +592,15 @@ def main() -> None:
     flow_group.add_argument("--flow-serve", action="store_true", help="Start Google Flow FastAPI REST server")
     flow_group.add_argument("--flow-port", type=int, default=8000, help="Port for Google Flow API server (default: 8000)")
     flow_group.add_argument("--flow-generate", type=str, default=None, help="Cinematic prompt to generate via Google Flow")
+    flow_group.add_argument("--flow-mode", type=str, default=None, choices=["t2v", "t2i", "i2v"], help="Google Flow mode: t2v, t2i, i2v")
     flow_group.add_argument("--flow-model", type=str, default="veo-2.0", help="Google Flow model: veo-2.0, veo-3.0, imagen-3.0")
-    flow_group.add_argument("--flow-ratio", type=str, default="16:9", help="Google Flow aspect ratio: 16:9, 9:16, 1:1, 4:3")
+    flow_group.add_argument("--flow-ratio", type=str, default="16:9", help="Google Flow aspect ratio: 16:9, 9:16, 1:1, 4:3, 2.39:1")
     flow_group.add_argument("--flow-duration", type=int, default=5, help="Google Flow video duration (5 or 8s)")
     flow_group.add_argument("--flow-variations", type=int, default=1, help="Google Flow variations count (1, 2, or 4)")
+    flow_group.add_argument("--flow-upscale", type=str, default="2k", choices=["1k", "2k", "4k"], help="Target upscale resolution: 1k, 2k, or 4k (default: 2k)")
     flow_group.add_argument("--flow-no-upscale", action="store_true", help="Skip Google Flow automatic upscale")
     flow_group.add_argument("--flow-strip-audio", action="store_true", help="Strip audio track (-an) for stock upload")
+    flow_group.add_argument("--flow-project-name", type=str, default=None, help="Custom project title for Google Flow")
     flow_group.add_argument("--flow-process-queue", action="store_true", help="Process pending prompts from google_veo_queue.json via Google Flow")
 
     args = parser.parse_args()
@@ -649,7 +652,12 @@ def main() -> None:
                 "--ratio", getattr(args, "flow_ratio", "16:9"),
                 "--duration", str(getattr(args, "flow_duration", 5)),
                 "--variations", str(getattr(args, "flow_variations", 1)),
+                "--upscale", getattr(args, "flow_upscale", "2k"),
             ])
+            if getattr(args, "flow_mode", None):
+                cli_args.extend(["--mode", args.flow_mode])
+            if getattr(args, "flow_project_name", None):
+                cli_args.extend(["--project-name", args.flow_project_name])
             if getattr(args, "flow_no_upscale", False):
                 cli_args.append("--no-upscale")
             if getattr(args, "flow_strip_audio", False):
