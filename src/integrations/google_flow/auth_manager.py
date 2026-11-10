@@ -102,7 +102,7 @@ class GoogleFlowAuthManager:
             message=msg
         )
 
-    def interactive_login(self, timeout_sec: int = 180) -> bool:
+    def interactive_login(self, timeout_sec: int = 300) -> bool:
         """Open headed Chromium window allowing user to complete Google 2FA login.
 
         Captures authentication cookies, Bearer tokens, and request headers on success.
@@ -117,6 +117,7 @@ class GoogleFlowAuthManager:
         print("  GOOGLE FLOW — LOGIN ASSISTIDO (ONE-SHOT 2FA)")
         print("  Uma janela do navegador será aberta.")
         print("  Por favor, faça login com sua conta Google autorizada.")
+        print("  A janela permanecerá aberta até a conclusão do login.")
         print("=" * 65 + "\n")
 
         captured_headers: Dict[str, str] = {}
@@ -133,7 +134,7 @@ class GoogleFlowAuthManager:
                 user_data_dir=str(self.session_dir),
                 headless=False,
                 args=args,
-                viewport={"width": 1280, "height": 800},
+                viewport={"width": 1280, "height": 850},
                 user_agent=(
                     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
                     "AppleWebKit/537.36 (KHTML, like Gecko) "
@@ -155,24 +156,47 @@ class GoogleFlowAuthManager:
 
             page.on("request", handle_request)
 
+            # Navigate directly to Google Login with redirect to Flow
+            login_url = "https://accounts.google.com/ServiceLogin?continue=https://flow.google.com/"
             try:
-                page.goto(GOOGLE_FLOW_WEB_URL, wait_until="commit", timeout=60000)
+                page.goto(login_url, wait_until="commit", timeout=60000)
             except Exception as e:
                 logger.warning(f"Initial navigation notice: {e}")
+
+            print("  ⏳ Janela aberta! Digite seu email/senha e realize o 2FA no navegador...")
+            print("  (Aguardando você concluir o login no Google)...\n")
 
             # Wait for user to complete login
             start_time = time.time()
             logged_in = False
 
             while (time.time() - start_time) < timeout_sec:
-                current_url = page.url
-                # When redirected back to Flow/Labs and not on accounts.google.com
-                if ("labs.google" in current_url or "flow.google" in current_url) and "accounts.google.com" not in current_url:
-                    # Give page 5 seconds to load and dispatch background RPCs
-                    time.sleep(5.0)
-                    logged_in = True
-                    break
-                time.sleep(1.5)
+                try:
+                    if not context.pages or context.pages[0].is_closed():
+                        print("  [INFO] Janela fechada pelo usuário.")
+                        break
+
+                    current_url = page.url
+                    cookies = context.cookies()
+                    has_auth_cookie = any(
+                        c.get("name") in ["__Secure-1PSID", "SID", "SAPISID"] for c in cookies
+                    )
+
+                    # Only consider logged in if real Google session cookies are present
+                    # AND user has returned to Flow / Labs, outside of accounts.google.com
+                    if (
+                        has_auth_cookie
+                        and ("flow.google" in current_url or "labs.google" in current_url)
+                        and "accounts.google.com" not in current_url
+                    ):
+                        print("  [✓] Login detectado com sucesso! Capturando credenciais...")
+                        time.sleep(3.0)
+                        logged_in = True
+                        break
+                except Exception:
+                    pass
+
+                time.sleep(1.0)
 
             if logged_in:
                 captured_cookies = context.cookies()
