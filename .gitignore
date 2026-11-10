@@ -38,6 +38,7 @@ gh-cli/
 
 data/logs/
 data/models/
+data/audio/
 *.exe
 
 darkfactory/

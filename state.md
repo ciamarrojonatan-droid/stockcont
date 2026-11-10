@@ -1,22 +1,20 @@
 # StockCont Pipeline State
 > Sincronizado automaticamente por hooks e comandos do ecossistema.
 
-## Sprint Atual: Auditoria e Padronização de Geração Nativa (Gemini API & Kokoro-82M TTS)
-- **Status da Sprint**: [CONCLUÍDO & TESTADO COM SUCESSO]:
-  1. **Locução Neural Local com Kokoro-82M (Breakthrough)**:
-     - Motor Kokoro-82M (ONNX Runtime) instalado e calibrado com sucesso localmente em `data/models/kokoro/` (325MB model + 5.7MB voices).
-     - Áudio piloto documental sintetizado com a voz masculina solene `am_adam` em `data/staging/kokoro_pilot_voice.wav` (11.41s, 24kHz, 547KB).
-     - Testes automatizados adicionados em `tests/test_kokoro_voice.py` (2/2 passing).
-     - 100% offline, zero dependência de nuvem, zero custos de API.
-  2. **Auditoria de Capacidades Nativas da Gemini API (Free Tier)**:
-     - **Roteiro & Pacing**: `gemini-3.8-flash` 100% operacional com JSON estruturado e gancho de 15s.
-     - **Thumbnails & Imagens**: `gemini-nano-banana-2.1`, `imagen-3.0` bloqueados com cota 0 no Free Tier (exigem Pay-as-you-go). Workflow mantido no RunningHub ComfyUI.
-     - **Vídeo (T2V)**: `gemini-omni-flash-preview` bloqueado com cota 0 no Free Tier.
-     - **Música**: Sem endpoint público na Gemini Developer API gratuita.
-  3. **Validação & Testes Automatizados**:
+## Sprint Atual: Benchmark de Vozes Britânicas (Kokoro-82M bm_george vs bm_lewis)
+- **Status da Sprint**: [CONCLUÍDO & DISPONÍVEL PARA AVALIAÇÃO]:
+  1. **Locução Neural Local com Kokoro-82M (George vs Lewis)**:
+     - Sintetizadas as duas vozes britânicas masculinas clássicas estilo BBC/Nolan:
+       - **bm_george**: 38.88s de narração masterizada, tom sombrio, autoritário e denso.
+       - **bm_lewis**: 38.20s de narração masterizada, tom articulado, tenso e urgente.
+     - Ambas as vozes processadas individualmente por cena (Cenas 1, 2 e 3) e na introdução completa de 38s.
+     - Masterização de transmissão documental aplicada via FFmpeg (EQ 90Hz/350Hz/3.5kHz, compressor dinâmico e -14 LUFS).
+     - Legendas SRT sincronizadas geradas para ambos os narradores.
+     - Arquivos salvos em `data/audio/kokoro_comparison/` e espelhados em `darkfactory/data/audio/`.
+  2. **Validação & Testes Automatizados**:
      - Suíte `tests/test_gemini_api.py` (3/3 passing).
      - Suíte `tests/test_kokoro_voice.py` (2/2 passing).
-- **Última Atualização**: 2026-11-09 20:58
+- **Última Atualização**: 2026-11-09 21:15
 - **Modo Operacional**: Dual-Mode (Antigravity & Claude Code via SSOT `PROJECT_CONTEXT.md`)
 
 ---
