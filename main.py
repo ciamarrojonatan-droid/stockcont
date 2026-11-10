@@ -21,8 +21,22 @@ from pathlib import Path
 # Root Directory
 BASE_DIR = Path(__file__).resolve().parent
 
-from dotenv import load_dotenv
-load_dotenv(BASE_DIR / ".env", override=True)
+# Auto-detect and re-exec into local virtualenv if invoked via global Python
+venv_python = BASE_DIR / "venv" / "Scripts" / "python.exe"
+if not os.environ.get("_STOCKCONT_VENV_ACTIVE") and venv_python.exists():
+    try:
+        if Path(sys.executable).resolve() != venv_python.resolve():
+            os.environ["_STOCKCONT_VENV_ACTIVE"] = "1"
+            res = subprocess.run([str(venv_python), str(Path(__file__).resolve())] + sys.argv[1:])
+            sys.exit(res.returncode)
+    except Exception:
+        pass
+
+try:
+    from dotenv import load_dotenv
+    load_dotenv(BASE_DIR / ".env", override=True)
+except ImportError:
+    pass
 
 # Reconfigure stdout/stderr to UTF-8 on Windows consoles to prevent cp1252 UnicodeEncodeError
 if sys.platform.startswith("win"):
