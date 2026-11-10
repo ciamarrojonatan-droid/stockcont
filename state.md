@@ -1,32 +1,28 @@
 # StockCont Pipeline State
 > Sincronizado automaticamente por hooks e comandos do ecossistema.
 
-## Sprint Atual: Conta 4 Audio Command Center (MiniMax Music 3 + Sony Woosh Foley + CosyVoice + Multitrack 3-Stem)
+## Sprint Atual: MiniMax H3 Cinematic V2 Turbo — Fallback de Vídeo sem Marca D'água (FeiHou Nó #107 / ADR-11)
 - **Status da Sprint**: [CONCLUÍDO & TOTALMENTE OPERACIONAL]:
-  1. **MiniMax Music 3 (Soundtrack Engine)**:
-     - Workflow ComfyUI `2120003151633174529` no RunningHub Conta 4.
-     - Topologia: Nó #15 (`Text Multiline` para estilo musical), Nó #16 (`Text Multiline` para estrutura sinfônica de 4 partes), Nó #14 (`PrimitiveFloat` para duração, padrão 180s) e Nó #7 (`SaveAudioAdvanced` para saída lossless FLAC).
-     - Módulo `src/video/minimax_music_engine.py` com arquétipos sinfônicos (Hans Zimmer, Ludwig Göransson, Cold War Espionage, Cyber Warfare) e fallback procedural resiliente.
-  2. **Sony Woosh Foley & SFX Engine (V2A / T2A)**:
-     - Workflow ComfyUI `2119999521484034049` no RunningHub Conta 4.
-     - Topologia: Nó #34 (`VHS_LoadVideo` para ingestão V2A), Nó #46/56 (`ShowText`/Llama prompt para T2A), Nó #9 (`PreviewAudio` para áudio) e **Nó #94 (`FeiHouVideoPreview` para salvar vídeo em alta definição sem marca d'água do RunningHub)**.
-     - Módulo `src/video/woosh_foley_engine.py` com presets de foley de tensão cinematográfica e fallback procedural offline.
-  3. **Hierarquia Vocal & Unidade Narrativa (ADR-09)**:
-     - `src/video/voice_router.py` com trava imutável de narrador (`NarratorLock`) persistida em `data/processed/narrator_locks.json` (CosyVoice Neural Tier 1, Kokoro Local Tier 2, Deepgram Aura Tier 3).
-  4. **Mixador Multitrack 3-Stem (-14 LUFS EBU R128) (ADR-10)**:
-     - `DarkFactoryAudioEngine.mix_multitrack_documentary` em `src/video/audio_engine.py`: mixagem inteligente de 3 canais (Voz 0dB referência + Trilha sonora com sidechain ducking de -14dB + Foley SFX -12dB).
-  5. **Endpoints REST no Dashboard SPA**:
-     - `/api/v1/music/generate`: Geração de trilha sonora orquestral via MiniMax Music 3.
-     - `/api/v1/foley/generate`: Geração de efeitos sonoros com extração de vídeo sem watermark.
-     - `/api/v1/audio/mix`: Mixagem multitrack 3-stem profissional.
-  6. **Validação & Testes Automatizados**:
-     - `tests/test_minimax_music.py` (10/10 passing).
-     - `tests/test_woosh_foley.py` (10/10 passing).
-     - `tests/test_runninghub_execution_mode.py` (26/26 passing, cobrindo todos os modos e Lite/Plus mandatório).
-     - `tests/test_narration.py` (10/10 passing).
-     - `tests/test_voice_and_audio_engines.py` (11/11 passing).
-     - Suíte de testes completa do repositório: **308/308 testes aprovados (100% green)**.
-- **Última Atualização**: 2026-11-10 02:05
+  1. **Topologia RunningHub MiniMax H3 (Workflow 2118560390471745537)**:
+     - Configurado como Conta 7 / `minimax_h3` em `src/factory/runninghub_bot.py`.
+     - Ingestão de Prompt: Nó #35 (`PrimitiveStringMultiline` para prompts cinemáticos de câmera/ação).
+     - Ingestão de Imagem de Referência: Nó #48 (`LoadImage` 图1 para imagem 16:9).
+     - Duração do Vídeo: Nó #66 (`PrimitiveFloat`, padrão 10.0s).
+     - Seletor de Resolução: Nó #62 (`ResolutionSelector` 16:9).
+     - **Saída Mandatória de Vídeo sem Marca D'água**: Nó #107 (`FeiHouVideoPreview` - 'FeiHou-视频预览'), garantindo render MP4 HD com áudio e zero watermark do RunningHub.
+     - Botão de Execução: Lite/Plus mandatório (ADR-08).
+     - Cancelamento atômico pós-salvamento em disco para economia máxima de créditos de GPU.
+  2. **Motor Dedicado `src/video/minimax_h3_engine.py`**:
+     - `MiniMaxH3VideoEngine` com `build_cinematic_prompt` aderente às diretivas do MiniMax H3 / Hailuo Video-01 e DarkFactory T2V.
+     - Geração via RunningHub RPA com fallback automático para síntese procedural de vídeo em 1080p 24fps com grão cinematográfico orgânico (via OpenCV/cv2).
+     - Retorno com dataclass `H3VideoResult` (`video_path`, `duration`, `engine`, `has_watermark=False`).
+  3. **Endpoints REST no Dashboard SPA**:
+     - `POST /api/v1/video/minimax_h3`: Disparo sob demanda de vídeo cinemático com imagem de referência e parâmetros de câmera/iluminação.
+  4. **Validação & Testes Automatizados**:
+     - `tests/test_minimax_h3_video.py` (12/12 passing).
+     - `tests/test_runninghub_execution_mode.py` (44/44 passing).
+     - Suíte completa do repositório: **326/326 testes aprovados (100% green)**.
+- **Última Atualização**: 2026-11-10 02:40
 - **Modo Operacional**: Dual-Mode (Antigravity & Claude Code via SSOT `PROJECT_CONTEXT.md`)
 
 ---
@@ -35,6 +31,7 @@
 
 | Fase / Módulo | Status | Contagem / Métricas | Próxima Ação Recomendada |
 | :--- | :--- | :--- | :--- |
+| **MiniMax H3 Cinematic (Fallback Vídeo)** | 🟢 Operacional & Calibrado | **Workflow 2118560390471745537 (Conta 7)**: Prompt #35 \| Imagem #48 (图1) \| Duração #66 (10s) \| **Vídeo sem watermark #107 FeiHou** \| Lite/Plus (ADR-08/11) | `/api/v1/video/minimax_h3` |
 | **Conta 4: Audio Command Center** | 🟢 Operacional & Calibrado | **CosyVoice + MiniMax Music 3 + Sony Woosh Foley**: Trilha 4 atos (#15/#16/#14 ➔ #7) \| Foley V2A/T2A (#34/#46 ➔ Vídeo sem watermark #94 FeiHou + Áudio #9) \| Multitrack 3-Stem (-14 LUFS) | `/api/v1/music/generate`, `/api/v1/foley/generate`, `/api/v1/audio/mix` |
 | **Hierarquia Vocal & NarratorLock** | 🟢 Ativo & Travado | **Tier 1 CosyVoice ➔ Tier 2 Kokoro ➔ Tier 3 Deepgram**: Invariante de voz única por vídeo garantido via `narrator_locks.json` | `python main.py --video` |
 | **Google Flow Industrial API** | 🟢 Operacional & Calibrado | **FastAPI REST Server (`src/integrations/google_flow/`)**: Swagger em `/docs` \| Veo 2/3 + Imagen 3 \| Perfil persistente \| Criação de projetos \| Configuração de vídeo/imagem (model, ratio, duration, count, resolution 1K/2K/4K) \| Download com upscale nativo \| Injeção IPTC/EXIF \| Stripping de áudio (`-an`) \| Ledger SHA-256 | `python main.py --flow-serve` ou `--flow-generate` |

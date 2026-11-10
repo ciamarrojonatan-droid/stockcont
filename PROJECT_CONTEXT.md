@@ -331,6 +331,16 @@ Diferente de fluxos manuais de geração com IA generativa, o StockCont opera co
   3. **Invariante de Vídeo sem Watermark (`FeiHouVideoPreview`)**: A saída final de vídeo do Foley é **OBRIGATORIAMENTE** extraída do **Nó #94 (`FeiHouVideoPreview`)**, garantindo salvamento em alta definição e sem a marca d'água do RunningHub, enquanto o áudio isolado é capturado no Nó #9 (`PreviewAudio`).
   4. **Mixagem Multitrack 3-Stem (-14 LUFS EBU R128)**: O `DarkFactoryAudioEngine.mix_multitrack_documentary` realiza a mixagem profissional dos 3 stems com compressão sidechain (ducking automático de -14dB na música quando há fala do narrador), balanceando os níveis (Voz 0dB, Trilha -16dB, Foley -12dB) e normalizando para broadcast e YouTube.
 
+### ADR-11: Fallback Cinemático de Vídeo via MiniMax H3 Cinematic V2 Turbo (FeiHou Node #107 sem Watermark)
+- **Contexto**: A esteira de produção de vídeo 4K (Google Flow / Veo 2 / Conta 3) pode enfrentar contingências operacionais, limites de GPU ou downtime. Documentários históricos para canais dark demandam tomadas de alta tensão com movimento de câmera cinemático de alto impacto e ausência total de marcas d'água de plataformas.
+- **Decisão**:
+  1. **Topologia MiniMax H3 (Workflow 2118560390471745537)**: Integrado na Conta 7 (`minimax_h3`) em `src/factory/runninghub_bot.py` e `src/video/minimax_h3_engine.py`.
+  2. **Nós de Ingestão**: Nó #35 (`PrimitiveStringMultiline`) para prompts cinematográficos estilizados para o MiniMax H3, Nó #48 (`LoadImage` 图1) para imagens de referência com conversão de aspect ratio 16:9, Nó #66 (`PrimitiveFloat`) para controle de duração em segundos (padrão 10.0s), e Nó #62 (`ResolutionSelector` 16:9).
+  3. **Invariante Mandatório de Saída sem Marca D'água (`FeiHouVideoPreview`)**: A extração final de vídeo é **OBRIGATORIAMENTE** realizada no **Nó #107 (`FeiHouVideoPreview` - 'FeiHou-视频预览')**, garantindo render em alta definição com áudio sincronizado e sem a marca d'água do RunningHub.
+  4. **Execução Mandatória (Lite/Plus)**: O acionamento segue estritamente o botão Lite/Plus do RunningHub (ADR-08).
+  5. **Cancelamento Atômico Pós-Salvamento**: Para economizar GPU, a tarefa ativa no RunningHub é cancelada imediatamente após a gravação do vídeo em disco.
+  6. **Fallback Procedural Local**: Em modo offline ou falha no RPA, o `MiniMaxH3VideoEngine` sintetiza proceduralmente um clipe 1080p 24fps com deriva cinematográfica e grão analógico suave.
+
 
 
 

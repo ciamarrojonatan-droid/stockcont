@@ -1216,3 +1216,46 @@ async def mix_audio_endpoint(req: schemas.AudioMixRequest):
             success=False,
             message=f"Erro na mixagem de áudio: {str(e)}",
         )
+
+
+# ── MiniMax H3 Cinematic V2 Turbo Endpoint ──────────
+
+@app.post("/api/v1/video/minimax_h3", response_model=schemas.MiniMaxH3VideoResponse)
+@app.post("/api/video/minimax_h3", response_model=schemas.MiniMaxH3VideoResponse)
+async def generate_minimax_h3_endpoint(req: schemas.MiniMaxH3VideoRequest):
+    """Gera vídeo cinemático via MiniMax H3 Cinematic V2 Turbo (Workflow 2118560390471745537)
+    com extração direta sem marca d'água no Nó #107 FeiHou e fallback procedural.
+    """
+    import asyncio
+    from src.video.minimax_h3_engine import MiniMaxH3VideoEngine
+
+    engine = MiniMaxH3VideoEngine()
+    formatted_prompt = engine.build_cinematic_prompt(
+        subject=req.prompt,
+        camera_movement=req.camera_movement or "Slow cinematic push-in dolly track forward",
+        lighting=req.lighting or "Volumetric cinematic rim lighting, atmospheric shadows, 2.39:1 letterbox",
+    )
+    try:
+        res = await asyncio.to_thread(
+            engine.generate_video,
+            prompt=formatted_prompt,
+            reference_image_path=req.reference_image,
+            duration_sec=req.duration_sec or 10.0,
+            force_procedural=not req.use_runninghub,
+        )
+        return schemas.MiniMaxH3VideoResponse(
+            success=True,
+            message=f"Vídeo cinemático MiniMax H3 gerado com sucesso via {res.engine} (sem marca d'água)",
+            video_file=res.filename,
+            video_url=f"/api/video/file/{res.filename}",
+            duration_sec=res.duration_seconds,
+            engine=res.engine,
+            size_bytes=res.filesize_bytes,
+            has_watermark=res.has_watermark,
+        )
+    except Exception as e:
+        logger.error(f"Erro na geração de vídeo MiniMax H3: {e}")
+        return schemas.MiniMaxH3VideoResponse(
+            success=False,
+            message=f"Erro na geração de vídeo MiniMax H3: {str(e)}",
+        )

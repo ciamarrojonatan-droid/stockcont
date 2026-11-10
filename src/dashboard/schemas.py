@@ -267,3 +267,25 @@ class AudioMixResponse(BaseModel):
     mix_file: Optional[str] = None
     mix_url: Optional[str] = None
     size_bytes: Optional[int] = None
+
+
+# ── MiniMax H3 Cinematic Video Models ───────────────
+
+class MiniMaxH3VideoRequest(BaseModel):
+    prompt: str
+    reference_image: Optional[str] = None
+    duration_sec: Optional[float] = 10.0
+    camera_movement: Optional[str] = "Slow cinematic push-in dolly track forward"
+    lighting: Optional[str] = "Volumetric cinematic rim lighting, atmospheric shadows, 2.39:1 letterbox"
+    use_runninghub: Optional[bool] = True
+
+
+class MiniMaxH3VideoResponse(BaseModel):
+    success: bool
+    message: str
+    video_file: Optional[str] = None
+    video_url: Optional[str] = None
+    duration_sec: Optional[float] = None
+    engine: Optional[str] = None
+    size_bytes: Optional[int] = None
+    has_watermark: bool = False

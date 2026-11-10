@@ -166,6 +166,29 @@ CONTA_WOOSH_FOLEY_CONFIG = {
     "execute_mode": "lite_plus",  # Lite/Plus mandatório (ADR-08)
 }
 
+# MiniMax H3 Cinematic V2 Turbo: Fallback Cinemático de Vídeo (Workflow 2118560390471745537)
+CONTA_MINIMAX_H3_CONFIG = {
+    "account": 7,
+    "role": "video_minimax_h3_cinematic",
+    "workflow_url": os.getenv("RUNNINGHUB_MINIMAX_H3_WORKFLOW_URL", "https://www.runninghub.ai/pt-br/workflow/2118560390471745537?source=workspace"),
+    "workflow_id": os.getenv("RUNNINGHUB_MINIMAX_H3_WORKFLOW_ID", "2118560390471745537"),
+    "prompt_node": int(os.getenv("RUNNINGHUB_MINIMAX_H3_PROMPT_NODE", "35")),         # PrimitiveStringMultiline: node #35
+    "input_image_node": int(os.getenv("RUNNINGHUB_MINIMAX_H3_INPUT_NODE", "48")),    # LoadImage (图1): node #48
+    "input_node": int(os.getenv("RUNNINGHUB_MINIMAX_H3_INPUT_NODE", "48")),
+    "duration_node": int(os.getenv("RUNNINGHUB_MINIMAX_H3_DURATION_NODE", "66")),   # PrimitiveFloat: node #66
+    "resolution_node": int(os.getenv("RUNNINGHUB_MINIMAX_H3_RES_NODE", "62")),       # ResolutionSelector: node #62
+    "output_video_node": int(os.getenv("RUNNINGHUB_MINIMAX_H3_OUTPUT_NODE", "107")), # FeiHouVideoPreview: node #107 (sem watermark!)
+    "output_node": int(os.getenv("RUNNINGHUB_MINIMAX_H3_OUTPUT_NODE", "107")),
+    "prompt_nodes": [int(os.getenv("RUNNINGHUB_MINIMAX_H3_PROMPT_NODE", "35"))],
+    "default_batch_size": 1,
+    "destination_dir": FINAL_VIDEOS_DIR,
+    "prefix": "minimax_h3_cinematic",
+    "save_mode": "video_output",
+    "session_dir_name": "playwright_session_video",
+    "upload_wait_sec": int(os.getenv("RUNNINGHUB_IMAGE_UPLOAD_WAIT_SEC", "30")),
+    "execute_mode": "lite_plus",  # Lite/Plus mandatório (ADR-08)
+}
+
 # Default Active Configuration (Padrão: Conta 1 - Raw Producer)
 DEFAULT_ACCOUNT: int = int(os.getenv("RUNNINGHUB_ACCOUNT", "1"))
 DEFAULT_BATCH_SIZE: int = 210
@@ -192,6 +215,8 @@ def get_account_config(account: Union[int, str] = 1) -> Dict[str, Any]:
         return dict(CONTA_MINIMAX_MUSIC_CONFIG)
     elif acc_str in ("6", "woosh_foley", "woosh", "foley", "sfx", "foley_sony_woosh"):
         return dict(CONTA_WOOSH_FOLEY_CONFIG)
+    elif acc_str in ("7", "minimax_h3", "minimax_video", "h3", "h3_cinematic", "video_minimax_h3_cinematic"):
+        return dict(CONTA_MINIMAX_H3_CONFIG)
     return dict(CONTA_1_CONFIG)
 
 
@@ -1786,7 +1811,7 @@ def run_factory_bot(
     prompt_nodes: Optional[List[int]] = None,
     destination_dir: Optional[Path] = None,
     session_dir: Optional[Path] = None,
-    input_image_path: Optional[Path] = None,
+    input_image_path: Optional[Union[str, Path]] = None,
     custom_prompt_text: Optional[str] = None,
     custom_script_text: Optional[str] = None,
     custom_emotion_text: Optional[str] = None,
@@ -1796,6 +1821,7 @@ def run_factory_bot(
     custom_music_duration: Optional[float] = None,
     custom_video_input: Optional[Union[str, Path]] = None,
     custom_sfx_prompt: Optional[str] = None,
+    custom_video_duration: Optional[float] = None,
     foley_mode: str = "v2a",
     upload_wait_sec: Optional[int] = None,
     execute_mode: Optional[str] = None,
@@ -1809,6 +1835,7 @@ def run_factory_bot(
     - CosyVoice (Conta 4): Roteiro no Nó #345, Emoção no Nó #355, e captura direta no SaveAudio #346.
     - MiniMax Music (Conta 5): Estilo no Nó #15, Estrutura no Nó #16, Duração no Nó #14 e captura no SaveAudio #7.
     - Sony Woosh Foley (Conta 6): Ingestão de vídeo no Nó #34, prompt no Nó #46/#56, saída sem watermark no Nó #94 FeiHou e áudio no Nó #9.
+    - MiniMax H3 Cinematic (Conta 7): Ingestão de imagem no Nó #48 (图1), prompt no Nó #35, duração no Nó #66 e saída sem watermark no Nó #107 FeiHou.
     """
     if isinstance(account, str):
         if account.isdigit():
@@ -1821,6 +1848,8 @@ def run_factory_bot(
             account = 5
         elif account.lower() in ("woosh_foley", "woosh", "foley", "sfx"):
             account = 6
+        elif account.lower() in ("minimax_h3", "minimax_video", "h3", "h3_cinematic", "video_minimax_h3_cinematic"):
+            account = 7
     cfg = get_account_config(account)
     out_node = output_node_id if output_node_id is not None else cfg["output_node"]
     input_node = cfg.get("input_node", 5)
@@ -1892,6 +1921,12 @@ def run_factory_bot(
         logger.info(f"  • Modo de Salvamento: VÍDEO SEM WATERMARK (Nó #94 FeiHou) & ÁUDIO (Nó #9)")
         logger.info(f"  • Nó Ingestão Vídeo:  #{cfg.get('input_video_node', 34)}")
         logger.info(f"  • Nó Prompt SFX:      #{cfg.get('prompt_node', 46)}")
+    elif account == 7 or cfg.get("role") == "video_minimax_h3_cinematic":
+        logger.info("🎬 INICIANDO FÁBRICA RPA — MINIMAX H3 CINEMÁTICO V2 TURBO (FALLBACK)")
+        logger.info(f"  • Modo de Salvamento: VÍDEO SEM WATERMARK (Nó #107 FeiHou)")
+        logger.info(f"  • Nó Ingestão Imagem: #{input_node} (Load Image 图1)")
+        logger.info(f"  • Nó Injeção Prompt:  #{cfg.get('prompt_node', 35)} (PrimitiveStringMultiline)")
+        logger.info(f"  • Nó Duração Vídeo:   #{cfg.get('duration_node', 66)} (PrimitiveFloat)")
     else:
         logger.info("🎬 INICIANDO FÁBRICA RPA — PIPELINE DE VÍDEO (GERAÇÃO & UPSCALE 4K)")
         logger.info(f"  • Modo de Salvamento: VÍDEO OUTPUT 4K (Nó #{out_node})")
@@ -2032,7 +2067,7 @@ def run_factory_bot(
                 if not all_batches and batch_count >= max_batches:
                     break
 
-                current_pending = queue_mgr.get_pending_prompts(batch_size=b_size) if account != 3 else []
+                current_pending = queue_mgr.get_pending_prompts(batch_size=b_size) if account not in (3, 4, 5, 6, 7) and cfg.get("role") not in ("video_4k_generator", "video_minimax_h3_cinematic", "audio_narration_cosyvoice", "soundtrack_minimax_music", "foley_sony_woosh") else []
                 v_item = None
                 ref_img = None
                 p_text_video = ""
@@ -2046,6 +2081,23 @@ def run_factory_bot(
                         v_item = pending_v[0]
                     p_text_video = custom_prompt_text or (v_item.prompt_text if v_item else "")
 
+                    if input_image_path and Path(input_image_path).exists():
+                        ref_img = Path(input_image_path)
+                    elif v_item and v_item.reference_image:
+                        cand = BASE_DIR / v_item.reference_image if not Path(v_item.reference_image).is_absolute() else Path(v_item.reference_image)
+                        if cand.exists():
+                            ref_img = cand
+                    if not ref_img and FINAL_IMAGES_DIR.exists():
+                        cand_imgs = sorted(list(FINAL_IMAGES_DIR.glob("*.jpg")) + list(FINAL_IMAGES_DIR.glob("*.png")), key=lambda f: f.stat().st_mtime, reverse=True)
+                        if cand_imgs:
+                            ref_img = cand_imgs[0]
+                elif account in (7, "minimax_h3") or cfg.get("role") == "video_minimax_h3_cinematic":
+                    p_text_video = custom_prompt_text or ""
+                    if not p_text_video:
+                        pending_v = queue_mgr.get_pending_video_prompts(batch_size=1)
+                        if pending_v:
+                            v_item = pending_v[0]
+                            p_text_video = v_item.prompt_text
                     if input_image_path and Path(input_image_path).exists():
                         ref_img = Path(input_image_path)
                     elif v_item and v_item.reference_image:
@@ -2232,8 +2284,50 @@ def run_factory_bot(
                         inject_video_prompt_to_node(comfy_frame, p_node, sfx_txt)
                         time.sleep(1.0)
 
+                elif account in (7, "minimax_h3") or cfg.get("role") == "video_minimax_h3_cinematic":
+                    in_img_node = cfg.get("input_image_node", 48)
+                    p_node = cfg.get("prompt_node", 35)
+                    dur_node = cfg.get("duration_node", 66)
+                    dur_val = float(custom_video_duration or 10.0)
+
+                    if ref_img and ref_img.exists():
+                        target_ar = "16:9"
+                        upload_ref = optimize_reference_image_for_video(ref_img, aspect_ratio=target_ar)
+                        logger.info(f"📤 [MiniMax H3] Injetando imagem de referência ({upload_ref.name}) no Nó #{in_img_node} (Load Image 图1)...")
+                        upload_image_to_node(page, comfy_frame, in_img_node, upload_ref)
+
+                    if p_text_video:
+                        logger.info(f"📝 [MiniMax H3] Injetando prompt cinemático no Nó #{p_node}...")
+                        inject_video_prompt_to_node(comfy_frame, p_node, p_text_video)
+                        time.sleep(1.0)
+
+                    try:
+                        comfy_frame.evaluate("""({nodeId, dur}) => {
+                            if (typeof window.app !== 'undefined' && window.app.graph) {
+                                const node = window.app.graph.getNodeById(nodeId);
+                                if (node && node.widgets) {
+                                    const w = node.widgets.find(w => w.name === 'value') || node.widgets[0];
+                                    if (w) {
+                                        w.value = dur;
+                                        if (w.callback) w.callback(dur);
+                                    }
+                                }
+                            }
+                        }""", {"nodeId": dur_node, "dur": dur_val})
+                        logger.info(f"⏱️ [MiniMax H3] Duração configurada para {dur_val}s no Nó #{dur_node}.")
+                    except Exception as e:
+                        logger.warning(f"⚠️ Aviso ao configurar duração no Nó #{dur_node}: {e}")
+
+                    effective_wait = upload_wait_sec if upload_wait_sec is not None else cfg.get("upload_wait_sec", DEFAULT_IMAGE_UPLOAD_WAIT_SEC)
+                    logger.info(f"⏳ [MiniMax H3] Aguardando {effective_wait}s para o servidor carregar a imagem no Nó #{in_img_node} (Load Image) antes de acionar Executar (Lite/Plus)...")
+                    for s in range(effective_wait, 0, -5):
+                        chunk = min(5, s)
+                        logger.info(f"⏳ [Nó #{in_img_node} Load Image] Carregando imagem no servidor... {s}s restantes antes de liberar o botão Executar")
+                        time.sleep(chunk)
+                    logger.info(f"✅ [Nó #{in_img_node} Load Image] Janela de {effective_wait}s concluída com sucesso! Imagem pronta.")
+
                 # Captura pré-existente no nó de saída
-                initial_node_images = get_node_images(page, out_node) if account not in (3, 4, 5, 6) else []
+                initial_node_images = get_node_images(page, out_node) if account not in (3, 4, 5, 6, 7) and cfg.get("role") not in ("video_4k_generator", "video_minimax_h3_cinematic", "audio_narration_cosyvoice", "soundtrack_minimax_music", "foley_sony_woosh") else []
                 initial_node_videos: List[str] = []
                 initial_node_audios: List[str] = []
                 if account in (4, 5) or cfg.get("role") in ("audio_narration_cosyvoice", "soundtrack_minimax_music"):
@@ -2243,7 +2337,8 @@ def run_factory_bot(
                     initial_node_videos = get_node_videos(page, cfg.get("output_video_node", 94))
                     initial_node_audios = get_node_audios(page, cfg.get("output_audio_node", 9))
                     logger.info(f"🚫 [Woosh Foley] Registrados {len(initial_node_videos)} vídeos (Nó #94) e {len(initial_node_audios)} áudios (Nó #9) pré-existentes na blacklist.")
-                if account == 3:
+                if account in (3, 7) or cfg.get("role") in ("video_4k_generator", "video_minimax_h3_cinematic"):
+                    tag_v = "MiniMax H3" if (account in (7, "minimax_h3") or cfg.get("role") == "video_minimax_h3_cinematic") else "Vídeo 4K"
                     # Registrar todos os vídeos presentes no nó e no DOM como blacklist permanente antes do disparo
                     initial_node_videos = get_node_videos(page, out_node)
                     for f in page.frames:
@@ -2257,9 +2352,9 @@ def run_factory_bot(
                         except Exception:
                             pass
                     initial_node_videos = list(dict.fromkeys(initial_node_videos))
-                    logger.info(f"🚫 [Vídeo] Registrados {len(initial_node_videos)} vídeos pré-existentes na blacklist antes da execução no Nó #{out_node}.")
+                    logger.info(f"🚫 [{tag_v}] Registrados {len(initial_node_videos)} vídeos pré-existentes na blacklist antes da execução no Nó #{out_node}.")
 
-                    # Limpar explicitamente o Nó #185 no ComfyUI e marcar elementos antigos com data-pre-existing='true'
+                    # Limpar explicitamente o Nó no ComfyUI e marcar elementos antigos com data-pre-existing='true'
                     try:
                         comfy_frame.evaluate("""(id) => {
                             if (typeof window.app !== 'undefined' && window.app.graph) {
@@ -2290,7 +2385,7 @@ def run_factory_bot(
                             const allVids = Array.from(document.querySelectorAll('video'));
                             allVids.forEach(v => { if (v.setAttribute) v.setAttribute('data-pre-existing', 'true'); });
                         }""", out_node)
-                        logger.info(f"🧹 [Vídeo] Nó #{out_node} limpo e isolado no ComfyUI. Nenhum vídeo antigo será aceito.")
+                        logger.info(f"🧹 [{tag_v}] Nó #{out_node} limpo e isolado no ComfyUI. Nenhum vídeo antigo será aceito.")
                     except Exception as e:
                         logger.debug(f"Aviso ao limpar Nó #{out_node}: {e}")
                 else:
@@ -2391,10 +2486,13 @@ def run_factory_bot(
                             except Exception:
                                 pass
 
-                # ── ESTRATÉGIA C: PIPELINE DE VÍDEO 4K (Save video/video combine) ──
-                elif save_mode == "video_output" or account == 3:
-                    max_wait_video = int(os.getenv("RUNNINGHUB_VIDEO_MAX_WAIT_SEC", "3600"))  # 60 minutos (para acomodar renders de ~30 min)
-                    logger.info(f"⏳ [Pipeline de Vídeo 4K] Monitorando renderização e upscale no Nó #{out_node} (aguardando conclusão da geração no RunningHub — ~30 min estimados)...")
+                # ── ESTRATÉGIA C: PIPELINE DE VÍDEO 4K & MINIMAX H3 (Save video / FeiHou Node #107) ──
+                elif save_mode == "video_output" or account in (3, 7) or cfg.get("role") in ("video_4k_generator", "video_minimax_h3_cinematic"):
+                    is_h3 = account in (7, "minimax_h3") or cfg.get("role") == "video_minimax_h3_cinematic"
+                    tag_v = "MiniMax H3" if is_h3 else "Pipeline de Vídeo 4K"
+                    default_wait = 1800 if is_h3 else 3600
+                    max_wait_video = int(os.getenv("RUNNINGHUB_MINIMAX_H3_MAX_WAIT_SEC" if is_h3 else "RUNNINGHUB_VIDEO_MAX_WAIT_SEC", str(default_wait)))
+                    logger.info(f"⏳ [{tag_v}] Monitorando renderização no Nó #{out_node} (aguardando conclusão da geração no RunningHub)...")
                     video_saved = False
                     video_wait_start = time.time()
                     last_heartbeat = video_wait_start
@@ -2435,11 +2533,11 @@ def run_factory_bot(
                             elapsed_rem = elapsed_sec % 60
                             if is_generating:
                                 status_info = f"Gerando {timer_str or f'{elapsed_min}m {elapsed_rem}s'}"
-                                logger.info(f"⏳ [Vídeo 4K] Renderização e upscale em andamento no RunningHub ({status_info} | estimativa ~30 min)...")
+                                logger.info(f"⏳ [{tag_v}] Renderização em andamento no RunningHub ({status_info})...")
                             elif generation_started:
-                                logger.info(f"⏳ [Vídeo 4K] Tarefa finalizada no RunningHub! Coletando novo vídeo 4K no Nó #{out_node} ({elapsed_min}m {elapsed_rem}s decorridos)...")
+                                logger.info(f"⏳ [{tag_v}] Tarefa finalizada no RunningHub! Coletando novo vídeo no Nó #{out_node} ({elapsed_min}m {elapsed_rem}s decorridos)...")
                             else:
-                                logger.info(f"⏳ [Vídeo 4K] Aguardando início do processamento no servidor ({elapsed_sec}s decorridos)...")
+                                logger.info(f"⏳ [{tag_v}] Aguardando início do processamento no servidor ({elapsed_sec}s decorridos)...")
                             last_heartbeat = now
 
                         # Se reportou falha na tarefa
@@ -2455,28 +2553,31 @@ def run_factory_bot(
 
                             if new_vids:
                                 for candidate_vid in new_vids:
-                                    logger.info(f"🎥 Novo vídeo 4K detectado no Nó #{out_node} ({candidate_vid})! Extraindo arquivo final...")
+                                    logger.info(f"🎥 Novo vídeo [{tag_v}] detectado no Nó #{out_node} ({candidate_vid})! Extraindo arquivo final...")
                                     saved_name = save_video_from_src(page, candidate_vid, destination_dir=target_dir, prefix=cfg["prefix"])
                                     if saved_name:
                                         saved_path = target_dir / saved_name
-                                        # Validação de tamanho: vídeo 4K finalizado deve ter tamanho consistente (> 1 MB)
+                                        # Validação de tamanho: vídeo finalizado deve ter tamanho consistente (> 1 MB)
                                         if saved_path.exists() and saved_path.stat().st_size > 1000000:
                                             images_saved += 1
                                             batch_saved_files.append(saved_name)
                                             video_saved = True
                                             elapsed_total_min = elapsed_sec // 60
                                             elapsed_total_sec = elapsed_sec % 60
-                                            logger.info(f"✅ Novo vídeo 4K gravado com sucesso: {saved_name} ({elapsed_total_min}m {elapsed_total_sec}s decorridos, {saved_path.stat().st_size // 1024} KB) em {target_dir.name}!")
+                                            logger.info(f"✅ Novo vídeo [{tag_v}] gravado com sucesso: {saved_name} ({elapsed_total_min}m {elapsed_total_sec}s decorridos, {saved_path.stat().st_size // 1024} KB) em {target_dir.name}!")
                                             if v_item:
                                                 queue_mgr.mark_video_prompts_generated([v_item], saved_videos=[saved_name])
+                                            if is_h3:
+                                                logger.info("🛑 Cancelando tarefa ativa no RunningHub pós-salvamento para economizar créditos GPU...")
+                                                cancel_runninghub_task(page)
                                             break
                                         else:
                                             sz = saved_path.stat().st_size // 1024 if saved_path.exists() else 0
-                                            logger.warning(f"⚠️ Vídeo temporário detectado possui tamanho reduzido ({sz} KB). Continuando espera pelo render 4K completo...")
+                                            logger.warning(f"⚠️ Vídeo temporário detectado possui tamanho reduzido ({sz} KB). Continuando espera pelo render completo...")
                                 if video_saved:
                                     break
 
-                        # Timeout de segurança de 60 minutos
+                        # Timeout de segurança de 30/60 minutos
                         if elapsed_sec > max_wait_video:
                             logger.warning(f"⚠️ Limite máximo de espera por renderização de vídeo atingido ({max_wait_video // 60} min).")
                             break
@@ -2743,11 +2844,28 @@ def run_woosh_foley_bot(
     )
 
 
+def run_minimax_h3_video_bot(
+    prompt: str,
+    reference_image_path: Optional[Union[str, Path]] = None,
+    duration_sec: float = 10.0,
+    destination_dir: Optional[Path] = None,
+    timeout_sec: int = 1800,
+) -> Dict[str, Any]:
+    """Dispara a geração de vídeo via MiniMax H3 Cinemático V2 Turbo no RunningHub e salva no Nó #107 FeiHou sem marca d'água."""
+    return run_factory_bot(
+        account=7,
+        destination_dir=destination_dir or FINAL_VIDEOS_DIR,
+        custom_prompt_text=prompt,
+        input_image_path=reference_image_path,
+        custom_video_duration=duration_sec,
+    )
+
+
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser(description="RunningHub ComfyUI Automation Bot (Dual-Account / Audio / Video)")
-    parser.add_argument("--account", default="1", help="RunningHub Account: 1 (Raw Producer), 2 (SeedVR 8K), 3 (Video 4K), 4 (CosyVoice Narration), 5 (MiniMax Music), 6 (Sony Woosh Foley)")
-    parser.add_argument("--node", type=int, default=None, help="Output Node ID (default: 121 for Conta 1, 55 for Conta 2, 346 for CosyVoice, 7 for Music, 94 for Foley)")
+    parser = argparse.ArgumentParser(description="RunningHub ComfyUI Automation Bot (Dual-Account / Audio / Video / MiniMax H3)")
+    parser.add_argument("--account", default="1", help="RunningHub Account: 1 (Raw Producer), 2 (SeedVR 8K), 3 (Video 4K), 4 (CosyVoice Narration), 5 (MiniMax Music), 6 (Sony Woosh Foley), 7 (MiniMax H3 Cinematic Fallback)")
+    parser.add_argument("--node", type=int, default=None, help="Output Node ID (default: 121 for Conta 1, 55 for Conta 2, 346 for CosyVoice, 7 for Music, 94 for Foley, 107 for H3)")
     parser.add_argument("--batch-size", type=int, default=210, help="Number of images per batch (default: 210)")
     parser.add_argument("--batches", type=int, default=1, help="Number of consecutive batches (default: 1)")
     parser.add_argument("--all-batches", action="store_true", help="Run until queue is exhausted")
@@ -2760,6 +2878,8 @@ if __name__ == "__main__":
     parser.add_argument("--video-input", type=str, default=None, help="Input video path for Woosh Foley (V2A)")
     parser.add_argument("--sfx-prompt", type=str, default=None, help="Prompt text for Foley SFX")
     parser.add_argument("--foley-mode", type=str, default="v2a", choices=["v2a", "t2a"], help="Foley mode: v2a or t2a")
+    parser.add_argument("--ref-image", type=str, default=None, help="Reference image path for MiniMax H3 / Video")
+    parser.add_argument("--video-duration", type=float, default=10.0, help="Video duration in seconds for MiniMax H3")
     args = parser.parse_args()
 
     run_factory_bot(
@@ -2768,6 +2888,7 @@ if __name__ == "__main__":
         batch_size=args.batch_size,
         max_batches=args.batches,
         all_batches=args.all_batches,
+        input_image_path=args.ref_image,
         custom_script_text=args.script,
         custom_emotion_text=args.emotion,
         custom_speed=args.speed,
@@ -2776,5 +2897,6 @@ if __name__ == "__main__":
         custom_music_duration=args.music_duration,
         custom_video_input=args.video_input,
         custom_sfx_prompt=args.sfx_prompt,
+        custom_video_duration=args.video_duration,
         foley_mode=args.foley_mode,
     )
