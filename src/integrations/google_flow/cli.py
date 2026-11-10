@@ -104,6 +104,16 @@ async def _run_single_generation(
 ) -> int:
     """Run a single generation from CLI and await completion."""
     service = GoogleFlowService()
+    auth_status = service.auth_manager.get_status()
+    if not auth_status.authenticated:
+        print("\n" + "=" * 65)
+        print("  ⚠️  AVISO DE AUTENTICAÇÃO — GOOGLE FLOW")
+        print("  Sua sessão Google ainda não está autenticada!")
+        print("  As requisições à nuvem do Google Flow retornarão HTTP 302 (login).")
+        print("  Para gerar vídeos reais via Veo, faça o login de 1 clique:")
+        print("    python main.py --flow-login")
+        print("=" * 65)
+
     req = GenerationRequest(
         prompt=prompt,
         mode="t2v" if "veo" in model else "t2i",

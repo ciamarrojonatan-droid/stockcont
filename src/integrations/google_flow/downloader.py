@@ -87,11 +87,23 @@ class GoogleFlowDownloader:
             async with httpx.AsyncClient(timeout=4.0, follow_redirects=True) as client:
                 res = await client.get(download_url)
                 if res.status_code == 200:
-                    raw_bytes = res.content
+                    content_type = res.headers.get("content-type", "").lower()
+                    body_start = res.content[:200].lower()
+                    if (
+                        "text/html" in content_type
+                        or b"<!doctype html" in body_start
+                        or b"<html" in body_start
+                    ):
+                        logger.warning(
+                            "O link de download retornou página web HTML do Google Flow (sessão não autenticada). "
+                            "Ignorando HTML para evitar salvar página web como MP4. Autentique com 'python main.py --flow-login'."
+                        )
+                    else:
+                        raw_bytes = res.content
         except Exception as e:
             logger.debug(f"Direct stream download note: {e}")
 
-        # If offline or preview is virtual mock
+        # If offline, preview is mock, or redirect returned HTML
         if not raw_bytes:
             # Generate valid file content placeholder for testing
             raw_bytes = f"[GOOGLE_FLOW_{candidate.media_type.upper()}_DATA_{candidate.candidate_id}]".encode("utf-8")
