@@ -107,7 +107,7 @@ def get_stealth_fingerprint(account: int = 1) -> StealthFingerprint:
     """Return the designated stealth profile for the account."""
     if account == 2:
         return CONTA_2_FINGERPRINT
-    elif account == 3:
+    elif account in (3, 4):
         return CONTA_3_FINGERPRINT
     return CONTA_1_FINGERPRINT
 
