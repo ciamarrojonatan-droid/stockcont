@@ -133,3 +133,125 @@ def test_cli_runner_integration(tmp_path, monkeypatch):
         project_id="cli_test_case",
     )
     assert out_file.exists()
+
+
+def test_parse_retention_csv_extracts_dropoffs_and_peaks():
+    from src.video.youtube_booster import YouTubeAlgorithmBoosterBridge
+
+    csv_data = (
+        "timestamp_sec,retention_pct\n"
+        "0,100.0\n"
+        "15,86.0\n"
+        "30,82.5\n"
+        "60,68.0\n"
+        "120,64.0\n"
+        "180,72.0\n"
+        "240,59.0\n"
+    )
+    bridge = YouTubeAlgorithmBoosterBridge()
+    report = bridge.parse_retention_csv(csv_data)
+
+    assert report["sample_count"] == 7
+    assert report["hook_30s_retention_pct"] == pytest.approx(82.5)
+    assert report["avg_retention_pct"] > 70.0
+    assert len(report["dropoff_events"]) >= 2
+    assert any(d["timestamp_sec"] == 60 for d in report["dropoff_events"])
+    assert len(report["peak_windows"]) >= 1
+
+
+def test_lint_title_thumbnail_pair_flags_overlap_and_rewards_complementarity():
+    from src.video.youtube_booster import YouTubeAlgorithmBoosterBridge
+
+    bridge = YouTubeAlgorithmBoosterBridge()
+
+    bad = bridge.lint_title_thumbnail_pair(
+        title="The Secret Operation That Changed Everything In Berlin",
+        thumbnail_text="The Secret Operation Changed Everything Berlin",
+    )
+    assert bad["passed"] is False
+    assert bad["overlap_ratio"] >= 0.5
+    assert bad["thumbnail_word_count"] > 4
+    assert len(bad["issues"]) >= 1
+
+    good = bridge.lint_title_thumbnail_pair(
+        title="The Forgotten 1961 Berlin Tunnel Protocol",
+        thumbnail_text="LEAKED BLUEPRINT",
+    )
+    assert good["passed"] is True
+    assert good["overlap_ratio"] == 0.0
+    assert good["thumbnail_word_count"] == 2
+    assert good["score"] >= 80.0
+
+
+def test_validate_youtube_chapters_rules():
+    from src.video.youtube_booster import YouTubeAlgorithmBoosterBridge
+
+    bridge = YouTubeAlgorithmBoosterBridge()
+
+    valid_block = "00:00 Declassified Hook\n01:25 The Hidden Subway Shaft\n04:10 Midnight Discovery"
+    ok = bridge.validate_youtube_chapters(valid_block, total_duration_sec=360.0)
+    assert ok["valid"] is True
+    assert ok["chapter_count"] == 3
+
+    invalid_no_zero = "00:15 Late Start\n01:00 Middle\n02:00 End"
+    bad = bridge.validate_youtube_chapters(invalid_no_zero, total_duration_sec=360.0)
+    assert bad["valid"] is False
+    assert any("00:00" in err for err in bad["errors"])
+
+
+def test_extract_shorts_candidates_returns_15_to_58s_windows():
+    from src.video.youtube_booster import YouTubeAlgorithmBoosterBridge
+
+    bridge = YouTubeAlgorithmBoosterBridge()
+    segments = [
+        {"start_sec": 10.0, "end_sec": 55.0, "tension_score": 0.94, "label": "Vault Breach"},
+        {"start_sec": 90.0, "end_sec": 120.0, "tension_score": 0.72, "label": "Microfilm Clue"},
+        {"start_sec": 180.0, "end_sec": 225.0, "tension_score": 0.89, "label": "Submarine Intercept"},
+    ]
+    shorts = bridge.extract_shorts_candidates(timeline_segments=segments, total_duration_sec=260.0, max_candidates=2)
+    assert len(shorts) == 2
+    assert shorts[0]["duration_sec"] <= 58.0
+    assert shorts[0]["duration_sec"] >= 15.0
+    assert shorts[0]["label"] == "Vault Breach"
+
+
+def test_build_master_youtube_package_supports_closed_loop_extras(tmp_path):
+    from src.video.youtube_booster import YouTubeAlgorithmBoosterBridge
+
+    bridge = YouTubeAlgorithmBoosterBridge(output_dir=tmp_path)
+    pkg = bridge.build_master_youtube_package(
+        project_id="yt_closed_loop",
+        title="The Deep Sea Vault Nobody Dared Open",
+        description="Complete historical breakdown.",
+        duration_sec=420.0,
+        thumbnail_text="NO EXIT",
+        chapters="00:00 Hook\n01:30 Deep Descent\n05:10 Recovered Tape",
+        retention_csv="timestamp_sec,retention_pct\n0,100\n30,84\n120,70",
+    )
+    assert "tri_variant_thumbnails" in pkg
+    assert "title_thumbnail_lint" in pkg
+    assert pkg["title_thumbnail_lint"]["passed"] is True
+    assert pkg["chapters_audit"]["valid"] is True
+    assert pkg["retention_audit"]["hook_30s_retention_pct"] == pytest.approx(84.0)
+    assert len(pkg["shorts_candidates"]) >= 1
+
+
+def test_dashboard_youtube_lint_endpoint():
+    from fastapi.testclient import TestClient
+    from src.dashboard.app import app
+
+    client = TestClient(app)
+    resp = client.post(
+        "/api/v1/youtube/lint-package",
+        json={
+            "title": "Why The 1962 Radar Station Went Silent",
+            "thumbnail_text": "04:12 AM",
+            "chapters": "00:00 Cold Open\n01:20 Intercept\n03:45 Aftermath",
+            "total_duration_sec": 480.0,
+        },
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["title_thumbnail_lint"]["passed"] is True
+    assert data["chapters_audit"]["valid"] is True
+    assert len(data["shorts_candidates"]) >= 1

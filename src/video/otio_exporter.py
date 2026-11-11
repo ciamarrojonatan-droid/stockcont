@@ -16,6 +16,8 @@ from __future__ import annotations
 
 import json
 import logging
+import os
+import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -63,6 +65,7 @@ class UniversalTimelineExporter:
         audio_music_clips: Optional[List[TimelineClipRef]] = None,
         audio_sfx_clips: Optional[List[TimelineClipRef]] = None,
         markers: Optional[List[TimelineMarker]] = None,
+        overlay_clips: Optional[List[TimelineClipRef]] = None,
     ) -> Dict[str, Any]:
         """
         Monta o dicionário estruturado estritamente compatível com a especificação OTIO 1.0.
@@ -71,9 +74,7 @@ class UniversalTimelineExporter:
         tracks_data: List[Dict[str, Any]] = []
 
         # 1. Trilha de Vídeo Principal (V1)
-        v1_children = []
-        for clip in video_clips:
-            v1_children.append(self._create_otio_clip_dict(clip))
+        v1_children = [self._create_otio_clip_dict(clip) for clip in video_clips]
         tracks_data.append({
             "OTIO_SCHEMA": "Track.1",
             "metadata": {"name": "V1_Master_Shots"},
@@ -81,6 +82,17 @@ class UniversalTimelineExporter:
             "kind": "Video",
             "children": v1_children,
         })
+
+        # 1b. Trilha de Vídeo Secundária: Motion Overlays / Tactical HUD (V2)
+        if overlay_clips:
+            v2_children = [self._create_otio_clip_dict(clip) for clip in overlay_clips]
+            tracks_data.append({
+                "OTIO_SCHEMA": "Track.1",
+                "metadata": {"name": "V2_Tactical_Overlays"},
+                "name": "V2_Tactical_Overlays",
+                "kind": "Video",
+                "children": v2_children,
+            })
 
         # 2. Trilha de Áudio 1: Narração (A1)
         if audio_narration_clips:
@@ -180,6 +192,27 @@ class UniversalTimelineExporter:
             },
         }
 
+    def _build_otio_lib_track(
+        self,
+        name: str,
+        kind: Any,
+        clips: List[TimelineClipRef],
+    ) -> Any:
+        """Constroi uma Track nativa opentimelineio preservando caminhos relativos."""
+        track = otio.schema.Track(name=name, kind=kind)
+        for c in clips:
+            clip_dur = otio.opentime.RationalTime(int(round(c.duration_sec * self.fps)), self.fps)
+            start_rt = otio.opentime.RationalTime(int(round(c.start_offset_sec * self.fps)), self.fps)
+            target_url = Path(c.media_path).resolve().as_uri()
+            track.append(
+                otio.schema.Clip(
+                    name=c.name,
+                    media_reference=otio.schema.ExternalReference(target_url=target_url),
+                    source_range=otio.opentime.TimeRange(start_rt, clip_dur),
+                )
+            )
+        return track
+
     def export_to_file(
         self,
         output_path: str | Path,
@@ -189,6 +222,7 @@ class UniversalTimelineExporter:
         audio_music_clips: Optional[List[TimelineClipRef]] = None,
         audio_sfx_clips: Optional[List[TimelineClipRef]] = None,
         markers: Optional[List[TimelineMarker]] = None,
+        overlay_clips: Optional[List[TimelineClipRef]] = None,
     ) -> Path:
         """
         Exporta a linha do tempo para arquivo .otio pronto para o DaVinci Resolve.
@@ -200,30 +234,25 @@ class UniversalTimelineExporter:
         if HAS_OTIO_LIB:
             try:
                 timeline = otio.schema.Timeline(name=timeline_name)
-                # Video Track
-                v_track = otio.schema.Track(name="V1_Master_Shots", kind=otio.schema.TrackKind.Video)
-                for c in video_clips:
-                    media_ref = otio.schema.ExternalReference(target_url=Path(c.media_path).as_uri())
-                    clip_dur = otio.opentime.RationalTime(int(round(c.duration_sec * self.fps)), self.fps)
-                    clip_obj = otio.schema.Clip(
-                        name=c.name,
-                        media_reference=media_ref,
-                        source_range=otio.opentime.TimeRange(otio.opentime.RationalTime(0, self.fps), clip_dur),
+                timeline.tracks.append(
+                    self._build_otio_lib_track("V1_Master_Shots", otio.schema.TrackKind.Video, video_clips)
+                )
+                if overlay_clips:
+                    timeline.tracks.append(
+                        self._build_otio_lib_track("V2_Tactical_Overlays", otio.schema.TrackKind.Video, overlay_clips)
                     )
-                    v_track.append(clip_obj)
-                timeline.tracks.append(v_track)
-
-                # Audio Tracks
                 if audio_narration_clips:
-                    a1_track = otio.schema.Track(name="A1_Voiceover", kind=otio.schema.TrackKind.Audio)
-                    for c in audio_narration_clips:
-                        clip_dur = otio.opentime.RationalTime(int(round(c.duration_sec * self.fps)), self.fps)
-                        a1_track.append(otio.schema.Clip(
-                            name=c.name,
-                            media_reference=otio.schema.ExternalReference(target_url=Path(c.media_path).as_uri()),
-                            source_range=otio.opentime.TimeRange(otio.opentime.RationalTime(0, self.fps), clip_dur),
-                        ))
-                    timeline.tracks.append(a1_track)
+                    timeline.tracks.append(
+                        self._build_otio_lib_track("A1_Voiceover", otio.schema.TrackKind.Audio, audio_narration_clips)
+                    )
+                if audio_music_clips:
+                    timeline.tracks.append(
+                        self._build_otio_lib_track("A2_Zimmer_Tension_Score", otio.schema.TrackKind.Audio, audio_music_clips)
+                    )
+                if audio_sfx_clips:
+                    timeline.tracks.append(
+                        self._build_otio_lib_track("A3_Diegetic_Foley_SFX", otio.schema.TrackKind.Audio, audio_sfx_clips)
+                    )
 
                 # Markers
                 for m in (markers or []):
@@ -250,9 +279,12 @@ class UniversalTimelineExporter:
             audio_music_clips=audio_music_clips,
             audio_sfx_clips=audio_sfx_clips,
             markers=markers,
+            overlay_clips=overlay_clips,
         )
-        with open(out_file, "w", encoding="utf-8") as f:
+        tmp_out = out_file.with_name(f"{out_file.name}.tmp.{os.getpid()}.{uuid.uuid4().hex[:8]}")
+        with open(tmp_out, "w", encoding="utf-8") as f:
             json.dump(doc, f, indent=2, ensure_ascii=False)
+        tmp_out.replace(out_file)
 
         logger.info(f"Timeline OTIO gravada com sucesso: {out_file.name}")
         return out_file

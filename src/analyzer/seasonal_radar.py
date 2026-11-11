@@ -9,6 +9,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
+import httpx
+
 
 @dataclass
 class SeasonalNiche:
@@ -292,3 +294,47 @@ def get_target_procurement_window(reference_date: Optional[datetime] = None) -> 
             for n in seasonal_win.niches
         ],
     }
+
+
+def fetch_live_signal_boosters(
+    max_items: int = 5,
+    query: str = "ai technology robotics",
+    timeout_sec: float = 6.0,
+) -> List[Dict[str, Any]]:
+    """Fetch live tech/science B2B trend signals with graceful offline fallback."""
+    url = "https://hn.algolia.com/api/v1/search"
+    params = {"query": query, "tags": "story", "hitsPerPage": max(1, int(max_items))}
+    try:
+        resp = httpx.get(url, params=params, timeout=timeout_sec)
+        if resp.status_code != 200:
+            return []
+        hits = resp.json().get("hits") or []
+        signals: List[Dict[str, Any]] = []
+        for hit in hits[:max(1, int(max_items))]:
+            title = str(hit.get("title") or "").strip()
+            if not title:
+                continue
+            signals.append({
+                "title": title,
+                "points": int(hit.get("points") or 0),
+                "source": "hacker_news_algolia",
+                "suggested_query": f"{title[:48]} futuristic b2b enterprise",
+            })
+        return signals
+    except Exception:
+        return []
+
+
+def get_merged_seasonal_opportunities(
+    reference_date: Optional[datetime] = None,
+    include_live_signals: bool = True,
+    max_live_items: int = 5,
+) -> Dict[str, Any]:
+    """Merge deterministic D+75 seasonal anchor with live B2B signal boosters."""
+    base_window = get_target_procurement_window(reference_date=reference_date)
+    live_signals = fetch_live_signal_boosters(max_items=max_live_items) if include_live_signals else []
+    merged_queries = [n["query"] for n in base_window.get("recommended_niches", []) if n.get("query")]
+    merged_queries.extend(s["suggested_query"] for s in live_signals if s.get("suggested_query"))
+    base_window["live_signal_boosters"] = live_signals
+    base_window["merged_queries"] = merged_queries
+    return base_window

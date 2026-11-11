@@ -5,13 +5,15 @@ Serves the dark-theme SPA and provides read-only REST API
 endpoints for pipeline status, asset gallery, and phase execution.
 """
 
+import hmac
 import logging
+import os
 import webbrowser
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import readers, runner, schemas
@@ -53,6 +55,24 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
+
+@app.middleware("http")
+async def dashboard_access_token_middleware(request: Request, call_next):
+    """Enforce optional Bearer / X-Dashboard-Token auth on mutable API routes."""
+    expected_token = (os.getenv("DASHBOARD_ACCESS_TOKEN") or "").strip()
+    if expected_token and request.method in {"POST", "PUT", "PATCH", "DELETE"} and request.url.path.startswith("/api/"):
+        auth_header = request.headers.get("Authorization", "").strip()
+        bearer_token = auth_header[7:].strip() if auth_header[:7].lower() == "bearer " else ""
+        header_token = request.headers.get("X-Dashboard-Token", "").strip()
+        supplied = bearer_token or header_token
+        if not supplied or not hmac.compare_digest(supplied, expected_token):
+            return JSONResponse(
+                status_code=401,
+                content={"detail": "Unauthorized: invalid or missing dashboard access token"},
+            )
+    return await call_next(request)
+
 
 # Mount static files
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
@@ -1223,3 +1243,108 @@ async def generate_minimax_h3_endpoint(req: schemas.MiniMaxH3VideoRequest):
             success=False,
             message=f"Erro na geração de vídeo MiniMax H3: {str(e)}",
         )
+
+
+# ── HyperFrames Motion Overlay & YouTube Lint ───────
+
+@app.post("/api/v1/video/motion-overlay", response_model=schemas.MotionOverlayResponse)
+async def render_motion_overlay_endpoint(req: schemas.MotionOverlayRequest):
+    """Renderiza overlay HyperFrames / Isometric CAD com envelope determinístico e gate 20s."""
+    import asyncio
+    from src.video.hyperframes_engine import HyperFramesMotionEngine, MOTION_TEMPLATES
+
+    if req.template not in MOTION_TEMPLATES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown motion template '{req.template}'. Valid: {sorted(MOTION_TEMPLATES)}",
+        )
+
+    engine = HyperFramesMotionEngine()
+    data = {"components": req.components} if req.components else None
+
+    if req.preview_gate_20s:
+        res = await asyncio.to_thread(
+            engine.render_preview_gate,
+            template=req.template,
+            title=req.title,
+            subtitle=req.subtitle or "",
+            duration_sec=req.duration_sec,
+            width=req.width,
+            height=req.height,
+            fps=req.fps,
+            data=data,
+            use_hyperframes_cli=req.use_hyperframes_cli,
+            force_procedural=req.force_procedural,
+        )
+    else:
+        res = await asyncio.to_thread(
+            engine.render_motion_clip,
+            template=req.template,
+            title=req.title,
+            subtitle=req.subtitle or "",
+            duration_sec=req.duration_sec,
+            width=req.width,
+            height=req.height,
+            fps=req.fps,
+            data=data,
+            use_hyperframes_cli=req.use_hyperframes_cli,
+            force_procedural=req.force_procedural,
+            muted=req.muted,
+        )
+    return schemas.MotionOverlayResponse(**{
+        k: v
+        for k, v in res.to_dict().items()
+        if k in schemas.MotionOverlayResponse.model_fields
+    })
+
+
+@app.post("/api/v1/youtube/lint-package", response_model=schemas.YouTubeLintResponse)
+async def lint_youtube_package_endpoint(req: schemas.YouTubeLintRequest):
+    """Audita par Título+Thumbnail, capítulos, retenção CSV e janelas Shorts."""
+    from src.video.youtube_booster import YouTubeAlgorithmBoosterBridge
+
+    bridge = YouTubeAlgorithmBoosterBridge()
+    lint_res = bridge.lint_title_thumbnail_pair(title=req.title, thumbnail_text=req.thumbnail_text)
+    chapters_res = (
+        bridge.validate_youtube_chapters(req.chapters, total_duration_sec=req.total_duration_sec)
+        if req.chapters is not None
+        else None
+    )
+    retention_res = bridge.parse_retention_csv(req.retention_csv) if req.retention_csv else None
+    shorts = bridge.extract_shorts_candidates(
+        retention_report=retention_res,
+        total_duration_sec=req.total_duration_sec,
+    )
+    return schemas.YouTubeLintResponse(
+        title_thumbnail_lint=lint_res,
+        chapters_audit=chapters_res,
+        retention_audit=retention_res,
+        shorts_candidates=shorts,
+    )
+
+
+@app.get("/api/v1/analytics/unit-economics", response_model=schemas.UnitEconomicsResponse)
+async def get_unit_economics_endpoint(
+    asset_type: str = "image",
+    batch_size: int = 210,
+    expected_downloads: float = 1.5,
+):
+    """Retorna custo unitário e ROI projetado ranqueado por nicho B2B."""
+    from src.analyzer.unit_economics import UnitEconomicsCalculator
+
+    calc = UnitEconomicsCalculator()
+    kind = (asset_type or "image").strip().lower()
+    if kind not in ("image", "video"):
+        raise HTTPException(status_code=400, detail="asset_type must be 'image' or 'video'.")
+
+    return schemas.UnitEconomicsResponse(
+        asset_type=kind,
+        batch_size=max(1, batch_size),
+        expected_downloads_per_asset=max(0.0, expected_downloads),
+        unit_cost_breakdown=calc.calculate_asset_unit_cost(asset_type=kind),
+        niches=calc.recommend_priority_niches(
+            asset_type=kind,
+            batch_size=max(1, batch_size),
+            expected_downloads_per_asset=max(0.0, expected_downloads),
+        ),
+    )

@@ -286,6 +286,281 @@ class YouTubeAlgorithmBoosterBridge:
             logger.warning(f"Erro ao calcular STEPPS score: {e}")
             return {"total_score": 85.0, "virality_tier": "high"}
 
+    @staticmethod
+    def _parse_timecode_to_sec(tc: str) -> Optional[float]:
+        """Convert MM:SS or HH:MM:SS timecode to seconds."""
+        parts = [p.strip() for p in str(tc).strip().split(":")]
+        if len(parts) not in (2, 3) or not all(p.isdigit() for p in parts):
+            return None
+        nums = [int(p) for p in parts]
+        if len(nums) == 2:
+            mins, secs = nums
+            return float(mins * 60 + secs) if secs < 60 else None
+        hrs, mins, secs = nums
+        return float(hrs * 3600 + mins * 60 + secs) if (mins < 60 and secs < 60) else None
+
+    def parse_retention_csv(self, csv_source: str | Path) -> Dict[str, Any]:
+        """Parse YouTube Studio retention CSV (file path or raw CSV string)."""
+        import csv
+        import io
+
+        if isinstance(csv_source, Path) or (
+            isinstance(csv_source, str) and "\n" not in csv_source and Path(csv_source).exists()
+        ):
+            raw_text = Path(csv_source).read_text(encoding="utf-8", errors="replace")
+        else:
+            raw_text = str(csv_source).strip()
+
+        if not raw_text:
+            return {
+                "sample_count": 0,
+                "hook_30s_retention_pct": None,
+                "avg_retention_pct": 0.0,
+                "dropoff_events": [],
+                "peak_windows": [],
+            }
+
+        sample_line = raw_text.splitlines()[0]
+        delimiter = ";" if sample_line.count(";") > sample_line.count(",") else ","
+        reader = csv.DictReader(io.StringIO(raw_text), delimiter=delimiter)
+
+        points: List[Dict[str, float]] = []
+        for row in reader:
+            norm_row = {str(k).strip().lower(): str(v).strip() for k, v in row.items() if k is not None}
+            ts_raw = next(
+                (norm_row[k] for k in ("timestamp_sec", "time", "seconds", "second", "video_position_pct") if k in norm_row and norm_row[k]),
+                None,
+            )
+            ret_raw = next(
+                (norm_row[k] for k in ("retention_pct", "audience_retention", "retention", "absolute_retention", "relative_retention") if k in norm_row and norm_row[k]),
+                None,
+            )
+            if ts_raw is None or ret_raw is None:
+                continue
+            try:
+                ts_val = float(ts_raw.replace("%", ""))
+                ret_val = float(ret_raw.replace("%", ""))
+                points.append({"timestamp_sec": ts_val, "retention_pct": ret_val})
+            except ValueError:
+                continue
+
+        if not points:
+            return {
+                "sample_count": 0,
+                "hook_30s_retention_pct": None,
+                "avg_retention_pct": 0.0,
+                "dropoff_events": [],
+                "peak_windows": [],
+            }
+
+        points.sort(key=lambda item: item["timestamp_sec"])
+        avg_ret = round(sum(p["retention_pct"] for p in points) / len(points), 2)
+
+        hook_candidates = [p for p in points if p["timestamp_sec"] <= 30.0]
+        hook_30s = hook_candidates[-1]["retention_pct"] if hook_candidates else points[0]["retention_pct"]
+
+        dropoffs: List[Dict[str, Any]] = []
+        peaks: List[Dict[str, Any]] = []
+        for idx in range(1, len(points)):
+            prev_p, curr_p = points[idx - 1], points[idx]
+            delta = curr_p["retention_pct"] - prev_p["retention_pct"]
+            if delta <= -8.0:
+                dropoffs.append({
+                    "timestamp_sec": curr_p["timestamp_sec"],
+                    "delta_pct": round(delta, 2),
+                    "retention_pct": curr_p["retention_pct"],
+                })
+            elif delta >= 3.0 or curr_p["retention_pct"] >= max(65.0, avg_ret):
+                peaks.append({
+                    "start_sec": prev_p["timestamp_sec"],
+                    "end_sec": curr_p["timestamp_sec"],
+                    "retention_pct": curr_p["retention_pct"],
+                    "delta_pct": round(delta, 2),
+                })
+
+        return {
+            "sample_count": len(points),
+            "hook_30s_retention_pct": round(hook_30s, 2),
+            "avg_retention_pct": avg_ret,
+            "dropoff_events": dropoffs,
+            "peak_windows": peaks,
+        }
+
+    def lint_title_thumbnail_pair(self, title: str, thumbnail_text: str) -> Dict[str, Any]:
+        """Audit YouTube title + thumbnail overlay pairing for cognitive complementarity."""
+        import re
+
+        stopwords = {"a", "an", "the", "of", "in", "on", "at", "to", "for", "and", "or", "is", "are", "was"}
+        title_tokens = [w for w in re.findall(r"[a-z0-9]+", title.lower()) if w not in stopwords]
+        thumb_all_words = re.findall(r"[a-z0-9:]+", thumbnail_text.lower())
+        thumb_tokens = [w for w in re.findall(r"[a-z0-9]+", thumbnail_text.lower()) if w not in stopwords]
+
+        overlap_count = len(set(title_tokens) & set(thumb_tokens))
+        overlap_ratio = round(overlap_count / max(1, len(thumb_tokens)), 3)
+        thumb_word_count = len(thumb_all_words)
+        title_char_count = len(title.strip())
+
+        issues: List[str] = []
+        recommendations: List[str] = []
+        score = 100.0
+
+        if overlap_ratio > 0.45:
+            issues.append(f"High text redundancy between title and thumbnail ({overlap_ratio:.0%} overlap).")
+            recommendations.append("Use distinct punchy context in thumbnail rather than repeating title words.")
+            score -= 35.0
+        if thumb_word_count > 4:
+            issues.append(f"Thumbnail copy too long ({thumb_word_count} words; target <= 4 words).")
+            recommendations.append("Trim thumbnail text to 2-4 high-contrast trigger words.")
+            score -= 25.0
+        if title_char_count > 100:
+            issues.append(f"Title exceeds 100-char YouTube hard limit ({title_char_count} chars).")
+            score -= 30.0
+        elif title_char_count > 70:
+            recommendations.append(f"Consider tightening title ({title_char_count} chars) under 70 chars for mobile feed.")
+            score -= 8.0
+
+        alpha_chars = [c for c in title if c.isalpha()]
+        if len(alpha_chars) > 12 and (sum(1 for c in alpha_chars if c.isupper()) / len(alpha_chars)) > 0.70:
+            issues.append("Title relies heavily on ALL CAPS formatting.")
+            score -= 15.0
+
+        final_score = max(0.0, round(score, 2))
+        passed = len(issues) == 0 and final_score >= 70.0
+        return {
+            "passed": passed,
+            "score": final_score,
+            "overlap_ratio": overlap_ratio,
+            "thumbnail_word_count": thumb_word_count,
+            "title_char_count": title_char_count,
+            "issues": issues,
+            "recommendations": recommendations,
+        }
+
+    def validate_youtube_chapters(
+        self,
+        chapters: List[Dict[str, Any]] | str,
+        total_duration_sec: Optional[float] = None,
+    ) -> Dict[str, Any]:
+        """Validate YouTube chapter rules (00:00 anchor, >=3 chapters, >=10s intervals)."""
+        import re
+
+        parsed: List[Dict[str, Any]] = []
+        errors: List[str] = []
+
+        if isinstance(chapters, str):
+            for raw_line in chapters.splitlines():
+                line = raw_line.strip()
+                if not line:
+                    continue
+                match = re.match(r"^(\d{1,2}:\d{2}(?::\d{2})?)\s+(.+)$", line)
+                if not match:
+                    errors.append(f"Unparseable chapter line: '{line}'")
+                    continue
+                sec = self._parse_timecode_to_sec(match.group(1))
+                if sec is None:
+                    errors.append(f"Invalid chapter timecode: '{match.group(1)}'")
+                    continue
+                parsed.append({"timestamp": match.group(1), "seconds": sec, "title": match.group(2).strip()})
+        else:
+            for item in chapters:
+                ts = str(item.get("timestamp") or item.get("timecode") or "00:00")
+                sec = item.get("seconds")
+                if sec is None:
+                    sec = self._parse_timecode_to_sec(ts)
+                if sec is None:
+                    errors.append(f"Invalid chapter timecode: '{ts}'")
+                    continue
+                parsed.append({"timestamp": ts, "seconds": float(sec), "title": str(item.get("title") or item.get("label") or "").strip()})
+
+        if len(parsed) < 3:
+            errors.append(f"At least 3 chapters required for YouTube player chapters (found {len(parsed)}).")
+        if parsed and parsed[0]["seconds"] != 0.0:
+            errors.append("First chapter must start at 00:00.")
+
+        for idx in range(1, len(parsed)):
+            prev_sec = parsed[idx - 1]["seconds"]
+            curr_sec = parsed[idx]["seconds"]
+            if curr_sec <= prev_sec:
+                errors.append(f"Chapter '{parsed[idx]['title']}' is not strictly after previous chapter.")
+            elif (curr_sec - prev_sec) < 10.0:
+                errors.append(f"Interval before '{parsed[idx]['title']}' is under YouTube 10-second minimum.")
+
+        if total_duration_sec is not None and parsed and parsed[-1]["seconds"] >= float(total_duration_sec):
+            errors.append("Final chapter timestamp exceeds video duration.")
+
+        return {
+            "valid": len(errors) == 0,
+            "chapter_count": len(parsed),
+            "chapters": parsed,
+            "errors": errors,
+        }
+
+    def extract_shorts_candidates(
+        self,
+        timeline_segments: Optional[List[Dict[str, Any]]] = None,
+        retention_report: Optional[Dict[str, Any]] = None,
+        total_duration_sec: float = 300.0,
+        max_candidates: int = 5,
+    ) -> List[Dict[str, Any]]:
+        """Extract 15s-58s high-retention vertical Shorts cut candidates."""
+        candidates: List[Dict[str, Any]] = []
+        max_dur = max(15.0, float(total_duration_sec))
+
+        for seg in (timeline_segments or []):
+            start = max(0.0, float(seg.get("start_sec", 0.0)))
+            raw_end = float(seg.get("end_sec", start + 35.0))
+            dur = min(58.0, max(15.0, raw_end - start))
+            end = min(max_dur, start + dur)
+            if end - start < 15.0:
+                start = max(0.0, end - 15.0)
+            candidates.append({
+                "label": str(seg.get("label") or "Dramatic Turning Point"),
+                "start_sec": round(start, 2),
+                "end_sec": round(end, 2),
+                "duration_sec": round(end - start, 2),
+                "score": float(seg.get("tension_score", 0.80)),
+                "format": "9:16_shorts",
+            })
+
+        if not candidates and retention_report:
+            for peak in retention_report.get("peak_windows", []):
+                start = max(0.0, float(peak.get("start_sec", 0.0)))
+                end = min(max_dur, start + 35.0)
+                candidates.append({
+                    "label": "Retention Surge Segment",
+                    "start_sec": round(start, 2),
+                    "end_sec": round(end, 2),
+                    "duration_sec": round(end - start, 2),
+                    "score": round(float(peak.get("retention_pct", 70.0)) / 100.0, 3),
+                    "format": "9:16_shorts",
+                })
+
+        if not candidates:
+            # Cold-open + midpoint tension fallbacks when no telemetry provided
+            hook_end = min(max_dur, 42.0)
+            candidates.append({
+                "label": "Cold Open Hook Cut",
+                "start_sec": 0.0,
+                "end_sec": round(hook_end, 2),
+                "duration_sec": round(hook_end, 2),
+                "score": 0.90,
+                "format": "9:16_shorts",
+            })
+            if max_dur >= 90.0:
+                mid_start = round(max_dur * 0.45, 2)
+                mid_end = round(min(max_dur, mid_start + 38.0), 2)
+                candidates.append({
+                    "label": "Midpoint Climax Reveal",
+                    "start_sec": mid_start,
+                    "end_sec": mid_end,
+                    "duration_sec": round(mid_end - mid_start, 2),
+                    "score": 0.84,
+                    "format": "9:16_shorts",
+                })
+
+        candidates.sort(key=lambda item: item["score"], reverse=True)
+        return candidates[:max(1, int(max_candidates))]
+
     def build_master_youtube_package(
         self,
         project_id: str,
@@ -295,6 +570,10 @@ class YouTubeAlgorithmBoosterBridge:
         width: int = 3840,
         height: int = 2160,
         script_text: str = "",
+        thumbnail_text: Optional[str] = None,
+        chapters: Optional[List[Dict[str, Any]] | str] = None,
+        retention_csv: Optional[str | Path] = None,
+        timeline_segments: Optional[List[Dict[str, Any]]] = None,
     ) -> Dict[str, Any]:
         """Compiles the complete YouTube optimization dossier incorporating all deep research discoveries."""
         logger.info(f"Building Master YouTube Optimization Package for '{project_id}'...")
@@ -344,6 +623,21 @@ class YouTubeAlgorithmBoosterBridge:
         # 8. STEPPS Virality & Hook Point (Jonah Berger & Brendan Kane)
         stepps_audit = self.score_viral_stepps(title=title, premise=description)
 
+        # 9. Closed-Loop Packaging Audits (Sprint 1)
+        resolved_thumb_text = thumbnail_text if thumbnail_text is not None else "DECLASSIFIED"
+        title_thumb_lint = self.lint_title_thumbnail_pair(title=title, thumbnail_text=resolved_thumb_text)
+        chapters_audit = (
+            self.validate_youtube_chapters(chapters, total_duration_sec=duration_sec)
+            if chapters is not None
+            else None
+        )
+        retention_audit = self.parse_retention_csv(retention_csv) if retention_csv is not None else None
+        shorts_candidates = self.extract_shorts_candidates(
+            timeline_segments=timeline_segments,
+            retention_report=retention_audit,
+            total_duration_sec=duration_sec,
+        )
+
         master_package = {
             "project_id": project_id,
             "pipeline": "DarkFactory x StockCont Cinema Engine",
@@ -362,6 +656,10 @@ class YouTubeAlgorithmBoosterBridge:
             "self_certification_manifest": self_cert,
             "edsa_compliance_audit": edsa_audit,
             "stepps_virality_audit": stepps_audit,
+            "title_thumbnail_lint": title_thumb_lint,
+            "chapters_audit": chapters_audit,
+            "retention_audit": retention_audit,
+            "shorts_candidates": shorts_candidates,
             "darkfactory_base_package": base_pkg,
         }
 

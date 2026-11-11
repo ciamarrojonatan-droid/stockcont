@@ -25,6 +25,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
+import httpx
 from dotenv import load_dotenv
 
 # UTF-8 encoding safeguard on Windows (ADR-01)
@@ -55,6 +56,58 @@ logging.basicConfig(
 logger = logging.getLogger("StockContDaemon")
 
 
+class AlertNotifier:
+    """State-transition webhook notifier & dead-man heartbeat monitor."""
+
+    def __init__(
+        self,
+        webhook_url: Optional[str] = None,
+        heartbeat_url: Optional[str] = None,
+        timeout_sec: float = 5.0,
+    ) -> None:
+        self.webhook_url = (webhook_url if webhook_url is not None else os.getenv("ALERT_WEBHOOK_URL", "")).strip()
+        self.heartbeat_url = (heartbeat_url if heartbeat_url is not None else os.getenv("HEARTBEAT_PING_URL", "")).strip()
+        self.timeout_sec = timeout_sec
+        self._last_state: Optional[str] = None
+
+    def notify_transition(self, new_state: str, message: str) -> bool:
+        """Send webhook alert only when operational state transitions to avoid spam."""
+        normalized = (new_state or "").strip().lower()
+        if not normalized or normalized == self._last_state:
+            return False
+        previous = self._last_state
+        self._last_state = normalized
+
+        if not self.webhook_url:
+            return False
+
+        payload = {
+            "event": "stockcont_daemon_state_transition",
+            "from_state": previous,
+            "to_state": normalized,
+            "message": message,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "text": f"[StockCont 24/7] {previous or 'init'} -> {normalized}: {message}",
+        }
+        try:
+            resp = httpx.post(self.webhook_url, json=payload, timeout=self.timeout_sec)
+            return 200 <= resp.status_code < 300
+        except Exception as exc:
+            logger.debug("Webhook transition notification skipped: %s", exc)
+            return False
+
+    def send_heartbeat_ping(self) -> bool:
+        """Send dead-man switch HTTP ping when HEARTBEAT_PING_URL is configured."""
+        if not self.heartbeat_url:
+            return False
+        try:
+            resp = httpx.get(self.heartbeat_url, timeout=self.timeout_sec)
+            return 200 <= resp.status_code < 300
+        except Exception as exc:
+            logger.debug("Heartbeat ping failed silently: %s", exc)
+            return False
+
+
 class StockContDaemon:
     """Master 24/7 pipeline supervisor with buffer pacing and rolling weekly quota enforcement."""
 
@@ -74,6 +127,7 @@ class StockContDaemon:
         self.cycles_completed = 0
         self.consecutive_errors = 0
         self.started_at: Optional[datetime] = None
+        self.notifier = AlertNotifier()
 
     def update_state(
         self,
@@ -116,6 +170,9 @@ class StockContDaemon:
             tmp_file.replace(DAEMON_STATE_FILE)
         except Exception as e:
             logger.warning(f"Erro ao salvar daemon_state.json: {e}")
+
+        effective_alert_state = "error" if last_error else status_str
+        self.notifier.notify_transition(effective_alert_state, current_action)
 
     def get_vault_stats(self) -> Dict[str, int]:
         """Compute statistics for assets stored in local vault and Google Drive."""
@@ -374,6 +431,7 @@ class StockContDaemon:
 
         self.cycles_completed += 1
         self.consecutive_errors = 0
+        self.notifier.send_heartbeat_ping()
         logger.info(f"🎉 CICLO #{self.cycles_completed} CONCLUÍDO COM SUCESSO!\n")
 
     def run_forever(self) -> None:

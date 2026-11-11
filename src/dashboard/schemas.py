@@ -2,7 +2,7 @@
 
 from typing import Any, Dict, List, Literal, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class KPIData(BaseModel):
@@ -271,3 +271,61 @@ class MiniMaxH3VideoResponse(BaseModel):
     has_watermark: bool = False
     has_audio: bool = False
     audio_codec: Optional[str] = None
+
+
+# ── HyperFrames & YouTube Closed-Loop Models ────────
+
+class MotionOverlayRequest(BaseModel):
+    template: str = "tactical_hud"
+    title: str
+    subtitle: Optional[str] = ""
+    duration_sec: float = Field(default=5.0, ge=0.5, le=60.0)
+    width: int = Field(default=1280, ge=320, le=3840)
+    height: int = Field(default=720, ge=240, le=2160)
+    fps: int = Field(default=30, ge=1, le=60)
+    preview_gate_20s: bool = False
+    force_procedural: bool = True
+    use_hyperframes_cli: bool = False
+    muted: bool = True
+    components: Optional[List[str]] = None
+
+
+class MotionOverlayResponse(BaseModel):
+    success: bool
+    template: str
+    category: str
+    output_video_path: Optional[str] = None
+    html_path: Optional[str] = None
+    svg_path: Optional[str] = None
+    duration_sec: float
+    width: int
+    height: int
+    fps: int
+    render_backend: str
+    is_preview_gate: bool = False
+    has_audio: bool = False
+    error: Optional[str] = None
+
+
+class YouTubeLintRequest(BaseModel):
+    title: str
+    thumbnail_text: str
+    chapters: Optional[Any] = None
+    total_duration_sec: float = 300.0
+    retention_csv: Optional[str] = None
+    description: Optional[str] = ""
+
+
+class YouTubeLintResponse(BaseModel):
+    title_thumbnail_lint: Dict[str, Any]
+    chapters_audit: Optional[Dict[str, Any]] = None
+    retention_audit: Optional[Dict[str, Any]] = None
+    shorts_candidates: List[Dict[str, Any]] = []
+
+
+class UnitEconomicsResponse(BaseModel):
+    asset_type: str
+    batch_size: int
+    expected_downloads_per_asset: float
+    unit_cost_breakdown: Dict[str, Any]
+    niches: List[Dict[str, Any]]

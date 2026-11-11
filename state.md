@@ -1,7 +1,26 @@
 # StockCont Pipeline State
 > Sincronizado automaticamente por hooks e comandos do ecossistema.
 
-## Sprint Atual: MiniMax Music 3 & MiniMax H3 Cinematic — Pipeline de Produção Multitrack (ADR-10/11)
+## Sprint Atual: Sprints 1–3 — HyperFrames/Anatomy Motion, Image Codes, Unit Economics, Research Engine & Blindagem 24/7
+- **Status das Sprints 1–3**: [CONCLUÍDO & VERIFICADO]:
+  1. **Sprint 1 — DarkFactory Motion Engine & YouTube Closed-Loop**:
+     - `src/video/hyperframes_engine.py`: `HyperFramesMotionEngine` com contrato HTML/CSS/GSAP (`window.__timelines`, `paused: true`, `data-start`, `data-duration`), diagramas isométricos 4-tonalidades inspirados em `wheresryan22/anatomy`, injeção automática de `C:\ffmpeg\bin` via `get_ffmpeg_binary()`, gate determinístico `<= 20s` (`render_preview_gate`) e fallback procedural H.264 sem dependências externas pesadas.
+     - `src/video/otio_exporter.py` & `src/video/tactical_graphics.py`: Trilha `V2_Tactical_Overlays` no schema JSON e via biblioteca `opentimelineio` (com trilhas `A1`/`A2`/`A3` alinhadas e `.resolve().as_uri()`); `composite_motion_overlay()` e resolução FFmpeg Windows-safe em `TacticalGraphicsEngine`.
+     - `src/video/youtube_booster.py`: Loop fechado com `parse_retention_csv()`, `lint_title_thumbnail_pair()`, `validate_youtube_chapters()` e `extract_shorts_candidates()` integrados em `build_master_youtube_package()` + endpoints `/api/v1/video/motion-overlay` e `/api/v1/youtube/lint-package`.
+  2. **Sprint 2 — StockCont B2B Multiplier (Image Codes, 4K Motion & Unit Economics)**:
+     - `src/analyzer/director.py`: Suporte a `DIRECTOR_MODES` (`commercial_b2b`, `image_codes_technical`), `TECHNICAL_CODES_SUPPLEMENT` cobrindo 7 códigos (`/explodedview`, `/blueprint`, `/anatomy`, `/360view`, `/crosssection`, `/xray`, `/knolling`) com 700–1.000 palavras e 35–50% copy-space, roteamento `--director-mode [commercial|technical|auto]` e templates B2B 4K mudos (`-an`).
+     - `src/analyzer/unit_economics.py`: Custeio unitário Gemini + GPU + SeedVR 8K, break-even e ROI ranqueado sobre `NICHE_DEFINITIONS` + endpoint `GET /api/v1/analytics/unit-economics` e CLI `--unit-economics`.
+  3. **Sprint 3 — Motor Factual Real, Radar Dinâmico & Blindagem 24/7**:
+     - `src/video/research_engine.py`: `PublicDomainResearchEngine` consultando Wikipedia REST, Wikimedia Commons (filtro rígido de licenças `Public Domain` / `CC0` / `PD-USGov`), Internet Archive e NASA Open APIs com cache em `data/raw/research_cache/`, dossiês atômicos em `data/processed/research_dossiers/` e fallback offline para `data/raw/dossiers/`.
+     - `src/analyzer/seasonal_radar.py`: `fetch_live_signal_boosters()` e `get_merged_seasonal_opportunities()` mantendo a âncora D+75 `SEASONAL_CALENDAR` com fallback offline resiliente.
+     - Blindagem & Telemetria: `DASHBOARD_ACCESS_TOKEN` middleware (Bearer / `X-Dashboard-Token`) em rotas mutáveis `/api/*` (`src/dashboard/app.py`), `AlertNotifier` por transição de estado e ping dead-man em `src/orchestrator/daemon.py`, guia `docs/REMOTE_TUNNEL_SETUP.md` e flags CLI unificadas em `main.py`.
+  4. **Validação Automatizada**:
+     - Novas suítes Sprints 1–3 (`test_hyperframes_engine.py`, `test_youtube_booster.py`, `test_director_image_codes.py`, `test_unit_economics.py`, `test_research_engine.py`, `test_sprint3_security.py`): 100% aprovadas.
+     - Suíte completa (`pytest -q`): **347 passed**, 3 falhas pré-existentes exclusivas de `tests/test_kokoro_voice.py` por ausência de modelos binários locais em workspace limpo (`data/models/kokoro/kokoro-v0_19.onnx` e áudios piloto).
+- **Última Atualização**: 2026-11-11
+- **Modo Operacional**: Dual-Mode (Antigravity & Claude Code via SSOT `AGENTS.md`)
+
+### Sprint Anterior: MiniMax Music 3 & MiniMax H3 Cinematic — Pipeline de Produção Multitrack (ADR-10/11)
 - **Status da Sprint**: [CONCLUÍDO & TOTALMENTE OPERACIONAL]:
   1. **MiniMax Music 3 — 100% Instrumental sem Vocais (ADR-10)**:
      - Workflow 2120003151633174529 na Conta 5 / Audio Command Center.
@@ -23,9 +42,6 @@
      - `tests/test_minimax_music.py` (10/10 passing).
      - `tests/test_voice_and_audio_engines.py` (11/11 passing).
      - `tests/test_runninghub_execution_mode.py` (31/31 passing).
-     - Suíte completa de testes: 312 testes 100% green.
-- **Última Atualização**: 2026-11-10 06:05
-- **Modo Operacional**: Dual-Mode (Antigravity & Claude Code via SSOT `PROJECT_CONTEXT.md`)
 
 ---
 
@@ -33,6 +49,11 @@
 
 | Fase / Módulo | Status | Contagem / Métricas | Próxima Ação Recomendada |
 | :--- | :--- | :--- | :--- |
+| **Diretor de Arte (Image Codes v3.0)** | 🟢 Operacional | **`src/analyzer/director.py`**: Modos `commercial_b2b`, `image_codes_technical` (7 códigos OpusJake) e `auto` via `--director-mode` \| Prompts 700–1000 palavras + Copy-Space | `python main.py --phase 2 --director-mode technical` |
+| **Motion Engine (HyperFrames & Anatomy)** | 🟢 Operacional | **`src/video/hyperframes_engine.py`**: Contratos GSAP `window.__timelines`, SVGs isométricos 4-tonalidades, gate 20s, 4 loops B2B 4K (`-an`) + composição `V2_Tactical_Overlays` | `python main.py --render-motion-hud` |
+| **Unit Economics & ROI por Nicho** | 🟢 Operacional | **`src/analyzer/unit_economics.py`**: Custo unitário Gemini+GPU+Upscale, break-even e ROI ranqueado sobre `NICHE_DEFINITIONS` | `python main.py --unit-economics` |
+| **Research Engine & Radar Dinâmico** | 🟢 Operacional | **`src/video/research_engine.py` + `seasonal_radar.py`**: Wikipedia/Wikimedia(PD/CC0)/IA/NASA + sinais ao vivo + fallback offline resiliente | `python main.py --research-topic "..."` |
+| **Blindagem Dashboard & Telemetria 24/7** | 🟢 Ativo | **`DASHBOARD_ACCESS_TOKEN` + `AlertNotifier`**: Auth em rotas mutáveis `/api/*` e alertas por transição + heartbeat dead-man | `docs/REMOTE_TUNNEL_SETUP.md` |
 | **MiniMax Music 3 (Soundtrack Engine)** | 🟢 100% Instrumental (Zero Vocais) | **Workflow 2120003151633174529**: Estilo #15 \| Estrutura Instrumental #16 (`[Instrumental]`) \| Duração #14 \| **Saída FLAC #7** \| Lite/Plus (ADR-08/10) | `/api/v1/music/generate` |
 | **MiniMax H3 Cinematic (T2V & Áudio)** | 🟢 Operacional & Calibrado | **Workflow 2118560390471745537 (Conta 7)**: Prompt #35 \| Duração #66 (4.0s) \| T2V Puro (sem imagem) \| **Vídeo com áudio AAC sem watermark #107 FeiHou** \| Lite/Plus (ADR-08/11) | `/api/v1/video/minimax_h3` |
 | **Conta 4: Audio Command Center** | 🟢 Operacional & Calibrado | **CosyVoice + MiniMax Music 3**: Trilha 4 atos (#15/#16/#14 ➔ #7 FLAC) \| Narração Lossless CosyVoice (#345/#355 ➔ #346) \| Multitrack 3-Stem (-14 LUFS) | `/api/v1/music/generate`, `/api/v1/audio/mix` |

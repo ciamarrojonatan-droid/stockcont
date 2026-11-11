@@ -266,11 +266,11 @@ def run_phase_1(
         )
     logger.info(f"Fase 1 finalizada. Minerados {len(scraped)} assets.")
 
-def run_phase_2() -> None:
+def run_phase_2(director_mode: str = "auto") -> None:
     """Execute Phase 2: Art Director Prompt Generator."""
-    logger.info("--- Starting Phase 2: Art Director (Gemini Vision Prompt Generation) ---")
+    logger.info(f"--- Starting Phase 2: Art Director (Gemini Vision Prompt Generation, mode={director_mode}) ---")
     from src.analyzer.director import main as director_main
-    director_main()
+    director_main(mode=director_mode)
     logger.info("Phase 2 finished.")
 
 def run_phase_3(
@@ -513,6 +513,15 @@ def main() -> None:
     p1_group.add_argument("--deep-profile", action="store_true", help="Mine deeper into top contributors' full portfolios")
     p1_group.add_argument("--headless", action="store_true", help="Run scraper browser in headless mode")
 
+    # Options for Phase 2
+    p2_group = parser.add_argument_group("Phase 2 Options")
+    p2_group.add_argument(
+        "--director-mode",
+        default=os.getenv("DIRECTOR_DEFAULT_MODE", "auto"),
+        choices=["commercial", "technical", "auto"],
+        help="Art Director prompt mode: commercial (B2B lifestyle), technical (7 Image Codes), or auto",
+    )
+
     # Options for Phase 3
     p3_group = parser.add_argument_group("Phase 3 Options")
     p3_group.add_argument("--account", type=int, default=1, choices=[1, 2, 3], help="RunningHub Account: 1 (Raw Producer), 2 (SeedVR 8K Upscaler), or 3 (Video 4K Generator & Upscaler)")
@@ -583,6 +592,17 @@ def main() -> None:
     video_group.add_argument("--list-palettes", action="store_true", help="List all calibrated 60-30-10 cinematic color psychology palettes")
     video_group.add_argument("--color-palette", type=str, default=None, choices=["cold_war_paranoia", "nuclear_dread_siren", "cyber_espionage", "deep_space_void", "bio_pathogen_hazard", "gordon_willis_noir", "fincher_muted_sage"], help="Synthesize 60-30-10 color psychology prompt clause")
     video_group.add_argument("--audit-palette", type=str, default=None, help="Audit keyframe 60-30-10 color distribution via K-Means clustering and render swatch card")
+    video_group.add_argument("--render-motion-hud", action="store_true", help="Render deterministic HyperFrames/Anatomy motion overlay or B2B 4K loop")
+    video_group.add_argument("--motion-template", type=str, default="tactical_hud", help="Motion template name (e.g. tactical_hud, anatomy_mechanical, saas_fintech_telemetry_ui)")
+    video_group.add_argument("--motion-title", type=str, default="CLASSIFIED TELEMETRY UNIT", help="Primary headline for HyperFrames overlay")
+    video_group.add_argument("--motion-subtitle", type=str, default="SIGNAL ARCHIVE 1961", help="Secondary subtitle for HyperFrames overlay")
+    video_group.add_argument("--preview-20s", action="store_true", help="Enforce deterministic <=20s preview gate during motion render")
+    video_group.add_argument("--yt-lint", action="store_true", help="Run YouTube title/thumbnail/chapters/retention closed-loop linter")
+    video_group.add_argument("--yt-title", type=str, default="Why The Secret 1961 Archive Stayed Buried", help="YouTube title to audit with --yt-lint")
+    video_group.add_argument("--yt-thumb", type=str, default="LEAKED BLUEPRINT", help="YouTube thumbnail overlay text to audit with --yt-lint")
+    video_group.add_argument("--yt-retention-csv", type=str, default=None, help="Optional YouTube retention CSV file or inline data")
+    video_group.add_argument("--unit-economics", action="store_true", help="Print B2B niche unit economics, break-even, and ROI rankings")
+    video_group.add_argument("--research-topic", type=str, default=None, help="Fetch public-domain dossier facts & PD media assets (Wikipedia/Wikimedia/IA/NASA)")
 
     # Google Flow Industrial API Options
     flow_group = parser.add_argument_group("Google Flow Industrial API Options")
@@ -947,6 +967,47 @@ def main() -> None:
         show_seasonal_radar()
         return
 
+    if getattr(args, "render_motion_hud", False):
+        from src.video.hyperframes_engine import HyperFramesMotionEngine
+        engine = HyperFramesMotionEngine()
+        if getattr(args, "preview_20s", False):
+            res = engine.render_preview_gate(
+                template=args.motion_template,
+                title=args.motion_title,
+                subtitle=args.motion_subtitle,
+                force_procedural=True,
+            )
+        else:
+            res = engine.render_motion_clip(
+                template=args.motion_template,
+                title=args.motion_title,
+                subtitle=args.motion_subtitle,
+                force_procedural=True,
+            )
+        print(json.dumps(res.to_dict(), indent=2, ensure_ascii=False))
+        return
+
+    if getattr(args, "yt_lint", False):
+        from src.video.youtube_booster import YouTubeAlgorithmBoosterBridge
+        bridge = YouTubeAlgorithmBoosterBridge()
+        lint_out = bridge.lint_title_thumbnail_pair(title=args.yt_title, thumbnail_text=args.yt_thumb)
+        retention_out = bridge.parse_retention_csv(args.yt_retention_csv) if args.yt_retention_csv else None
+        print(json.dumps({"title_thumbnail_lint": lint_out, "retention_audit": retention_out}, indent=2, ensure_ascii=False))
+        return
+
+    if getattr(args, "unit_economics", False):
+        from src.analyzer.unit_economics import UnitEconomicsCalculator
+        calc = UnitEconomicsCalculator()
+        print(json.dumps(calc.recommend_priority_niches(), indent=2, ensure_ascii=False))
+        return
+
+    if getattr(args, "research_topic", None):
+        from src.video.research_engine import PublicDomainResearchEngine
+        engine = PublicDomainResearchEngine()
+        pack = engine.build_dossier(args.research_topic)
+        print(json.dumps(pack.to_dict(), indent=2, ensure_ascii=False))
+        return
+
     if args.backup:
         run_backup(dry_run=args.dry_run, force=args.force)
         return
@@ -981,7 +1042,7 @@ def main() -> None:
         if args.video or args.asset_type == "video":
             run_video_phase_2(max_items=args.max_items, image_stem=getattr(args, "image_stem", None))
         else:
-            run_phase_2()
+            run_phase_2(director_mode=getattr(args, "director_mode", "auto"))
     elif args.phase == 3:
         is_vid = bool(args.video or args.asset_type == "video" or args.account == 3)
         run_phase_3(

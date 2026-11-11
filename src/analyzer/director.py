@@ -160,6 +160,67 @@ Use this exact top-level structure:
 }
 """
 
+DIRECTOR_MODES = ("commercial_b2b", "image_codes_technical")
+
+IMAGE_CODES_CATALOG: Dict[str, str] = {
+    "/explodedview": "Precision mechanical/hardware parts separated cleanly along vertical/isometric Z-axes with floating fasteners and crisp assembly spacing.",
+    "/blueprint": "Orthographic technical CAD draft geometry on high-contrast matte navy or slate drafting paper with clean hairline dimension callouts.",
+    "/anatomy": "Four-tone isometric cutaway illustration isolating functional layers (chassis, internals, energy core) with generous callout copy-space.",
+    "/360view": "Studio turntable multi-angle product sheet capturing front, 45-degree, side, and rear commercial silhouettes under uniform softbox lighting.",
+    "/crosssection": "Precision architectural or industrial slice revealing interior fluid conduits, structural chambers, and layered metallurgy cleanly.",
+    "/xray": "Translucent radiographic glass-shader visualization illuminating internal circuitry, bone/lattice stress vectors, and luminous subcomponents.",
+    "/knolling": "90-degree flat-lay orthogonal arrangement of disassembled modular kit parts separated with mathematically uniform grid margins.",
+}
+
+TECHNICAL_CODES_SUPPLEMENT = """
+### TECHNICAL IMAGE CODES EXTENSION (SPRINT 2 - HIGH-RPM B2B ENGINEERING ASSETS)
+In addition to the mandatory 6 layers, 700 to 1,000 word count, and 35% to 50% adaptive copy-space rule, synthesize prompts across the 7 high-value OpusJake Technical Image Codes:
+- /explodedview: Separated multi-tier mechanical or electronic assembly floating cleanly along isometric Z-axes.
+- /blueprint: Crisp orthographic technical schematic over matte blueprint slate with subtle hairline CAD grids.
+- /anatomy: Layered structural cutaway isolating subsystem hierarchy in clean 4-tone volumetric lighting.
+- /360view: Multi-angle orthographic turnaround sheet suited for industrial SaaS, hardware documentation, and configurators.
+- /crosssection: Clean laser-cut planar cross-section exposing precision interior chambers and composite thicknesses.
+- /xray: Translucent glass-like volumetric radiograph highlighting glowing internal architecture and structural skeletons.
+- /knolling: Overhead 90-degree flat-lay alignment of precision tools, semiconductor modules, or hardware components on neutral matte backdrop.
+Assign each derivative prompt's `"image_code"` field to one of the 7 `/code` tags above and tailor `"target_buyer"` to engineering docs, industrial SaaS, aerospace/biotech, or enterprise pitch decks.
+"""
+
+_TECHNICAL_MODE_KEYWORDS = {
+    "anatomy", "architecture", "aerospace", "biomechanical", "blueprint", "cad",
+    "chassis", "chip", "circuit", "cutaway", "crosssection", "diagram", "engine",
+    "exploded", "hardware", "hydraulic", "industrial", "isometric", "knolling",
+    "machinery", "mechanical", "microchip", "motor", "pcb", "robot", "robotics",
+    "schematic", "semiconductor", "server", "technical", "turbine", "valve", "xray",
+}
+
+
+def detect_director_mode(item: Dict[str, Any], requested_mode: str = "auto") -> str:
+    """Resolve director mode ('commercial_b2b' or 'image_codes_technical') from CLI/item signals."""
+    norm = (requested_mode or "auto").strip().lower()
+    if norm in ("technical", "image_codes", "image_codes_technical"):
+        return "image_codes_technical"
+    if norm in ("commercial", "commercial_b2b"):
+        return "commercial_b2b"
+
+    raw_tokens: List[str] = [str(item.get("title") or "").lower(), str(item.get("category") or "").lower()]
+    kw_val = item.get("keywords") or []
+    if isinstance(kw_val, list):
+        raw_tokens.extend(str(k).lower() for k in kw_val)
+    else:
+        raw_tokens.append(str(kw_val).lower())
+    haystack = " ".join(raw_tokens)
+    if any(tok in haystack for tok in _TECHNICAL_MODE_KEYWORDS):
+        return "image_codes_technical"
+    return "commercial_b2b"
+
+
+def build_system_prompt(mode: str = "commercial") -> str:
+    """Return full Gemini Art Director system prompt for the requested production mode."""
+    norm = (mode or "commercial").strip().lower()
+    if norm in ("technical", "image_codes", "image_codes_technical"):
+        return f"{SYSTEM_PROMPT}\n{TECHNICAL_CODES_SUPPLEMENT}"
+    return SYSTEM_PROMPT
+
 
 def load_trends() -> List[Dict[str, Any]]:
     """Load scraped trend records from data/raw/trends.json."""
@@ -175,8 +236,10 @@ def load_trends() -> List[Dict[str, Any]]:
         return []
 
 
-def process_image(item: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def process_image(item: Dict[str, Any], mode: str = "auto") -> Optional[Dict[str, Any]]:
     """Process a single trend item through Gemini Vision with System Prompt v3.0."""
+    resolved_mode = detect_director_mode(item, requested_mode=mode)
+    active_system_prompt = build_system_prompt(resolved_mode)
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         logger.error("GEMINI_API_KEY environment variable is missing.")
@@ -240,7 +303,7 @@ def process_image(item: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     try:
         if not is_textual_fallback and b64_img:
             prompt_instruction = (
-                SYSTEM_PROMPT
+                active_system_prompt
                 + "\n\nCRITICAL MANDATE: Analyze this reference image and synthesize exactly 10 distinct derivative prompts "
                 + "numbered 1 through 10 in the 'derivative_prompts' array. Each prompt MUST follow the 700-1000 word density mandate."
             )
@@ -264,7 +327,7 @@ def process_image(item: Dict[str, Any]) -> Optional[Dict[str, Any]]:
                 f"Source Niche: {item.get('source', 'Commercial Microstock')}"
             )
             prompt_instruction = (
-                SYSTEM_PROMPT
+                active_system_prompt
                 + f"\n\nCRITICAL CONTEXT: Physical reference image is temporarily unavailable. Based on the following top-selling stock metadata:\n{meta_context}\n\n"
                 + "Perform a conceptual reverse-engineering of the aesthetic DNA and synthesize exactly 10 distinct derivative prompts "
                 + "numbered 1 through 10 in the 'derivative_prompts' array. Each prompt MUST strictly follow the 700-1000 word density mandate. "
@@ -334,6 +397,7 @@ def process_image(item: Dict[str, Any]) -> Optional[Dict[str, Any]]:
                                         dp["prompt"] = pd["final_prompt"]
 
                         analysis_metadata = result.get("analysis_metadata", {})
+                        analysis_metadata["director_mode"] = resolved_mode
                         if is_textual_fallback:
                             analysis_metadata["reference_available"] = False
 
@@ -361,7 +425,7 @@ def process_image(item: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     return None
 
 
-def main(max_items: Optional[int] = None) -> None:
+def main(max_items: Optional[int] = None, mode: str = "auto") -> None:
     """Main execution flow for Art Director v3.0."""
     if not os.getenv("GEMINI_API_KEY"):
         logger.critical("GEMINI_API_KEY not set in .env")
@@ -403,7 +467,7 @@ def main(max_items: Optional[int] = None) -> None:
 
     new_results = 0
     for item in items_to_process:
-        result = process_image(item)
+        result = process_image(item, mode=mode)
         if result:
             processed_data.append(result)
             new_results += 1

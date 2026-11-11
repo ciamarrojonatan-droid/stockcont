@@ -182,6 +182,15 @@ class TacticalGraphicsEngine:
         logger.info(f"Lower-third cinemático gerado: {out_file.name}")
         return out_file
 
+    @staticmethod
+    def _resolve_ffmpeg_bin(ffmpeg_bin: Optional[str]) -> str:
+        """Resolve explicit FFmpeg path using Windows-aware fallback."""
+        if ffmpeg_bin and ffmpeg_bin != "ffmpeg":
+            return ffmpeg_bin
+        from src.video.ffmpeg_processor import get_ffmpeg_binary
+
+        return get_ffmpeg_binary()
+
     def apply_overlay_to_video(
         self,
         input_video_path: str | Path,
@@ -189,7 +198,7 @@ class TacticalGraphicsEngine:
         output_video_path: str | Path,
         start_time_sec: float = 0.0,
         duration_sec: Optional[float] = None,
-        ffmpeg_bin: str = "ffmpeg",
+        ffmpeg_bin: Optional[str] = None,
     ) -> bool:
         """
         Aplica o overlay PNG sobre o vídeo via filtro overlay do FFmpeg.
@@ -203,6 +212,7 @@ class TacticalGraphicsEngine:
             return False
 
         out_vid.parent.mkdir(parents=True, exist_ok=True)
+        resolved_ffmpeg = self._resolve_ffmpeg_bin(ffmpeg_bin)
 
         if duration_sec is not None:
             enable_expr = f"between(t,{start_time_sec},{start_time_sec + duration_sec})"
@@ -212,7 +222,7 @@ class TacticalGraphicsEngine:
         filter_str = f"[0:v][1:v]overlay=0:0:enable='{enable_expr}'[v]"
 
         cmd = [
-            ffmpeg_bin,
+            resolved_ffmpeg,
             "-y",
             "-i", str(in_vid),
             "-i", str(in_overlay),
@@ -232,4 +242,75 @@ class TacticalGraphicsEngine:
             return out_vid.exists() and out_vid.stat().st_size > 0
         except subprocess.CalledProcessError as e:
             logger.error(f"Erro ao aplicar overlay com FFmpeg: {e.stderr}")
+            return False
+
+    def composite_motion_overlay(
+        self,
+        base_video_path: str | Path,
+        overlay_video_path: str | Path,
+        output_video_path: str | Path,
+        start_time_sec: float = 0.0,
+        duration_sec: Optional[float] = None,
+        opacity: float = 0.90,
+        scale_to_frame: bool = True,
+        colorkey: Optional[str] = None,
+        ffmpeg_bin: Optional[str] = None,
+    ) -> bool:
+        """Compoe um clipe de motion graphics MP4/WebM sobre o vídeo mestre via FFmpeg."""
+        in_base = Path(base_video_path)
+        in_ov = Path(overlay_video_path)
+        out_vid = Path(output_video_path)
+
+        if not in_base.exists() or not in_ov.exists():
+            logger.error("Vídeo base ou motion overlay inexistente para composição.")
+            return False
+
+        out_vid.parent.mkdir(parents=True, exist_ok=True)
+        resolved_ffmpeg = self._resolve_ffmpeg_bin(ffmpeg_bin)
+        clamped_alpha = max(0.05, min(1.0, float(opacity)))
+
+        if duration_sec is not None:
+            enable_expr = f"between(t,{start_time_sec},{start_time_sec + duration_sec})"
+        else:
+            enable_expr = f"gte(t,{start_time_sec})"
+
+        ov_chain = "[1:v]"
+        if colorkey:
+            ov_chain += f"colorkey={colorkey}:0.12:0.15,"
+        ov_chain += f"format=yuva420p,colorchannelmixer=aa={clamped_alpha:.3f}[ov_alpha];"
+
+        if scale_to_frame:
+            filter_complex = (
+                f"{ov_chain}"
+                f"[ov_alpha][0:v]scale2ref=iw:ih[ov_scaled][base_ref];"
+                f"[base_ref][ov_scaled]overlay=0:0:enable='{enable_expr}':eof_action=pass[v]"
+            )
+        else:
+            filter_complex = (
+                f"{ov_chain}"
+                f"[0:v][ov_alpha]overlay=(W-w)/2:(H-h)/2:enable='{enable_expr}':eof_action=pass[v]"
+            )
+
+        cmd = [
+            resolved_ffmpeg,
+            "-y",
+            "-i", in_base.as_posix(),
+            "-itsoffset", f"{max(0.0, float(start_time_sec)):.3f}",
+            "-i", in_ov.as_posix(),
+            "-filter_complex", filter_complex,
+            "-map", "[v]",
+            "-map", "0:a?",
+            "-c:v", "libx264",
+            "-preset", "fast",
+            "-crf", "18",
+            "-pix_fmt", "yuv420p",
+            "-c:a", "copy",
+            out_vid.as_posix(),
+        ]
+
+        try:
+            subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
+            return out_vid.exists() and out_vid.stat().st_size > 0
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Erro ao compor motion overlay com FFmpeg: {e.stderr}")
             return False
