@@ -32,6 +32,10 @@ def test_spa_static_markup_and_sprint6_widgets(monkeypatch):
     assert 'id="sprint6-telemetry-panel"' in res_video.text
     assert 'id="btn-s6-motion-qa"' in res_video.text
     assert 'id="btn-s6-refresh-telemetry"' in res_video.text
+    assert 'id="sprint9-studio-panel"' in res_video.text
+    assert 'id="btn-s9-map-demo"' in res_video.text
+    assert 'id="btn-s9-storyboard-demo"' in res_video.text
+    assert 'id="btn-s9-thumbs-demo"' in res_video.text
     assert "/static/js/video.js" in res_video.text
 
     res_js = client.get("/static/js/video.js")
@@ -39,6 +43,7 @@ def test_spa_static_markup_and_sprint6_widgets(monkeypatch):
     assert "bindSprint6TelemetryControls" in res_js.text
     assert "runSprint6MotionQADemo" in res_js.text
     assert "refreshSprint6TelemetryStatus" in res_js.text
+    assert "bindSprint9StudioControls" in res_js.text
 
 
 @pytest.mark.e2e
@@ -145,6 +150,7 @@ def test_playwright_spa_look_and_fix_audit():
                                     tab_btn.first.click()
                                     page.wait_for_timeout(250)
                                     assert page.locator("#sprint6-telemetry-panel").is_visible()
+                                    assert page.locator("#sprint9-studio-panel").is_visible()
 
                         assert console_errors == [], f"Console errors on {vp_name}: {console_errors}"
                         assert page_errors == [], f"Page errors on {vp_name}: {page_errors}"

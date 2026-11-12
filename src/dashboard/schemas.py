@@ -404,3 +404,165 @@ class UnitEconomicsResponse(BaseModel):
     expected_downloads_per_asset: float
     unit_cost_breakdown: Dict[str, Any]
     niches: List[Dict[str, Any]]
+
+
+# ── Sprint 7-9: Documentary Map Sync, Foley & Storyboard Schemas ──
+
+
+class MapPinInput(BaseModel):
+    label: str = Field(..., min_length=1, max_length=64)
+    lat: float = Field(..., ge=-90.0, le=90.0)
+    lon: float = Field(..., ge=-180.0, le=180.0)
+    timestamp_sec: float = Field(0.3, ge=0.0, le=120.0)
+    color_hex: str = Field("#EF4444", pattern=r"^#[0-9a-fA-F]{6}$")
+
+
+class MapRouteInput(BaseModel):
+    origin_lat: float = Field(..., ge=-90.0, le=90.0)
+    origin_lon: float = Field(..., ge=-180.0, le=180.0)
+    dest_lat: float = Field(..., ge=-90.0, le=90.0)
+    dest_lon: float = Field(..., ge=-180.0, le=180.0)
+    label: str = Field("", max_length=64)
+    start_sec: float = Field(0.5, ge=0.0, le=120.0)
+    duration_sec: float = Field(1.5, ge=0.1, le=120.0)
+    color_hex: str = Field("#38BDF8", pattern=r"^#[0-9a-fA-F]{6}$")
+
+
+class MapAnimateRequest(BaseModel):
+    title: str = Field(..., min_length=1, max_length=120)
+    subtitle: str = Field("", max_length=140)
+    theater: str = Field("europe_cold_war", min_length=1, max_length=60)
+    pins: List[MapPinInput] = Field(default_factory=list)
+    routes: List[MapRouteInput] = Field(default_factory=list)
+    duration_sec: float = Field(4.0, ge=0.5, le=60.0)
+    width: int = Field(1280, ge=320, le=3840)
+    height: int = Field(720, ge=240, le=2160)
+    fps: int = Field(24, ge=12, le=60)
+    editorial_12fps: bool = True
+
+
+class MapAnimateResponse(BaseModel):
+    success: bool
+    theater: str
+    title: str
+    video_path: Optional[str] = None
+    svg_path: Optional[str] = None
+    html_path: Optional[str] = None
+    duration_sec: float = 0.0
+    width: int = 1280
+    height: int = 720
+    fps: int = 24
+    editorial_12fps: bool = True
+    error: Optional[str] = None
+
+
+class ComposeDossierRequest(BaseModel):
+    topic: str = Field(..., min_length=1, max_length=160)
+    script: str = Field(..., min_length=1, max_length=20000)
+    narration_audio_path: str = Field(..., min_length=1, max_length=512)
+    theater: str = Field("europe_cold_war", min_length=1, max_length=60)
+    trigger_keywords: Optional[List[str]] = None
+    width: int = Field(1280, ge=320, le=3840)
+    height: int = Field(720, ge=240, le=2160)
+    fps: int = Field(24, ge=12, le=60)
+
+
+class ComposeDossierResponse(BaseModel):
+    success: bool
+    topic: str
+    slug: str
+    duration_sec: float = 0.0
+    master_video_path: Optional[str] = None
+    map_video_path: Optional[str] = None
+    otio_path: Optional[str] = None
+    subtitles_path: Optional[str] = None
+    manifest_path: Optional[str] = None
+    word_triggers: List[Dict[str, Any]] = Field(default_factory=list)
+    facts_count: int = 0
+    pd_assets_count: int = 0
+    error: Optional[str] = None
+
+
+class FoleyCueInput(BaseModel):
+    sfx_name: str = Field(..., min_length=1, max_length=64)
+    timestamp_sec: float = Field(..., ge=0.0, le=3600.0)
+    gain_db: float = Field(-8.0, ge=-48.0, le=6.0)
+    pan: float = Field(0.0, ge=-1.0, le=1.0)
+    duration_sec: Optional[float] = Field(None, ge=0.05, le=30.0)
+
+
+class FoleyTrackRequest(BaseModel):
+    total_duration_sec: float = Field(..., ge=0.5, le=3600.0)
+    cues: List[FoleyCueInput] = Field(default_factory=list)
+    sample_rate: int = Field(44100, ge=16000, le=96000)
+
+
+class FoleyTrackResponse(BaseModel):
+    success: bool
+    sfx_track_path: Optional[str] = None
+    duration_sec: float = 0.0
+    cues_applied: int = 0
+    catalog_used: List[str] = Field(default_factory=list)
+    error: Optional[str] = None
+
+
+class VideoReverseRequest(BaseModel):
+    video_path: str = Field(..., min_length=1, max_length=512)
+    topic: Optional[str] = Field(None, max_length=160)
+    mode: str = Field("AUTO", max_length=16)
+    use_vision: bool = False
+
+
+class VideoReverseResponse(BaseModel):
+    success: bool
+    video_path: str
+    topic: str
+    mode: str
+    total_duration_sec: float
+    mean_shot_length: float
+    shots: List[Dict[str, Any]] = Field(default_factory=list)
+    story_audit: Dict[str, Any] = Field(default_factory=dict)
+    manifest_path: Optional[str] = None
+    error: Optional[str] = None
+
+
+class StoryboardCompileRequest(BaseModel):
+    title: str = Field(..., min_length=1, max_length=160)
+    script: str = Field(..., min_length=1, max_length=30000)
+    target_niche: str = Field("industrial_automation", min_length=1, max_length=80)
+    target_duration_sec: float = Field(20.0, ge=4.0, le=3600.0)
+    theater: str = Field("europe_cold_war", min_length=1, max_length=60)
+
+
+class StoryboardCompileResponse(BaseModel):
+    success: bool
+    title: str
+    slug: str
+    target_niche: str
+    total_duration_sec: float
+    scenes: List[Dict[str, Any]] = Field(default_factory=list)
+    hook_audit: Dict[str, Any] = Field(default_factory=dict)
+    story_audit: Dict[str, Any] = Field(default_factory=dict)
+    overlap_audit: Dict[str, Any] = Field(default_factory=dict)
+    budget_estimate: Dict[str, Any] = Field(default_factory=dict)
+    manifest_path: Optional[str] = None
+    error: Optional[str] = None
+
+
+class MonetizationPackRequest(BaseModel):
+    project_id: str = Field(..., min_length=1, max_length=80)
+    title: str = Field(..., min_length=1, max_length=140)
+    subtitle: str = Field("DECLASSIFIED ARCHIVE", max_length=100)
+    backdrop_path: Optional[str] = Field(None, max_length=512)
+    master_video_path: Optional[str] = Field(None, max_length=512)
+    broll_count: int = Field(3, ge=3, le=12)
+    target_width: int = Field(3840, ge=640, le=3840)
+    target_height: int = Field(2160, ge=360, le=2160)
+
+
+class MonetizationPackResponse(BaseModel):
+    success: bool
+    project_id: str
+    thumbnails: List[Dict[str, Any]] = Field(default_factory=list)
+    stock_broll_pack: Optional[Dict[str, Any]] = None
+    error: Optional[str] = None

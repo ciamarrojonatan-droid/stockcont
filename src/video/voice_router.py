@@ -72,6 +72,8 @@ class RoutedNarrationResult:
     voice_used: str
     is_gold_standard: bool
     subtitles_path: Optional[Path] = None
+    word_timings: List[Dict[str, Any]] = field(default_factory=list)
+    word_triggers: List[Dict[str, Any]] = field(default_factory=list)
     metadata: Dict[str, Any] = field(default_factory=dict)
 
 
@@ -278,20 +280,27 @@ class MasterVoiceRouter:
                 raise RuntimeError("CosyVoice workflow produced no audio output.")
             fn = saved_files[-1]
             out_path = self.output_dir / fn
-            duration = 10.0  # approximate fallback if not probed
             sz = out_path.stat().st_size if out_path.exists() else 0
+            aligned = self._align_audio_output(out_path, script)
 
             return RoutedNarrationResult(
                 video_id=video_id,
                 scene_id=scene_id,
                 audio_path=out_path,
                 filename=fn,
-                duration_seconds=duration,
+                duration_seconds=aligned["duration_sec"],
                 filesize_bytes=sz,
                 engine_used=ENGINE_COSYVOICE,
                 voice_used="cosyvoice_instruct",
                 is_gold_standard=True,
-                metadata={"workflow_id": "2118531898170486785", "format": "flac"},
+                subtitles_path=aligned["subtitles_path"],
+                word_timings=aligned["word_timings"],
+                word_triggers=aligned["word_triggers"],
+                metadata={
+                    "workflow_id": "2118531898170486785",
+                    "format": out_path.suffix.lstrip(".") or "flac",
+                    "aligner_backend": aligned["backend_used"],
+                },
             )
 
         elif engine == ENGINE_KOKORO_LOCAL:
@@ -313,17 +322,25 @@ class MasterVoiceRouter:
                 raise RuntimeError(f"Kokoro local synthesis failed: {e}") from e
 
             filesize = out_file.stat().st_size if out_file.exists() else 0
+            aligned = self._align_audio_output(out_file, script)
             return RoutedNarrationResult(
                 video_id=video_id,
                 scene_id=scene_id,
                 audio_path=out_file,
                 filename=out_file.name,
-                duration_seconds=round(len(script.split()) / 2.5, 2),
+                duration_seconds=aligned["duration_sec"],
                 filesize_bytes=filesize,
                 engine_used=ENGINE_KOKORO_LOCAL,
                 voice_used=voice,
                 is_gold_standard=False,
-                metadata={"format": "wav", "local_cpu": True},
+                subtitles_path=aligned["subtitles_path"],
+                word_timings=aligned["word_timings"],
+                word_triggers=aligned["word_triggers"],
+                metadata={
+                    "format": "wav",
+                    "local_cpu": True,
+                    "aligner_backend": aligned["backend_used"],
+                },
             )
 
         elif engine == ENGINE_DEEPGRAM:
@@ -344,20 +361,71 @@ class MasterVoiceRouter:
                 destination_path=out_file,
                 generate_subtitles=True,
             )
+            aligned = self._align_audio_output(synth.audio_path, script, existing_srt=synth.subtitles_path)
 
             return RoutedNarrationResult(
                 video_id=video_id,
                 scene_id=scene_id,
                 audio_path=synth.audio_path,
                 filename=synth.filename,
-                duration_seconds=synth.duration_seconds,
+                duration_seconds=aligned["duration_sec"] or synth.duration_seconds,
                 filesize_bytes=synth.filesize_bytes,
                 engine_used=ENGINE_DEEPGRAM,
                 voice_used=synth.voice_used,
                 is_gold_standard=False,
-                subtitles_path=synth.subtitles_path,
-                metadata={"cost_usd": synth.estimated_cost_usd, "format": "mp3"},
+                subtitles_path=aligned["subtitles_path"] or synth.subtitles_path,
+                word_timings=aligned["word_timings"],
+                word_triggers=aligned["word_triggers"],
+                metadata={
+                    "cost_usd": synth.estimated_cost_usd,
+                    "format": "mp3",
+                    "aligner_backend": aligned["backend_used"],
+                },
             )
 
         else:
             raise ValueError(f"Unknown narration engine: {engine}")
+
+    @staticmethod
+    def _align_audio_output(
+        audio_path: Path,
+        script: str,
+        existing_srt: Optional[Path] = None,
+    ) -> Dict[str, Any]:
+        """Probe actual duration and derive word-level timings + triggers safely."""
+        from src.video.ffmpeg_processor import probe_audio_duration
+        from src.video.voice_aligner import VoiceAligner
+
+        word_count = max(1, len((script or "").split()))
+        if not audio_path.is_file():
+            return {
+                "duration_sec": max(1.0, round(word_count / 2.5, 2)),
+                "subtitles_path": existing_srt,
+                "word_timings": [],
+                "word_triggers": [],
+                "backend_used": "unavailable",
+            }
+
+        try:
+            aligned = VoiceAligner().align_transcript(
+                audio_path=audio_path,
+                transcript=script,
+                save_srt=True,
+                srt_output_path=existing_srt or audio_path.with_suffix(".srt"),
+            )
+            return {
+                "duration_sec": aligned.duration_sec,
+                "subtitles_path": Path(aligned.subtitles_path) if aligned.subtitles_path else existing_srt,
+                "word_timings": [wt.to_dict() for wt in aligned.word_timings],
+                "word_triggers": [tr.to_dict() for tr in aligned.word_triggers],
+                "backend_used": aligned.backend_used,
+            }
+        except Exception as exc:
+            logger.warning("Voice alignment fallback for %s: %s", audio_path.name, exc)
+            return {
+                "duration_sec": probe_audio_duration(audio_path, fallback_word_count=word_count),
+                "subtitles_path": existing_srt,
+                "word_timings": [],
+                "word_triggers": [],
+                "backend_used": "duration_only_fallback",
+            }

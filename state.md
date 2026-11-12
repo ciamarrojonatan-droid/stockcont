@@ -1,7 +1,27 @@
 # StockCont Pipeline State
 > Sincronizado automaticamente por hooks e comandos do ecossistema.
 
-## Sprint Atual: Sprints 4–6 — Motion Personalities & Zero-Blob Plates, Motion QA Visual Gate, Beat-Sync Audio Engine, SVG Deconstructor & Playwright SPA Audit
+## Sprint Atual: Sprints 7–9 — Word-Timed Documentary Sync, CC0 Foley & Reverse-Engineer, 0.5s Spatial Overlap QA & Dual Monetization
+- **Status das Sprints 7–9**: [CONCLUÍDO & VERIFICADO]:
+  1. **Sprint 7 — Voice Aligner Palavra-a-Palavra, Map Animator Offline & Documentary World Composer**:
+     - `src/video/ffmpeg_processor.py` & `src/video/voice_router.py`: `decode_audio_pcm_mono()` + `probe_audio_duration()` em WAV/MP3/FFmpeg; remoção da duração hardcoded de 10s no CosyVoice/Kokoro com alinhamento automático `word_timings` e `word_triggers` preservando integralmente o invariante `NarratorLock` (ADR-09).
+     - `src/video/voice_aligner.py`: `VoiceAligner` com segmentação por envelope de energia RMS, alinhamento silábico forçado (ou `faster_whisper` opcional), geração SRT e detecção de gatilhos por palavra-chave.
+     - `src/video/map_animator.py`: `MapAnimator` offline com 6 teatros geopolíticos (`THEATER_PRESETS`), SVG semântico multi-camada (`grid`, `landmass`, `routes`, `pins`, `hud`), timeline seekable HTML/GSAP (`window.__timelines` com opção editorial 12fps) e render MP4 H.264 com proteção contra deadlock FFmpeg (`-v error -nostats`).
+     - `src/video/documentary_composer.py` & `src/video/research_engine.py`: `DocumentaryComposer.compose_episode()` conectando `PublicDomainResearchEngine` (com `MediaAssetRef.local_path`), `VoiceAligner`, `MapAnimator`, Ken Burns em imagens DP, selos desencadeados no instante exato da fala (`TacticalGraphicsEngine`), `UniversalTimelineExporter` (`.otio`) e mux master A/V.
+  2. **Sprint 8 — Biblioteca CC0 Foley, Corte de Dead-Air, J/L-Cuts & Video Reverse-Engineer**:
+     - `src/video/foley_library.py`: `FoleyLibrary` com catálogo CC0-1.0 (`whoosh_subtle`, `stamp_slam`, `radar_ping`, `teletype_burst`, `sub_riser`), varredura opcional em `data/raw/sfx_cc0/`, mapeamento automático de gatilhos (`build_cues_from_triggers`) e mixador procedural de stem estéreo sem clipping.
+     - `src/video/audio_engine.py`: `trim_dead_air()` comprimindo pausas silenciosas `>350ms` para respiro natural (`120ms`) e `mix_with_auto_foley()` acoplando síntese CC0 Foley ao mix 3-Stem `mix_multitrack_documentary()`.
+     - `src/video/otio_exporter.py`: Suporte a split edits J-cut (`audio_lead_sec`) e L-cut (`audio_tail_sec`) em `TimelineClipRef` via `apply_jl_cut_offsets()`.
+     - `src/video/video_reverse_engineer.py`: `VideoReverseEngineer` com corte por cenas (`CinematicPacingAnalyzer`), extração de folhas de contato 3-quadros PNG, modo `AUTO/T2VA/I2V/DUAL` (via `vision_callback`, Gemini Vision opcional ou heurística OpenCV), prompts prontos para MiniMax H3 + Google Veo 2 e auditoria `DarkFactoryStoryValidator`.
+  3. **Sprint 9 — Auditor Espacial 0.5s, Compilador de Storyboard, Render Dual-Monetization & Dashboard SPA**:
+     - `src/video/motion_qa.py`: `MotionQAInspector.audit_overlay_overlaps()` com varredura AABB par-a-par a cada `0.5s` e verificação de limites de quadro (`OverlayPlacement`, `OverlapAuditResult`).
+     - `src/video/storyboard_compiler.py` & `src/video/story_validator.py`: `StoryboardCompiler` fatiando roteiro em trilhas visuais, auditando hook 5s (`CopyClarityResult.to_dict()`), manifesto Murch/MrBeast/Cron, colisão 0.5s e projeção financeira (`UnitEconomicsCalculator`).
+     - `src/video/youtube_booster.py`: `render_tri_variant_thumbnails()` renderizando fisicamente 3 JPEGs cognitivos 1280×720 (`Pillow`) e `extract_monetizable_stock_brolls()` extraindo `>=3` B-rolls H.264 mudos (`-an`, `+faststart`) com catálogo e bloqueio Alamy derivado de `PLATFORM_RULES` (ADR-05).
+     - `src/dashboard/` & `main.py`: 6 novos endpoints `/api/v1/*` protegidos por `_validate_workspace_file` (`/video/map-animate`, `/video/compose-dossier`, `/audio/foley-track`, `/video/reverse-engineer`, `/video/storyboard-compile`, `/youtube/render-monetization-pack`), painel `#sprint9-studio-panel` em `/video` e flags CLI (`--map-animate`, `--compose-dossier`, `--reverse-video`, `--compile-storyboard`).
+  4. **Validação Automatizada Sprints 7–9**:
+     - `tests/test_sprint7_documentary_sync.py` (6/6), `tests/test_sprint8_foley_and_reverse.py` (5/5), `tests/test_sprint9_storyboard_and_monetization.py` (4/4), `tests/test_spa_look_and_fix.py` (2/2 — total **17/17 passing**); suíte Sprints 4–6 (`20/20 passing`); suíte completa (**384 passed**, 3 falhas pré-existentes em `tests/test_kokoro_voice.py` por ausência local de `kokoro-v0_19.onnx` e áudios piloto).
+
+### Marco Anterior: Sprints 4–6 — Motion Personalities & Zero-Blob Plates, Motion QA Visual Gate, Beat-Sync Audio Engine, SVG Deconstructor & Playwright SPA Audit
 - **Status das Sprints 4–6**: [CONCLUÍDO & VERIFICADO]:
   1. **Sprint 4 — Personalidades de Movimento, Zero-Blob Style Plates, Motion QA Gate & Linter 5s**:
      - `src/video/motion_qa.py`: `MotionQAInspector` com auditoria determinística Nível 1 (`compute_contrast_ratio` WCAG >= 4.5, `check_text_safe_area`, detecção de congelamento de frames e clipping em bordas, `generate_contact_sheet` 3x3 PNG atômico) + gancho Nível 2 Gemini Vision (`vision_critique`).
@@ -58,8 +78,11 @@
 
 ## 📊 Métricas do Pipeline em Produção
 
-| Fase / Módulo | Status | Contagem / Métricas | Próxima Ação Recomendada |
+| **Fase / Módulo** | Status | Contagem / Métricas | Próxima Ação Recomendada |
 | :--- | :--- | :--- | :--- |
+| **Documentary Sync & Map Animator** | 🟢 Operacional | **`src/video/voice_aligner.py` + `map_animator.py` + `documentary_composer.py`**: Alinhamento silábico/RMS por palavra, 6 teatros offline SVG/GSAP/MP4 12fps, gatilhos de selos e `.otio` | `python main.py --map-animate "..."` / `--compose-dossier "..."` |
+| **Foley CC0, J/L-Cuts & Reverse Video** | 🟢 Operacional | **`src/video/foley_library.py` + `video_reverse_engineer.py` + `audio_engine.py`**: 5 efeitos CC0-1.0, corte de dead-air `>350ms`, split edits J/L-cut e extração `AUTO/T2VA/I2V/DUAL` | `python main.py --reverse-video <clip.mp4>` |
+| **Storyboard Budget & Dual Monetization** | 🟢 Operacional | **`src/video/storyboard_compiler.py` + `motion_qa.py` + `youtube_booster.py`**: Auditoria espacial 0.5s (`audit_overlay_overlaps`), 3 thumbs JPEG 1280×720 e `>=3` B-rolls `-an` com bloqueio Alamy | `python main.py --compile-storyboard "..."` |
 | **Diretor de Arte (Image Codes v3.0)** | 🟢 Operacional | **`src/analyzer/director.py`**: Modos `commercial_b2b`, `image_codes_technical` (7 códigos OpusJake) e `auto` via `--director-mode` \| Prompts 700–1000 palavras + Copy-Space | `python main.py --phase 2 --director-mode technical` |
 | **Motion Engine (HyperFrames & Anatomy)** | 🟢 Operacional | **`src/video/hyperframes_engine.py`**: Contratos GSAP `window.__timelines`, SVGs isométricos 4-tonalidades, gate 20s, 4 loops B2B 4K (`-an`) + composição `V2_Tactical_Overlays` | `python main.py --render-motion-hud` |
 | **Unit Economics & ROI por Nicho** | 🟢 Operacional | **`src/analyzer/unit_economics.py`**: Custo unitário Gemini+GPU+Upscale, break-even e ROI ranqueado sobre `NICHE_DEFINITIONS` | `python main.py --unit-economics` |

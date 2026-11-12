@@ -433,3 +433,97 @@ def time_stretch_audio_complex_pro(
     if temp_out.exists():
         temp_out.replace(out_path)
     return out_path
+
+
+def decode_audio_pcm_mono(
+    audio_path: Path | str,
+    target_sr: int = 16000,
+) -> Tuple[Any, int]:
+    """Decode WAV/MP3/FLAC/AAC audio to normalized mono float32 PCM samples."""
+    import wave
+    import numpy as np
+
+    src = Path(audio_path).resolve()
+    if not src.is_file():
+        raise FileNotFoundError(f"Audio file not found: {src}")
+
+    if src.suffix.lower() == ".wav":
+        try:
+            with wave.open(str(src), "rb") as wf:
+                channels = wf.getnchannels()
+                sampwidth = wf.getsampwidth()
+                sr = wf.getframerate()
+                if sampwidth not in (1, 2, 4):
+                    raise ValueError(f"Unsupported WAV sample width: {sampwidth}")
+                raw = wf.readframes(wf.getnframes())
+            dtype = np.int16 if sampwidth == 2 else (np.int32 if sampwidth == 4 else np.uint8)
+            arr = np.frombuffer(raw, dtype=dtype).astype(np.float32)
+            if sampwidth == 2:
+                arr /= 32768.0
+            elif sampwidth == 4:
+                arr /= 2147483648.0
+            else:
+                arr = (arr - 128.0) / 128.0
+            if channels > 1:
+                arr = arr.reshape(-1, channels).mean(axis=1)
+            if sr == target_sr or target_sr <= 0:
+                return arr, sr
+        except (wave.Error, EOFError, ValueError, RuntimeError):
+            pass
+
+    sr_out = target_sr if target_sr > 0 else 16000
+    cmd = [
+        get_ffmpeg_binary(),
+        "-v", "error",
+        "-i", str(src),
+        "-ac", "1",
+        "-ar", str(sr_out),
+        "-f", "s16le",
+        "-",
+    ]
+    res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=60.0)
+    if res.returncode != 0 or not res.stdout:
+        err_msg = res.stderr.decode("utf-8", errors="replace")[:300]
+        raise RuntimeError(f"FFmpeg PCM decode failed for {src.name}: {err_msg}")
+    samples = np.frombuffer(res.stdout, dtype=np.int16).astype(np.float32) / 32768.0
+    return samples, sr_out
+
+
+def probe_audio_duration(
+    audio_path: Path | str,
+    fallback_word_count: Optional[int] = None,
+) -> float:
+    """Measure exact duration in seconds via WAV header, ffprobe, or explicit word fallback."""
+    import wave
+
+    src = Path(audio_path).resolve()
+    if src.is_file() and src.suffix.lower() == ".wav":
+        try:
+            with wave.open(str(src), "rb") as wf:
+                sr = wf.getframerate()
+                if sr > 0:
+                    return round(wf.getnframes() / float(sr), 3)
+        except (wave.Error, EOFError, ValueError):
+            pass
+
+    if src.is_file():
+        try:
+            cmd = [
+                get_ffprobe_binary(),
+                "-v", "error",
+                "-show_entries", "format=duration",
+                "-of", "default=noprint_wrappers=1:nokey=1",
+                str(src),
+            ]
+            res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=10.0)
+            if res.returncode == 0 and res.stdout.strip():
+                val = float(res.stdout.strip())
+                if val > 0:
+                    return round(val, 3)
+        except (OSError, subprocess.SubprocessError, ValueError) as exc:
+            logger.warning("ffprobe audio duration failed for %s: %s", src.name, exc)
+
+    if fallback_word_count is not None:
+        return max(1.0, round(fallback_word_count / 2.5, 2))
+    raise RuntimeError(f"Unable to probe audio duration for {src}")
+

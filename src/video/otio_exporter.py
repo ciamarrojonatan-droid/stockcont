@@ -40,6 +40,8 @@ class TimelineClipRef:
     start_offset_sec: float = 0.0
     track_type: str = "video"  # 'video' ou 'audio'
     track_index: int = 1
+    audio_lead_sec: float = 0.0  # J-cut pre-lap before picture cut
+    audio_tail_sec: float = 0.0  # L-cut post-lap after picture cut
 
 
 @dataclass
@@ -102,6 +104,48 @@ class UniversalTimelineExporter:
                 )
             )
         return aligned
+
+    @staticmethod
+    def apply_jl_cut_offsets(
+        video_clips: List[TimelineClipRef],
+        audio_clips: List[TimelineClipRef],
+    ) -> tuple[List[TimelineClipRef], List[TimelineClipRef]]:
+        """Compute J-cut (audio lead) and L-cut (audio tail) split edits across V1 and A1."""
+        adj_video: List[TimelineClipRef] = [
+            TimelineClipRef(
+                name=v.name,
+                media_path=v.media_path,
+                duration_sec=v.duration_sec,
+                start_offset_sec=v.start_offset_sec,
+                track_type=v.track_type,
+                track_index=v.track_index,
+                audio_lead_sec=v.audio_lead_sec,
+                audio_tail_sec=v.audio_tail_sec,
+            )
+            for v in video_clips
+        ]
+        adj_audio: List[TimelineClipRef] = []
+        for idx, a_clip in enumerate(audio_clips):
+            v_match = video_clips[idx] if idx < len(video_clips) else None
+            lead = max(0.0, float(v_match.audio_lead_sec if v_match else 0.0), float(a_clip.audio_lead_sec))
+            tail = max(0.0, float(v_match.audio_tail_sec if v_match else 0.0), float(a_clip.audio_tail_sec))
+            base_start = float(a_clip.start_offset_sec)
+            effective_lead = min(base_start, lead)
+            new_start = round(max(0.0, base_start - effective_lead), 3)
+            new_dur = round(max(0.1, float(a_clip.duration_sec) + effective_lead + tail), 3)
+            adj_audio.append(
+                TimelineClipRef(
+                    name=a_clip.name,
+                    media_path=a_clip.media_path,
+                    duration_sec=new_dur,
+                    start_offset_sec=new_start,
+                    track_type=a_clip.track_type,
+                    track_index=a_clip.track_index,
+                    audio_lead_sec=effective_lead,
+                    audio_tail_sec=tail,
+                )
+            )
+        return adj_video, adj_audio
 
     def build_timeline_json(
         self,

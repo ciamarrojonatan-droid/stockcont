@@ -92,6 +92,33 @@ class AudioTransientAnalysis:
         return asdict(self)
 
 
+@dataclass
+class DeadAirTrimResult:
+    """Result container after dead-air silence compression on voiceover audio."""
+
+    trimmed_audio_path: str
+    original_duration_sec: float
+    trimmed_duration_sec: float
+    removed_sec: float
+    silence_spans_removed: int
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass
+class AutoFoleyMixResult:
+    """Result container after auto-cueing CC0 foley and 3-stem multitrack mixing."""
+
+    mixed_audio_path: str
+    foley_stem_path: str
+    foley_cues_count: int
+    catalog_used: List[str] = field(default_factory=list)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+
 class DarkFactoryAudioEngine:
     """Cinematic Soundtrack Synthesizer & Audio Mixer."""
 
@@ -534,3 +561,138 @@ class DarkFactoryAudioEngine:
                 candidate = max(t_val, snapped[-1] + min_spacing_sec)
             snapped.append(round(candidate, 3))
         return snapped
+
+    def trim_dead_air(
+        self,
+        audio_path: Path | str,
+        output_path: Path | str,
+        silence_thresh_db: float = -38.0,
+        min_silence_sec: float = 0.35,
+        keep_pause_sec: float = 0.12,
+        sample_rate: int = 24000,
+    ) -> DeadAirTrimResult:
+        """Compress dead-air silent pauses longer than min_silence_sec down to keep_pause_sec."""
+        import uuid
+        from src.video.ffmpeg_processor import decode_audio_pcm_mono
+
+        src = Path(audio_path).resolve()
+        if not src.is_file():
+            raise FileNotFoundError(f"Audio file not found for dead-air trim: {src}")
+
+        samples, sr = decode_audio_pcm_mono(src, target_sr=sample_rate)
+        orig_dur = round(len(samples) / max(1, sr), 3)
+        out_p = Path(output_path).resolve()
+        out_p.parent.mkdir(parents=True, exist_ok=True)
+
+        if len(samples) == 0:
+            raise RuntimeError(f"Decoded empty audio buffer from {src}")
+
+        frame_len = max(1, int(0.02 * sr))  # 20ms analysis window
+        n_frames = max(1, len(samples) // frame_len)
+        reshaped = samples[: n_frames * frame_len].reshape(n_frames, frame_len)
+        frame_rms = np.sqrt(np.mean(reshaped ** 2, axis=1) + 1e-12)
+        frame_db = 20.0 * np.log10(frame_rms)
+        silent_mask = frame_db < float(silence_thresh_db)
+
+        min_silent_frames = max(1, int(round(min_silence_sec / 0.02)))
+        keep_samples = max(0, int(round(keep_pause_sec * sr)))
+        fade_len = min(int(0.005 * sr), max(1, keep_samples // 2))
+
+        chunks: List[np.ndarray] = []
+        spans_removed = 0
+        idx = 0
+        while idx < n_frames:
+            if not silent_mask[idx]:
+                start_f = idx
+                while idx < n_frames and not silent_mask[idx]:
+                    idx += 1
+                seg = samples[start_f * frame_len : idx * frame_len].copy()
+                if fade_len > 1 and len(seg) > fade_len * 2:
+                    ramp = np.linspace(0.0, 1.0, fade_len, dtype=np.float32)
+                    seg[:fade_len] *= ramp
+                    seg[-fade_len:] *= ramp[::-1]
+                chunks.append(seg)
+            else:
+                start_f = idx
+                while idx < n_frames and silent_mask[idx]:
+                    idx += 1
+                run_len = idx - start_f
+                if run_len >= min_silent_frames:
+                    spans_removed += 1
+                    if keep_samples > 0:
+                        chunks.append(np.zeros(keep_samples, dtype=np.float32))
+                else:
+                    chunks.append(samples[start_f * frame_len : idx * frame_len].copy())
+
+        remainder = samples[n_frames * frame_len :]
+        if len(remainder) > 0 and not silent_mask[-1]:
+            chunks.append(remainder.copy())
+
+        out_audio = np.concatenate(chunks) if chunks else samples.copy()
+        pcm = (np.clip(out_audio, -0.95, 0.95) * 32767.0).astype(np.int16)
+        trimmed_dur = round(len(pcm) / max(1, sr), 3)
+
+        tmp_out = out_p.with_name(f"{out_p.stem}.tmp.{os.getpid()}.{uuid.uuid4().hex[:6]}.wav")
+        try:
+            with wave.open(str(tmp_out), "wb") as wf:
+                wf.setnchannels(1)
+                wf.setsampwidth(2)
+                wf.setframerate(sr)
+                wf.writeframes(pcm.tobytes())
+            tmp_out.replace(out_p)
+        except Exception:
+            tmp_out.unlink(missing_ok=True)
+            raise
+
+        return DeadAirTrimResult(
+            trimmed_audio_path=out_p.as_posix(),
+            original_duration_sec=orig_dur,
+            trimmed_duration_sec=trimmed_dur,
+            removed_sec=round(max(0.0, orig_dur - trimmed_dur), 3),
+            silence_spans_removed=spans_removed,
+        )
+
+    def mix_with_auto_foley(
+        self,
+        voice_path: Path | str,
+        output_path: Path | str,
+        trigger_events: Optional[List[Dict[str, Any]]] = None,
+        soundtrack_path: Optional[Path | str] = None,
+        music_volume: float = 0.22,
+        foley_volume: float = 0.45,
+        ducking: bool = True,
+    ) -> AutoFoleyMixResult:
+        """Synthesize CC0 foley stem from timeline triggers and mix 3-stem documentary audio."""
+        from src.video.foley_library import FoleyLibrary
+        from src.video.ffmpeg_processor import probe_audio_duration
+
+        v_path = Path(voice_path).resolve()
+        if not v_path.is_file():
+            raise FileNotFoundError(f"Voice file not found: {v_path}")
+
+        total_dur = max(1.0, probe_audio_duration(v_path))
+        lib = FoleyLibrary()
+        cues = lib.build_cues_from_triggers(trigger_events or [])
+        out_p = Path(output_path).resolve()
+        foley_wav = out_p.with_name(f"{out_p.stem}_foley.wav")
+        foley_res = lib.build_foley_stem(
+            cues=cues,
+            total_duration_sec=total_dur,
+            output_wav_path=foley_wav,
+        )
+
+        mixed_path = self.mix_multitrack_documentary(
+            voice_path=v_path,
+            soundtrack_path=soundtrack_path,
+            foley_path=foley_res.sfx_track_path,
+            output_path=out_p,
+            music_volume=music_volume,
+            foley_volume=foley_volume,
+            ducking=ducking,
+        )
+        return AutoFoleyMixResult(
+            mixed_audio_path=Path(mixed_path).as_posix(),
+            foley_stem_path=foley_res.sfx_track_path or foley_wav.as_posix(),
+            foley_cues_count=foley_res.cues_applied,
+            catalog_used=foley_res.catalog_used,
+        )

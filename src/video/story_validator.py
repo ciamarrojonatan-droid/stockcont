@@ -57,6 +57,9 @@ class CopyClarityResult:
     issues: List[str] = field(default_factory=list)
     recommendations: List[str] = field(default_factory=list)
 
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
 
 @dataclass
 class DarkFactoryAuditReport:

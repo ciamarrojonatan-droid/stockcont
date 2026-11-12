@@ -678,6 +678,193 @@ class YouTubeAlgorithmBoosterBridge:
         logger.info(f"✅ Master YouTube Package successfully exported to: {out_file.name}")
         return master_package
 
+    def render_tri_variant_thumbnails(
+        self,
+        project_id: str,
+        title: str,
+        subtitle: str = "DECLASSIFIED ARCHIVE",
+        backdrop_path: Optional[Path | str] = None,
+        output_dir: Optional[Path | str] = None,
+    ) -> List[Dict[str, Any]]:
+        """Render 3 physical 1280x720 A/B/C cognitive JPEG thumbnails using Pillow."""
+        import uuid
+        from PIL import Image, ImageDraw, ImageFont
+
+        out_dir = Path(output_dir).resolve() if output_dir else (self.output_dir / "thumbnails").resolve()
+        out_dir.mkdir(parents=True, exist_ok=True)
+        variants = self.generate_tri_variant_thumbnails(project_title=project_id, topic=title)
+
+        palettes = [
+            ((14, 16, 28), (220, 38, 38), (248, 250, 252)),   # Variant A: Chiaroscuro Dread / Crimson
+            ((8, 22, 26), (16, 185, 129), (224, 242, 254)),   # Variant B: Tactical Evidence / Phosphor Green
+            ((18, 14, 10), (245, 158, 11), (254, 243, 199)),  # Variant C: Colossal Scale / Amber Warning
+        ]
+
+        base_img: Optional[Image.Image] = None
+        if backdrop_path and Path(backdrop_path).is_file():
+            with Image.open(backdrop_path) as src:
+                base_img = src.convert("RGB").resize((1280, 720), Image.Resampling.LANCZOS)
+
+        try:
+            font_big = ImageFont.truetype("arialbd.ttf", 72)
+            font_sub = ImageFont.truetype("arialbd.ttf", 30)
+        except Exception:
+            try:
+                font_big = ImageFont.truetype("DejaVuSans-Bold.ttf", 72)
+                font_sub = ImageFont.truetype("DejaVuSans-Bold.ttf", 30)
+            except Exception:
+                font_big = ImageFont.load_default()
+                font_sub = ImageFont.load_default()
+
+        rendered: List[Dict[str, Any]] = []
+        for idx, var in enumerate(variants):
+            bg_rgb, accent_rgb, fg_rgb = palettes[idx % len(palettes)]
+            canvas = Image.new("RGB", (1280, 720), bg_rgb)
+            if base_img is not None:
+                dark_bg = Image.blend(base_img, Image.new("RGB", (1280, 720), bg_rgb), 0.62)
+                canvas.paste(dark_bg, (0, 0))
+
+            draw = ImageDraw.Draw(canvas)
+            # Editorial tactical grid + framing accents
+            for gx in range(80, 1280, 160):
+                draw.line([(gx, 0), (gx, 720)], fill=(accent_rgb[0] // 4, accent_rgb[1] // 4, accent_rgb[2] // 4), width=1)
+            for gy in range(90, 720, 140):
+                draw.line([(0, gy), (1280, gy)], fill=(accent_rgb[0] // 4, accent_rgb[1] // 4, accent_rgb[2] // 4), width=1)
+
+            draw.rectangle([(36, 36), (1244, 684)], outline=accent_rgb, width=4)
+            draw.rectangle([(64, 72), (560, 126)], fill=accent_rgb)
+            draw.text((82, 82), (subtitle or "ARCHIVE")[:28].upper(), fill=(10, 12, 16), font=font_sub)
+
+            hook_text = str(var.get("text_overlay") or title[:22]).upper()
+            draw.rectangle([(60, 260), (1220, 460)], fill=(bg_rgb[0], bg_rgb[1], bg_rgb[2]))
+            draw.rectangle([(60, 260), (76, 460)], fill=accent_rgb)
+            draw.text((106, 315), hook_text[:28], fill=fg_rgb, font=font_big)
+            draw.text((64, 596), f"{project_id.upper()[:24]} // {var.get('archetype', '').upper()}", fill=accent_rgb, font=font_sub)
+
+            safe_id = re.sub(r"[^a-zA-Z0-9_-]+", "_", project_id.strip().lower()).strip("_") or "thumb"
+            out_jpg = (out_dir / f"{safe_id}_variant_{chr(97 + idx)}.jpg").resolve()
+            tmp_jpg = out_jpg.with_name(f"{out_jpg.stem}.tmp.{os.getpid()}.{uuid.uuid4().hex[:6]}.jpg")
+            try:
+                canvas.save(tmp_jpg, format="JPEG", quality=92, optimize=True)
+                tmp_jpg.replace(out_jpg)
+            except Exception:
+                tmp_jpg.unlink(missing_ok=True)
+                raise
+
+            item = dict(var)
+            item["image_path"] = out_jpg.as_posix()
+            item["width"] = 1280
+            item["height"] = 720
+            item["hook_text"] = hook_text
+            rendered.append(item)
+
+        return rendered
+
+    def extract_monetizable_stock_brolls(
+        self,
+        master_video_path: Path | str,
+        output_dir: Optional[Path | str] = None,
+        count: int = 3,
+        clip_duration_sec: float = 1.5,
+        target_width: int = 3840,
+        target_height: int = 2160,
+    ) -> Dict[str, Any]:
+        """Extract >=3 muted (-an) H.264 microstock B-roll clips with ADR-05 Alamy protection."""
+        import subprocess
+        import uuid
+        from src.cataloger.platform_compliance import PLATFORM_RULES
+        from src.video.ffmpeg_processor import get_ffmpeg_binary, probe_video
+
+        src = Path(master_video_path).resolve()
+        if not src.is_file():
+            raise FileNotFoundError(f"Master video not found for B-roll extraction: {src}")
+
+        props = probe_video(src)
+        total_dur = max(1.0, float(props.duration_seconds))
+        n_clips = max(3, int(count))
+        dur = min(max(0.5, float(clip_duration_sec)), max(0.5, total_dur / n_clips))
+
+        out_dir = Path(output_dir).resolve() if output_dir else (self.output_dir / "stock_brolls" / src.stem).resolve()
+        out_dir.mkdir(parents=True, exist_ok=True)
+
+        alamy_rule = PLATFORM_RULES.get("alamy")
+        alamy_blocked = (not alamy_rule.allows_ai) if alamy_rule else True
+        eligible_agencies = [
+            key
+            for key, rule in PLATFORM_RULES.items()
+            if rule.allows_ai and rule.allows_video and key != "alamy"
+        ]
+
+        extracted: List[Dict[str, Any]] = []
+        step = max(0.2, (total_dur - dur) / max(1, n_clips - 1)) if total_dur > dur else 0.0
+        for idx in range(n_clips):
+            ss = min(max(0.0, idx * step), max(0.0, total_dur - 0.5))
+            clip_out = (out_dir / f"{src.stem}_broll_{idx + 1:02d}.mp4").resolve()
+            tmp_out = clip_out.with_name(f"{clip_out.stem}.tmp.{os.getpid()}.{uuid.uuid4().hex[:6]}.mp4")
+            vf = (
+                f"scale={int(target_width)}:{int(target_height)}:flags=lanczos:force_original_aspect_ratio=decrease,"
+                f"pad={int(target_width)}:{int(target_height)}:(ow-iw)/2:(oh-ih)/2:color=black"
+            )
+            cmd = [
+                get_ffmpeg_binary(),
+                "-y",
+                "-ss", f"{ss:.3f}",
+                "-t", f"{dur:.3f}",
+                "-i", src.as_posix(),
+                "-an",  # Mandatory audio strip for microstock B-roll compliance
+                "-vf", vf,
+                "-c:v", "libx264",
+                "-preset", "fast",
+                "-crf", "19",
+                "-pix_fmt", "yuv420p",
+                "-movflags", "+faststart",
+                tmp_out.as_posix(),
+            ]
+            res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=120)
+            if res.returncode != 0:
+                tmp_out.unlink(missing_ok=True)
+                err = res.stderr.decode("utf-8", errors="replace")[:260]
+                raise RuntimeError(f"B-roll extraction failed on clip {idx + 1}: {err}")
+            tmp_out.replace(clip_out)
+
+            clip_props = probe_video(clip_out)
+            extracted.append(
+                {
+                    "clip_index": idx + 1,
+                    "clip_path": clip_out.as_posix(),
+                    "start_sec": round(ss, 3),
+                    "duration_seconds": clip_props.duration_seconds,
+                    "width": clip_props.width,
+                    "height": clip_props.height,
+                    "has_audio": clip_props.has_audio,
+                    "ai_disclosed": True,
+                    "eligible_agencies": eligible_agencies,
+                    "alamy_blocked": alamy_blocked,
+                }
+            )
+
+        manifest = {
+            "source_master_video": src.as_posix(),
+            "alamy_blocked": alamy_blocked,
+            "alamy_block_reason": "ADR-05: Alamy strictly prohibits AI-generated content (Section 1.3).",
+            "eligible_agencies": eligible_agencies,
+            "clips_count": len(extracted),
+            "clips": extracted,
+        }
+        manifest_path = (out_dir / f"{src.stem}_broll_catalog_manifest.json").resolve()
+        tmp_json = manifest_path.with_name(f"{manifest_path.stem}.tmp.{os.getpid()}.{uuid.uuid4().hex[:6]}.json")
+        try:
+            with open(tmp_json, "w", encoding="utf-8") as handle:
+                json.dump(manifest, handle, indent=2, ensure_ascii=False)
+            tmp_json.replace(manifest_path)
+        except Exception:
+            tmp_json.unlink(missing_ok=True)
+            raise
+
+        manifest["success"] = True
+        manifest["catalog_manifest_path"] = manifest_path.as_posix()
+        return manifest
+
 
 def run_youtube_booster_cli(
     title: str = "The 1983 Soviet Glitch: 20 Minutes to Armageddon",

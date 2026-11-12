@@ -87,6 +87,7 @@ class MediaAssetRef:
     url: str
     license_name: str
     source: str
+    local_path: Optional[str] = None
 
 
 @dataclass

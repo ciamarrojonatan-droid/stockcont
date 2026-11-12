@@ -2,7 +2,9 @@
 from src.video.ffmpeg_processor import (
     VideoProperties,
     create_seamless_loop,
+    decode_audio_pcm_mono,
     extract_poster_frame,
+    probe_audio_duration,
     probe_video,
     transcode_to_h264_master,
     transcode_to_prores_master,
@@ -70,6 +72,8 @@ from src.video.voice_engine import (
 from src.video.audio_engine import (
     DarkFactoryAudioEngine,
     SoundtrackResult,
+    DeadAirTrimResult,
+    AutoFoleyMixResult,
     ACOUSTIC_PROFILES,
 )
 from src.video.voice_router import (
@@ -92,10 +96,50 @@ from src.video.minimax_h3_engine import (
     MiniMaxH3VideoEngine,
     H3VideoResult,
 )
+from src.video.voice_aligner import (
+    VoiceAligner,
+    WordTiming,
+    WordTriggerEvent,
+    VoiceAlignmentResult,
+)
+from src.video.map_animator import (
+    MapAnimator,
+    MapPin,
+    MapRoute,
+    MapAnimationResult,
+    THEATER_PRESETS,
+)
+from src.video.documentary_composer import (
+    DocumentaryComposer,
+    DocumentaryCompositionResult,
+)
+from src.video.foley_library import (
+    FoleyLibrary,
+    FoleyCue,
+    FoleyTrackResult,
+    CC0_SFX_CATALOG,
+)
+from src.video.video_reverse_engineer import (
+    VideoReverseEngineer,
+    ReverseEngineeredShot,
+    VideoReverseResult,
+)
+from src.video.storyboard_compiler import (
+    StoryboardCompiler,
+    StoryboardScene,
+    StoryboardCompileResult,
+)
+from src.video.motion_qa import (
+    OverlayPlacement,
+    OverlapFinding,
+    OverlapAuditResult,
+)
 
 __all__ = [
     "VideoProperties",
     "probe_video",
+    "decode_audio_pcm_mono",
+    "probe_audio_duration",
     "extract_poster_frame",
     "transcode_to_h264_master",
     "transcode_to_prores_master",
@@ -159,4 +203,30 @@ __all__ = [
     "MUSIC_PRESETS",
     "MiniMaxH3VideoEngine",
     "H3VideoResult",
+    "VoiceAligner",
+    "WordTiming",
+    "WordTriggerEvent",
+    "VoiceAlignmentResult",
+    "MapAnimator",
+    "MapPin",
+    "MapRoute",
+    "MapAnimationResult",
+    "THEATER_PRESETS",
+    "DocumentaryComposer",
+    "DocumentaryCompositionResult",
+    "DeadAirTrimResult",
+    "AutoFoleyMixResult",
+    "FoleyLibrary",
+    "FoleyCue",
+    "FoleyTrackResult",
+    "CC0_SFX_CATALOG",
+    "VideoReverseEngineer",
+    "ReverseEngineeredShot",
+    "VideoReverseResult",
+    "StoryboardCompiler",
+    "StoryboardScene",
+    "StoryboardCompileResult",
+    "OverlayPlacement",
+    "OverlapFinding",
+    "OverlapAuditResult",
 ]

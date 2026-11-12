@@ -76,6 +76,47 @@ class MotionQAReport:
         return payload
 
 
+@dataclass
+class OverlayPlacement:
+    """Spatial-temporal placement box for a motion graphic / HUD overlay."""
+
+    overlay_id: str
+    label: str
+    start_sec: float
+    end_sec: float
+    x: float
+    y: float
+    width: float
+    height: float
+
+
+@dataclass
+class OverlapFinding:
+    """Single spatial collision or out-of-bounds error found on the timeline."""
+
+    time_sec: float
+    overlay_a: str
+    overlay_b: Optional[str]
+    overlap_ratio: float
+    code: str
+    severity: str
+    message: str
+
+
+@dataclass
+class OverlapAuditResult:
+    """0.5-second resolution bounding-box collision and bounds audit report."""
+
+    passed: bool
+    time_step_sec: float
+    samples_checked: int
+    collisions: List[Dict[str, Any]] = field(default_factory=list)
+    bounds_violations: List[Dict[str, Any]] = field(default_factory=list)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+
 def _hex_to_rgb(hex_color: str) -> Tuple[int, int, int]:
     cleaned = hex_color.strip().lstrip("#")
     if len(cleaned) != 6:
@@ -534,3 +575,109 @@ class MotionQAInspector:
         except Exception as exc:
             logger.warning("Optional Gemini Vision contact-sheet critique skipped: %s", exc)
             return None
+
+    @staticmethod
+    def _normalize_box(
+        box: OverlayPlacement,
+        canvas_width: int = 1920,
+        canvas_height: int = 1080,
+    ) -> Tuple[float, float, float, float]:
+        """Normalize normalized [0..1] or pixel coordinates to [0..1] fractions."""
+        is_norm = (
+            abs(box.x) <= 1.5
+            and abs(box.y) <= 1.5
+            and 0.0 < box.width <= 1.5
+            and 0.0 < box.height <= 1.5
+        )
+        if is_norm:
+            return (float(box.x), float(box.y), float(box.width), float(box.height))
+        cw = max(1.0, float(canvas_width))
+        ch = max(1.0, float(canvas_height))
+        return (box.x / cw, box.y / ch, box.width / cw, box.height / ch)
+
+    def audit_overlay_overlaps(
+        self,
+        placements: List[OverlayPlacement],
+        total_duration_sec: Optional[float] = None,
+        step_sec: float = 0.5,
+        canvas_width: int = 1920,
+        canvas_height: int = 1080,
+    ) -> OverlapAuditResult:
+        """Inspect overlay bounding boxes every step_sec (0.5s) for collisions and clipping."""
+        step = max(0.1, float(step_sec))
+        max_end = max((float(p.end_sec) for p in placements), default=0.0)
+        horizon = max(step, float(total_duration_sec) if total_duration_sec is not None else max_end)
+
+        collisions: List[Dict[str, Any]] = []
+        bounds_violations: List[Dict[str, Any]] = []
+        seen_bounds: set[str] = set()
+        seen_pairs: set[Tuple[str, str]] = set()
+
+        # Check static bounds on every placement first
+        norm_boxes: Dict[str, Tuple[float, float, float, float]] = {}
+        for p in placements:
+            nx, ny, nw, nh = self._normalize_box(p, canvas_width=canvas_width, canvas_height=canvas_height)
+            norm_boxes[p.overlay_id] = (nx, ny, nw, nh)
+            if nx < -1e-4 or ny < -1e-4 or (nx + nw) > 1.0 + 1e-4 or (ny + nh) > 1.0 + 1e-4 or nw <= 0 or nh <= 0:
+                if p.overlay_id not in seen_bounds:
+                    seen_bounds.add(p.overlay_id)
+                    bounds_violations.append(
+                        asdict(
+                            OverlapFinding(
+                                time_sec=round(float(p.start_sec), 2),
+                                overlay_a=p.overlay_id,
+                                overlay_b=None,
+                                overlap_ratio=1.0,
+                                code="OUT_OF_BOUNDS",
+                                severity="error",
+                                message=f"Overlay '{p.overlay_id}' ({p.label}) extends past 100% frame canvas.",
+                            )
+                        )
+                    )
+
+        # Time-stepped pairwise AABB intersection scan
+        samples_checked = 0
+        t = 0.0
+        while t <= horizon + 1e-6:
+            samples_checked += 1
+            active = [p for p in placements if float(p.start_sec) <= t <= float(p.end_sec) + 1e-6]
+            for i in range(len(active)):
+                a = active[i]
+                ax, ay, aw, ah = norm_boxes[a.overlay_id]
+                for j in range(i + 1, len(active)):
+                    b = active[j]
+                    bx, by, bw, bh = norm_boxes[b.overlay_id]
+                    ix = max(0.0, min(ax + aw, bx + bw) - max(ax, bx))
+                    iy = max(0.0, min(ay + ah, by + bh) - max(ay, by))
+                    inter = ix * iy
+                    if inter > 1e-5:
+                        pair_key = (a.overlay_id, b.overlay_id)
+                        if pair_key not in seen_pairs:
+                            seen_pairs.add(pair_key)
+                            min_area = max(1e-9, min(aw * ah, bw * bh))
+                            ratio = round(min(1.0, inter / min_area), 4)
+                            collisions.append(
+                                asdict(
+                                    OverlapFinding(
+                                        time_sec=round(t, 2),
+                                        overlay_a=a.overlay_id,
+                                        overlay_b=b.overlay_id,
+                                        overlap_ratio=ratio,
+                                        code="OVERLAP_COLLISION",
+                                        severity="error",
+                                        message=(
+                                            f"Overlays '{a.overlay_id}' and '{b.overlay_id}' collide "
+                                            f"({ratio:.1%} overlap) at t={t:.2f}s."
+                                        ),
+                                    )
+                                )
+                            )
+            t += step
+
+        return OverlapAuditResult(
+            passed=(len(collisions) == 0 and len(bounds_violations) == 0),
+            time_step_sec=step,
+            samples_checked=samples_checked,
+            collisions=collisions,
+            bounds_violations=bounds_violations,
+        )

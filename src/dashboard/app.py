@@ -1481,3 +1481,252 @@ async def get_unit_economics_endpoint(
             expected_downloads_per_asset=max(0.0, expected_downloads),
         ),
     )
+
+
+# ── Sprint 7: Map Animator & Documentary World Composer ─────
+
+
+@app.post("/api/v1/video/map-animate", response_model=schemas.MapAnimateResponse)
+async def map_animate_endpoint(req: schemas.MapAnimateRequest):
+    """Renderiza mapa vetorial editorial (SVG + HTML/GSAP + MP4) em modo offline."""
+    import asyncio
+    from src.video.map_animator import MapAnimator, MapPin, MapRoute, THEATER_PRESETS
+
+    if not req.title.strip():
+        raise HTTPException(status_code=400, detail="Title cannot be empty or whitespace-only.")
+    if req.theater not in THEATER_PRESETS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown theater '{req.theater}'. Valid: {sorted(THEATER_PRESETS)}",
+        )
+
+    map_dir = (readers.BASE_DIR / "data" / "final" / "motion_overlays" / "maps").resolve()
+    animator = MapAnimator(output_dir=map_dir)
+    pins = [
+        MapPin(
+            label=p.label,
+            lat=p.lat,
+            lon=p.lon,
+            timestamp_sec=p.timestamp_sec,
+            color_hex=p.color_hex,
+        )
+        for p in req.pins
+    ]
+    routes = [
+        MapRoute(
+            origin_lat=r.origin_lat,
+            origin_lon=r.origin_lon,
+            dest_lat=r.dest_lat,
+            dest_lon=r.dest_lon,
+            label=r.label,
+            start_sec=r.start_sec,
+            duration_sec=r.duration_sec,
+            color_hex=r.color_hex,
+        )
+        for r in req.routes
+    ]
+
+    result = await asyncio.to_thread(
+        animator.render_map_animation,
+        title=req.title,
+        subtitle=req.subtitle,
+        theater=req.theater,
+        pins=pins,
+        routes=routes,
+        duration_sec=req.duration_sec,
+        width=req.width,
+        height=req.height,
+        fps=req.fps,
+        editorial_12fps=req.editorial_12fps,
+    )
+    return schemas.MapAnimateResponse(**result.to_dict())
+
+
+@app.post("/api/v1/video/compose-dossier", response_model=schemas.ComposeDossierResponse)
+async def compose_dossier_endpoint(req: schemas.ComposeDossierRequest):
+    """Orquestra episódio documental sincronizado palavra-a-palavra com mapa e selos."""
+    import asyncio
+    from src.video.documentary_composer import DocumentaryComposer
+    from src.video.map_animator import THEATER_PRESETS
+
+    if not req.topic.strip() or not req.script.strip():
+        raise HTTPException(status_code=400, detail="Topic and script cannot be empty or whitespace-only.")
+    audio_target = _validate_workspace_file(
+        req.narration_audio_path,
+        {".wav", ".flac", ".mp3", ".m4a", ".aac", ".ogg"},
+        "narration_audio_path",
+    )
+    if req.theater not in THEATER_PRESETS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown theater '{req.theater}'. Valid: {sorted(THEATER_PRESETS)}",
+        )
+
+    episodes_dir = (readers.BASE_DIR / "data" / "final" / "episodes").resolve()
+    composer = DocumentaryComposer(output_dir=episodes_dir)
+    try:
+        result = await asyncio.to_thread(
+            composer.compose_episode,
+            topic=req.topic,
+            script=req.script,
+            narration_audio_path=audio_target,
+            theater=req.theater,
+            trigger_keywords=req.trigger_keywords,
+            width=req.width,
+            height=req.height,
+            fps=req.fps,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return schemas.ComposeDossierResponse(**result.to_dict())
+
+
+# ── Sprint 8: CC0 Foley Stem & Video Reverse-Engineer ───────
+
+
+@app.post("/api/v1/audio/foley-track", response_model=schemas.FoleyTrackResponse)
+async def build_foley_track_endpoint(req: schemas.FoleyTrackRequest):
+    """Sintetiza e mixa efeitos sonoros CC0 locais num stem WAV sincronizado."""
+    import asyncio
+    from src.video.foley_library import FoleyCue, FoleyLibrary
+
+    foley_dir = (readers.BASE_DIR / "data" / "final" / "audio" / "foley_stems").resolve()
+    lib = FoleyLibrary(output_dir=foley_dir)
+    catalog = lib.list_catalog()
+
+    cues: list[FoleyCue] = []
+    for item in req.cues:
+        key = item.sfx_name.strip().lower()
+        if key not in catalog:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unknown SFX '{item.sfx_name}'. Valid CC0 catalog: {sorted(catalog)}",
+            )
+        cues.append(
+            FoleyCue(
+                sfx_name=key,
+                timestamp_sec=item.timestamp_sec,
+                gain_db=item.gain_db,
+                pan=item.pan,
+                duration_sec=item.duration_sec,
+            )
+        )
+
+    res = await asyncio.to_thread(
+        lib.build_foley_stem,
+        cues=cues,
+        total_duration_sec=req.total_duration_sec,
+        sample_rate=req.sample_rate,
+    )
+    return schemas.FoleyTrackResponse(**res.to_dict())
+
+
+@app.post("/api/v1/video/reverse-engineer", response_model=schemas.VideoReverseResponse)
+async def reverse_engineer_video_endpoint(req: schemas.VideoReverseRequest):
+    """Engenharia reversa multimodal de clipe existente para prompts MiniMax H3 / Veo 2."""
+    import asyncio
+    from src.video.video_reverse_engineer import VideoReverseEngineer
+
+    video_target = _validate_workspace_file(
+        req.video_path,
+        {".mp4", ".mov", ".mkv", ".webm", ".avi"},
+        "video_path for reverse engineering",
+    )
+    out_dir = (readers.BASE_DIR / "data" / "processed" / "reverse_engineered").resolve()
+    engine = VideoReverseEngineer(output_dir=out_dir)
+    res = await asyncio.to_thread(
+        engine.reverse_engineer_video,
+        video_path=video_target,
+        topic=req.topic,
+        mode=req.mode,
+        use_vision=req.use_vision,
+    )
+    return schemas.VideoReverseResponse(**res.to_dict())
+
+
+# ── Sprint 9: Storyboard Compiler & Dual Monetization Pack ─
+
+
+@app.post("/api/v1/video/storyboard-compile", response_model=schemas.StoryboardCompileResponse)
+async def compile_storyboard_endpoint(req: schemas.StoryboardCompileRequest):
+    """Compila roteiro em storyboard auditado com colisão 0.5s e orçamento unit economics."""
+    import asyncio
+    from src.video.map_animator import THEATER_PRESETS
+    from src.video.storyboard_compiler import StoryboardCompiler
+
+    if not req.title.strip() or not req.script.strip():
+        raise HTTPException(status_code=400, detail="Title and script cannot be empty or whitespace-only.")
+    if req.theater not in THEATER_PRESETS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown theater '{req.theater}'. Valid: {sorted(THEATER_PRESETS)}",
+        )
+
+    sb_dir = (readers.BASE_DIR / "data" / "processed" / "storyboards").resolve()
+    compiler = StoryboardCompiler(output_dir=sb_dir)
+    try:
+        res = await asyncio.to_thread(
+            compiler.compile_storyboard,
+            title=req.title,
+            script=req.script,
+            target_niche=req.target_niche,
+            target_duration_sec=req.target_duration_sec,
+            theater=req.theater,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return schemas.StoryboardCompileResponse(**res.to_dict())
+
+
+@app.post("/api/v1/youtube/render-monetization-pack", response_model=schemas.MonetizationPackResponse)
+async def render_monetization_pack_endpoint(req: schemas.MonetizationPackRequest):
+    """Renderiza 3 thumbnails JPEG 1280x720 e opcionalmente extrai B-rolls 4K mudos (-an) com bloqueio Alamy."""
+    import asyncio
+    from src.video.youtube_booster import YouTubeAlgorithmBoosterBridge
+
+    if not req.project_id.strip() or not req.title.strip():
+        raise HTTPException(status_code=400, detail="project_id and title cannot be empty or whitespace-only.")
+
+    backdrop_target = None
+    if req.backdrop_path:
+        backdrop_target = _validate_workspace_file(
+            req.backdrop_path,
+            {".jpg", ".jpeg", ".png", ".webp"},
+            "backdrop_path",
+        )
+
+    master_target = None
+    if req.master_video_path:
+        master_target = _validate_workspace_file(
+            req.master_video_path,
+            {".mp4", ".mov", ".mkv", ".webm"},
+            "master_video_path",
+        )
+
+    yt_dir = (readers.BASE_DIR / "data" / "processed" / "youtube_packages").resolve()
+    bridge = YouTubeAlgorithmBoosterBridge(output_dir=yt_dir)
+
+    thumbs = await asyncio.to_thread(
+        bridge.render_tri_variant_thumbnails,
+        project_id=req.project_id,
+        title=req.title,
+        subtitle=req.subtitle,
+        backdrop_path=backdrop_target,
+    )
+
+    broll_pack = None
+    if master_target is not None:
+        broll_pack = await asyncio.to_thread(
+            bridge.extract_monetizable_stock_brolls,
+            master_video_path=master_target,
+            count=req.broll_count,
+            target_width=req.target_width,
+            target_height=req.target_height,
+        )
+
+    return schemas.MonetizationPackResponse(
+        success=True,
+        project_id=req.project_id,
+        thumbnails=thumbs,
+        stock_broll_pack=broll_pack,
+    )

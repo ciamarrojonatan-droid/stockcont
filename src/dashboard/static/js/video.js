@@ -774,6 +774,7 @@ async function loadRunningTasks() {
 
 async function loadVideoTimeline() {
   bindSprint6TelemetryControls();
+  bindSprint9StudioControls();
   const feed = document.getElementById('video-timeline-feed');
   if (!feed) return;
 
@@ -936,5 +937,117 @@ async function runSprint6MotionQADemo() {
     }
   } finally {
     if (btn) btn.disabled = false;
+  }
+}
+
+function bindSprint9StudioControls() {
+  const mapBtn = document.getElementById('btn-s9-map-demo');
+  const sbBtn = document.getElementById('btn-s9-storyboard-demo');
+  const thumbBtn = document.getElementById('btn-s9-thumbs-demo');
+  if (mapBtn && !mapBtn.dataset.bound) {
+    mapBtn.dataset.bound = '1';
+    mapBtn.addEventListener('click', runSprint9MapDemo);
+  }
+  if (sbBtn && !sbBtn.dataset.bound) {
+    sbBtn.dataset.bound = '1';
+    sbBtn.addEventListener('click', runSprint9StoryboardDemo);
+  }
+  if (thumbBtn && !thumbBtn.dataset.bound) {
+    thumbBtn.dataset.bound = '1';
+    thumbBtn.addEventListener('click', runSprint9ThumbnailsDemo);
+  }
+}
+
+async function runSprint9MapDemo() {
+  const out = document.getElementById('sprint9-studio-output');
+  setElText('s9-map-status', 'Renderizando mapa vetorial 12fps…');
+  try {
+    const res = await fetch('/api/v1/video/map-animate', {
+      method: 'POST',
+      headers: buildSprint6Headers(),
+      body: JSON.stringify({
+        title: 'NORTH ATLANTIC CORRIDOR',
+        subtitle: 'RADAR & TELEMETRY PATH',
+        theater: 'north_atlantic',
+        duration_sec: 2.0,
+        width: 640,
+        height: 360,
+        fps: 24,
+        editorial_12fps: true
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+    setElText('s9-map-status', 'Mapa MP4 + SVG + GSAP Pronto');
+    if (out) {
+      out.style.display = 'block';
+      out.textContent = `Vector Map: ${data.video_path || data.svg_path || 'ok'}`;
+    }
+  } catch (err) {
+    setElText('s9-map-status', 'Falha no Mapa Vetorial');
+    if (out) {
+      out.style.display = 'block';
+      out.textContent = `Map Error: ${err.message}`;
+    }
+  }
+}
+
+async function runSprint9StoryboardDemo() {
+  const out = document.getElementById('sprint9-studio-output');
+  setElText('s9-storyboard-status', 'Compilando Storyboard & Orçamento…');
+  try {
+    const res = await fetch('/api/v1/video/storyboard-compile', {
+      method: 'POST',
+      headers: buildSprint6Headers(),
+      body: JSON.stringify({
+        title: 'Serpukhov 1983 Protocol',
+        script: 'Classified warning telemetry detected five missiles over Eurasia. Petrov held retaliation order until sunrise exposed orbital glare.',
+        target_niche: 'industrial_automation',
+        target_duration_sec: 16.0
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+    const overlapOk = Boolean(data.overlap_audit && data.overlap_audit.passed);
+    setElText('s9-storyboard-status', overlapOk ? 'Storyboard Aprovado (0 Colisões)' : 'Storyboard em Revisão');
+    if (out) {
+      out.style.display = 'block';
+      out.textContent = `Storyboard (${(data.scenes || []).length} cenas) | Overlap OK: ${overlapOk} | Custo est.: $${(data.budget_estimate || {}).total_production_cost_usd ?? 0}`;
+    }
+  } catch (err) {
+    setElText('s9-storyboard-status', 'Falha na Compilação');
+    if (out) {
+      out.style.display = 'block';
+      out.textContent = `Storyboard Error: ${err.message}`;
+    }
+  }
+}
+
+async function runSprint9ThumbnailsDemo() {
+  const out = document.getElementById('sprint9-studio-output');
+  setElText('s9-monetize-status', 'Renderizando Thumbnails A/B/C…');
+  try {
+    const res = await fetch('/api/v1/youtube/render-monetization-pack', {
+      method: 'POST',
+      headers: buildSprint6Headers(),
+      body: JSON.stringify({
+        project_id: 'serpukhov_pilot',
+        title: 'The 1983 Soviet Glitch',
+        subtitle: 'DECLASSIFIED ARCHIVE'
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+    setElText('s9-monetize-status', `${(data.thumbnails || []).length} Thumbnails JPEG 1280×720 Prontas`);
+    if (out) {
+      out.style.display = 'block';
+      out.textContent = `Rendered ${(data.thumbnails || []).length} thumbnails cleanly.`;
+    }
+  } catch (err) {
+    setElText('s9-monetize-status', 'Falha na Renderização');
+    if (out) {
+      out.style.display = 'block';
+      out.textContent = `Monetization Error: ${err.message}`;
+    }
   }
 }

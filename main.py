@@ -603,6 +603,15 @@ def main() -> None:
     video_group.add_argument("--yt-retention-csv", type=str, default=None, help="Optional YouTube retention CSV file or inline data")
     video_group.add_argument("--unit-economics", action="store_true", help="Print B2B niche unit economics, break-even, and ROI rankings")
     video_group.add_argument("--research-topic", type=str, default=None, help="Fetch public-domain dossier facts & PD media assets (Wikipedia/Wikimedia/IA/NASA)")
+    video_group.add_argument("--map-animate", type=str, default=None, help="Render deterministic editorial vector map (title string)")
+    video_group.add_argument("--map-theater", type=str, default="europe_cold_war", help="Geopolitical theater preset for --map-animate / --compose-dossier")
+    video_group.add_argument("--compose-dossier", type=str, default=None, help="Compose word-timed documentary episode for a historical topic")
+    video_group.add_argument("--dossier-script", type=str, default=None, help="Narration script text for --compose-dossier")
+    video_group.add_argument("--dossier-audio", type=str, default=None, help="Path to narration WAV/FLAC audio for --compose-dossier")
+    video_group.add_argument("--reverse-video", type=str, default=None, help="Reverse-engineer reference video into T2VA/I2V MiniMax & Veo prompts")
+    video_group.add_argument("--reverse-mode", type=str, default="AUTO", choices=["AUTO", "T2VA", "I2V", "DUAL"], help="Prompt synthesis mode for --reverse-video")
+    video_group.add_argument("--compile-storyboard", type=str, default=None, help="Compile script into budgeted, overlap-audited storyboard JSON (episode title)")
+    video_group.add_argument("--storyboard-niche", type=str, default="industrial_automation", help="Target B2B niche ID for --compile-storyboard")
 
     # Google Flow Industrial API Options
     flow_group = parser.add_argument_group("Google Flow Industrial API Options")
@@ -1006,6 +1015,59 @@ def main() -> None:
         engine = PublicDomainResearchEngine()
         pack = engine.build_dossier(args.research_topic)
         print(json.dumps(pack.to_dict(), indent=2, ensure_ascii=False))
+        return
+
+    if getattr(args, "map_animate", None):
+        from src.video.map_animator import MapAnimator
+        animator = MapAnimator()
+        res = animator.render_map_animation(
+            title=args.map_animate,
+            theater=getattr(args, "map_theater", "europe_cold_war"),
+        )
+        print(json.dumps(res.to_dict(), indent=2, ensure_ascii=False))
+        return
+
+    if getattr(args, "compose_dossier", None):
+        from src.video.documentary_composer import DocumentaryComposer
+        if not getattr(args, "dossier_audio", None):
+            print("Error: --dossier-audio is required with --compose-dossier")
+            sys.exit(2)
+        script_text = getattr(args, "dossier_script", None) or f"Classified dossier overview on {args.compose_dossier}."
+        composer = DocumentaryComposer()
+        res = composer.compose_episode(
+            topic=args.compose_dossier,
+            script=script_text,
+            narration_audio_path=args.dossier_audio,
+            theater=getattr(args, "map_theater", "europe_cold_war"),
+        )
+        print(json.dumps(res.to_dict(), indent=2, ensure_ascii=False))
+        return
+
+    if getattr(args, "reverse_video", None):
+        from src.video.video_reverse_engineer import VideoReverseEngineer
+        rev = VideoReverseEngineer()
+        res = rev.reverse_engineer_video(
+            video_path=args.reverse_video,
+            mode=getattr(args, "reverse_mode", "AUTO"),
+        )
+        print(json.dumps(res.to_dict(), indent=2, ensure_ascii=False))
+        return
+
+    if getattr(args, "compile_storyboard", None):
+        from src.video.storyboard_compiler import StoryboardCompiler
+        script_text = getattr(args, "dossier_script", None) or (
+            f"In 1983 classified telemetry from {args.compile_storyboard} stunned analysts. "
+            "Emergency protocols engaged while radar operators cross-checked satellite glint. "
+            "Every second revealed a hidden orbital anomaly above Eurasia. "
+            "What happened inside the bunker rewrote strategic deterrence forever."
+        )
+        compiler = StoryboardCompiler()
+        res = compiler.compile_storyboard(
+            title=args.compile_storyboard,
+            script=script_text,
+            target_niche=getattr(args, "storyboard_niche", "industrial_automation"),
+        )
+        print(json.dumps(res.to_dict(), indent=2, ensure_ascii=False))
         return
 
     if args.backup:
