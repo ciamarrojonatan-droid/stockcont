@@ -13,10 +13,12 @@ from __future__ import annotations
 import logging
 import math
 import os
+import random
 import re
 import shutil
 import subprocess
 import uuid
+import zlib
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -49,10 +51,46 @@ ANATOMY_FOUR_TONE_PALETTE: Dict[str, str] = {
     "text_primary": "#F1F5F9",
 }
 
+MOTION_PERSONALITIES: Dict[str, Dict[str, Any]] = {
+    "cold_war_noir": {
+        "duration_band": (1.2, 2.4),
+        "easing_css": "cubic-bezier(0.22, 1.0, 0.36, 1.0)",
+        "max_overshoot_pct": 0.0,
+        "min_motion_delta": 0.10,
+        "allowed_properties": ("transform", "opacity"),
+        "description": "Measured archival tension with zero bounce and deliberate easing.",
+    },
+    "clinical_fintech": {
+        "duration_band": (0.6, 1.4),
+        "easing_css": "cubic-bezier(0.4, 0.0, 0.2, 1.0)",
+        "max_overshoot_pct": 0.02,
+        "min_motion_delta": 0.18,
+        "allowed_properties": ("transform", "opacity"),
+        "description": "Crisp analytical SaaS telemetry snap with tight deceleration.",
+    },
+    "executive_corporate": {
+        "duration_band": (0.8, 1.8),
+        "easing_css": "cubic-bezier(0.16, 1.0, 0.3, 1.0)",
+        "max_overshoot_pct": 0.03,
+        "min_motion_delta": 0.14,
+        "allowed_properties": ("transform", "opacity"),
+        "description": "Balanced boardroom clarity tuned for B2B copy-space loops.",
+    },
+    "high_energy_hook": {
+        "duration_band": (0.35, 0.9),
+        "easing_css": "cubic-bezier(0.34, 1.56, 0.64, 1.0)",
+        "max_overshoot_pct": 0.08,
+        "min_motion_delta": 0.30,
+        "allowed_properties": ("transform", "opacity"),
+        "description": "Fast punchy opening beat engineered for sub-second scroll stops.",
+    },
+}
+
 MOTION_TEMPLATES: Dict[str, Dict[str, Any]] = {
     # DarkFactory Documentary Overlays
     "tactical_hud": {
         "category": "darkfactory",
+        "personality": "cold_war_noir",
         "default_width": 1920,
         "default_height": 1080,
         "default_fps": 30,
@@ -64,6 +102,7 @@ MOTION_TEMPLATES: Dict[str, Dict[str, Any]] = {
     },
     "declassified_dossier": {
         "category": "darkfactory",
+        "personality": "cold_war_noir",
         "default_width": 1920,
         "default_height": 1080,
         "default_fps": 30,
@@ -75,6 +114,7 @@ MOTION_TEMPLATES: Dict[str, Dict[str, Any]] = {
     },
     "lower_third": {
         "category": "darkfactory",
+        "personality": "cold_war_noir",
         "default_width": 1920,
         "default_height": 1080,
         "default_fps": 30,
@@ -86,6 +126,7 @@ MOTION_TEMPLATES: Dict[str, Dict[str, Any]] = {
     },
     "anatomy_mechanical": {
         "category": "darkfactory",
+        "personality": "clinical_fintech",
         "default_width": 1920,
         "default_height": 1080,
         "default_fps": 30,
@@ -95,9 +136,59 @@ MOTION_TEMPLATES: Dict[str, Dict[str, Any]] = {
         "bg_hex": ANATOMY_FOUR_TONE_PALETTE["bg_blueprint"],
         "description": "Exploded 4-tone isometric CAD diagram with callout leader lines.",
     },
+    # Sprint 4 Zero-Blob Procedural Style Plates (anidoodle-inspired)
+    "blueprint_notebook": {
+        "category": "darkfactory",
+        "personality": "cold_war_noir",
+        "default_width": 1920,
+        "default_height": 1080,
+        "default_fps": 30,
+        "default_duration_sec": 6.0,
+        "muted": True,
+        "accent_hex": "#38BDF8",
+        "bg_hex": "#0A192F",
+        "description": "Procedural drafting blueprint plate with seeded calibration marks and CAD arrows.",
+    },
+    "risograph_declassified": {
+        "category": "darkfactory",
+        "personality": "cold_war_noir",
+        "default_width": 1920,
+        "default_height": 1080,
+        "default_fps": 30,
+        "default_duration_sec": 6.0,
+        "muted": True,
+        "accent_hex": "#FB7185",
+        "bg_hex": "#141210",
+        "description": "Procedural dual-ink risograph halftone plate with deterministic paper grain.",
+    },
+    "cut_paper_editorial": {
+        "category": "stock_b2b",
+        "personality": "executive_corporate",
+        "default_width": 3840,
+        "default_height": 2160,
+        "default_fps": 30,
+        "default_duration_sec": 8.0,
+        "muted": True,
+        "accent_hex": "#F59E0B",
+        "bg_hex": "#0F172A",
+        "description": "Zero-blob stepped cut-paper architectural planes with 40% editorial copy-space.",
+    },
+    "deconstructed_emblem_vector": {
+        "category": "darkfactory",
+        "personality": "clinical_fintech",
+        "default_width": 1920,
+        "default_height": 1080,
+        "default_fps": 30,
+        "default_duration_sec": 5.0,
+        "muted": True,
+        "accent_hex": "#38BDF8",
+        "bg_hex": "#0B1524",
+        "description": "Semantic raster-to-SVG deconstructed vector assembly with Faithful Landing verification.",
+    },
     # StockCont Sprint 2 B2B 4K Silent Motion Loops
     "saas_fintech_telemetry_ui": {
         "category": "stock_b2b",
+        "personality": "clinical_fintech",
         "default_width": 3840,
         "default_height": 2160,
         "default_fps": 30,
@@ -109,6 +200,7 @@ MOTION_TEMPLATES: Dict[str, Dict[str, Any]] = {
     },
     "isometric_architecture_flow": {
         "category": "stock_b2b",
+        "personality": "executive_corporate",
         "default_width": 3840,
         "default_height": 2160,
         "default_fps": 30,
@@ -120,6 +212,7 @@ MOTION_TEMPLATES: Dict[str, Dict[str, Any]] = {
     },
     "kinetic_grid_background": {
         "category": "stock_b2b",
+        "personality": "executive_corporate",
         "default_width": 3840,
         "default_height": 2160,
         "default_fps": 30,
@@ -131,6 +224,7 @@ MOTION_TEMPLATES: Dict[str, Dict[str, Any]] = {
     },
     "hud_data_overlay_loop": {
         "category": "stock_b2b",
+        "personality": "high_energy_hook",
         "default_width": 3840,
         "default_height": 2160,
         "default_fps": 30,
@@ -162,14 +256,50 @@ class MotionCompositionResult:
     has_audio: bool = False
     video_props: Optional[Dict[str, Any]] = None
     error: Optional[str] = None
+    seed: Optional[int] = None
+    personality: Optional[str] = None
+    contact_sheet_path: Optional[Path] = None
+    qa_report: Optional[Dict[str, Any]] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize result with normalized POSIX paths."""
         data = asdict(self)
-        for key in ("output_video_path", "html_path", "svg_path"):
+        for key in ("output_video_path", "html_path", "svg_path", "contact_sheet_path"):
             val = data.get(key)
             data[key] = val.as_posix() if isinstance(val, Path) else val
         return data
+
+
+def _derive_seed(
+    template: str,
+    title: str,
+    subtitle: str,
+    explicit_seed: Optional[int] = None,
+) -> int:
+    """Compute a deterministic 32-bit seed cleanly eliminating Math.random() drift."""
+    if explicit_seed is not None:
+        return int(explicit_seed) & 0xFFFFFFFF
+    payload = f"{template}|{title.strip()}|{subtitle.strip()}".encode("utf-8")
+    return zlib.crc32(payload) & 0xFFFFFFFF
+
+
+def _apply_easing(progress: float, personality_key: str) -> float:
+    """Apply deterministic LottieFiles-inspired easing curves per motion personality."""
+    t = max(0.0, min(1.0, float(progress)))
+    if personality_key == "high_energy_hook":
+        # Mild damped overshoot (~8%) inspired by snappy UI hooks
+        c1 = 1.70158 * 0.45
+        c3 = c1 + 1.0
+        eased = 1.0 + c3 * ((t - 1.0) ** 3) + c1 * ((t - 1.0) ** 2)
+        return max(0.0, min(1.08, eased))
+    if personality_key == "clinical_fintech":
+        # Fast out, sharp analytical settle
+        return 1.0 - (1.0 - t) ** 3
+    if personality_key == "executive_corporate":
+        # Smooth ease-out quintic
+        return 1.0 - (1.0 - t) ** 4
+    # Default: cold_war_noir (linear-in, weighted cosine deceleration, zero bounce)
+    return 0.5 * (1.0 - math.cos(math.pi * t))
 
 
 def _hex_to_bgr(hex_color: str) -> Tuple[int, int, int]:
@@ -192,9 +322,13 @@ def _atomic_write_text(path: Path, content: str) -> None:
     """Write UTF-8 text atomically via .tmp file (ADR-01, ADR-02)."""
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp_path = path.with_name(f"{path.name}.tmp.{os.getpid()}.{uuid.uuid4().hex[:8]}")
-    with open(tmp_path, "w", encoding="utf-8") as handle:
-        handle.write(content)
-    tmp_path.replace(path)
+    try:
+        with open(tmp_path, "w", encoding="utf-8") as handle:
+            handle.write(content)
+        tmp_path.replace(path)
+    except Exception:
+        tmp_path.unlink(missing_ok=True)
+        raise
 
 
 def _load_font(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
@@ -292,6 +426,8 @@ class HyperFramesMotionEngine:
         height: int = 1080,
         fps: int = 30,
         data: Optional[Dict[str, Any]] = None,
+        seed: Optional[int] = None,
+        personality: Optional[str] = None,
     ) -> str:
         """Generate deterministic HTML5/GSAP composition following HyperFrames timeline contract."""
         if template not in MOTION_TEMPLATES:
@@ -301,9 +437,31 @@ class HyperFramesMotionEngine:
         extra = data or {}
         accent = spec["accent_hex"]
         bg = spec["bg_hex"]
+        resolved_seed = _derive_seed(template, title, subtitle, explicit_seed=seed)
+        personality_key = personality or spec.get("personality", "cold_war_noir")
+        if personality_key not in MOTION_PERSONALITIES:
+            raise ValueError(f"Unknown motion personality '{personality_key}'. Valid: {sorted(MOTION_PERSONALITIES)}")
+        pers_spec = MOTION_PERSONALITIES[personality_key]
 
         inner_markup = ""
-        if template in ("anatomy_mechanical", "isometric_architecture_flow"):
+        if template == "deconstructed_emblem_vector" and extra.get("image_path"):
+            from src.video.svg_deconstructor import RasterToAnimatedSVG
+
+            vec_res = RasterToAnimatedSVG().deconstruct_raster(
+                image_path=extra["image_path"],
+                title=title,
+                subtitle=subtitle or "SEMANTIC VECTOR RECONSTRUCTION",
+                bg_hex=bg,
+                stroke_hex=accent,
+                canvas_width=width,
+                canvas_height=height,
+                duration_sec=duration_sec,
+                seed=resolved_seed,
+            )
+            inner_markup = vec_res.svg_markup or self.build_anatomy_isometric_svg(
+                title=title, subtitle=subtitle, components=extra.get("components")
+            )
+        elif template in ("anatomy_mechanical", "isometric_architecture_flow", "deconstructed_emblem_vector"):
             components = extra.get("components")
             inner_markup = self.build_anatomy_isometric_svg(title=title, subtitle=subtitle, components=components)
         else:
@@ -330,6 +488,11 @@ class HyperFramesMotionEngine:
       position: relative; width: 100%; height: 100%;
       display: flex; align-items: center; justify-content: center;
     }}
+    .hud-frame, .iso-layer {{
+      transition-property: transform, opacity;
+      transition-timing-function: {pers_spec["easing_css"]};
+      will-change: transform, opacity;
+    }}
     .hud-frame {{
       width: 82%; border: 2px solid {accent}; padding: 42px;
       background: rgba(10, 17, 28, 0.88);
@@ -341,11 +504,22 @@ class HyperFramesMotionEngine:
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
 </head>
 <body>
-  <div id="scene" data-template="{template}" data-fps="{fps}" data-start="0" data-duration="{duration_sec}">
+  <div id="scene" data-template="{template}" data-personality="{personality_key}" data-seed="{resolved_seed}" data-fps="{fps}" data-start="0" data-duration="{duration_sec}">
     {inner_markup}
   </div>
   <script>
     window.__timelines = window.__timelines || [];
+    window.__hfSeed = {resolved_seed};
+    // Pure deterministic Mulberry32 PRNG (anidoodle Zero-Randomness contract)
+    window.__hfRng = function(seedVal) {{
+      let state = (seedVal >>> 0) || {resolved_seed};
+      return function() {{
+        state = (state + 0x6D2B79F5) >>> 0;
+        let t = Math.imul(state ^ (state >>> 15), 1 | state);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      }};
+    }};
     (function initHyperFramesContract() {{
       const totalDuration = {duration_sec};
       let tl;
@@ -382,6 +556,10 @@ class HyperFramesMotionEngine:
         data: Optional[Dict[str, Any]] = None,
         use_hyperframes_cli: bool = False,
         force_procedural: bool = True,
+        seed: Optional[int] = None,
+        personality: Optional[str] = None,
+        run_qa_gate: bool = True,
+        vision_critique: bool = False,
     ) -> MotionCompositionResult:
         """Render a deterministic preview clamped strictly to <= 20s before full commitment."""
         capped_limit = min(float(max_duration_sec), 20.0)
@@ -399,6 +577,10 @@ class HyperFramesMotionEngine:
             use_hyperframes_cli=use_hyperframes_cli,
             force_procedural=force_procedural,
             muted=True,
+            seed=seed,
+            personality=personality,
+            run_qa_gate=run_qa_gate,
+            vision_critique=vision_critique,
         )
         result.is_preview_gate = True
         return result
@@ -413,6 +595,9 @@ class HyperFramesMotionEngine:
         resolution: Tuple[int, int] = (3840, 2160),
         fps: int = 30,
         force_procedural: bool = True,
+        seed: Optional[int] = None,
+        personality: Optional[str] = None,
+        run_qa_gate: bool = False,
     ) -> MotionCompositionResult:
         """Render a silent (-an) 4K B2B motion asset destined for StockCont video agencies."""
         target_dir = Path(output_dir) if output_dir else DEFAULT_STOCK_VIDEOS_DIR
@@ -429,6 +614,9 @@ class HyperFramesMotionEngine:
             fps=fps,
             force_procedural=force_procedural,
             muted=True,
+            seed=seed,
+            personality=personality,
+            run_qa_gate=run_qa_gate,
         )
 
     def render_motion_clip(
@@ -445,6 +633,11 @@ class HyperFramesMotionEngine:
         use_hyperframes_cli: bool = False,
         force_procedural: bool = False,
         muted: bool = True,
+        seed: Optional[int] = None,
+        personality: Optional[str] = None,
+        run_qa_gate: bool = False,
+        vision_critique: bool = False,
+        strict_qa: bool = False,
     ) -> MotionCompositionResult:
         """Render HTML/SVG contracts and encode the final MP4 motion clip."""
         if template not in MOTION_TEMPLATES:
@@ -455,6 +648,10 @@ class HyperFramesMotionEngine:
         w = int(width if width is not None else spec["default_width"])
         h = int(height if height is not None else spec["default_height"])
         target_fps = int(fps if fps is not None else spec["default_fps"])
+        resolved_seed = _derive_seed(template, title, subtitle, explicit_seed=seed)
+        personality_key = personality or spec.get("personality", "cold_war_noir")
+        if personality_key not in MOTION_PERSONALITIES:
+            raise ValueError(f"Unknown motion personality '{personality_key}'. Valid: {sorted(MOTION_PERSONALITIES)}")
 
         self.output_dir.mkdir(parents=True, exist_ok=True)
         out_video = Path(output_path) if output_path else self.output_dir / f"{_slugify(template)}_{_slugify(title)}.mp4"
@@ -470,11 +667,27 @@ class HyperFramesMotionEngine:
             height=h,
             fps=target_fps,
             data=data,
+            seed=resolved_seed,
+            personality=personality_key,
         )
         _atomic_write_text(html_path, html_content)
 
         svg_path: Optional[Path] = None
-        if template in ("anatomy_mechanical", "isometric_architecture_flow"):
+        if template == "deconstructed_emblem_vector" and (data or {}).get("image_path"):
+            from src.video.svg_deconstructor import RasterToAnimatedSVG
+
+            svg_path = out_video.with_suffix(".svg")
+            RasterToAnimatedSVG().deconstruct_raster(
+                image_path=(data or {})["image_path"],
+                output_svg_path=svg_path,
+                title=title,
+                subtitle=subtitle or "SEMANTIC VECTOR RECONSTRUCTION",
+                bg_hex=spec["bg_hex"],
+                stroke_hex=spec["accent_hex"],
+                duration_sec=dur,
+                seed=resolved_seed,
+            )
+        elif template in ("anatomy_mechanical", "isometric_architecture_flow", "deconstructed_emblem_vector"):
             svg_path = out_video.with_suffix(".svg")
             svg_content = self.build_anatomy_isometric_svg(
                 title=title,
@@ -504,15 +717,40 @@ class HyperFramesMotionEngine:
                 fps=target_fps,
                 data=data,
                 muted=muted,
+                seed=resolved_seed,
+                personality=personality_key,
             )
             backend_used = "procedural_ffmpeg"
 
         video_props_dict: Optional[Dict[str, Any]] = None
         has_audio_stream = False
+        qa_report_dict: Optional[Dict[str, Any]] = None
+        sheet_path: Optional[Path] = None
+
         if rendered_ok and out_video.exists():
             props = probe_video(out_video)
             video_props_dict = asdict(props)
             has_audio_stream = props.has_audio
+
+            if run_qa_gate:
+                from src.video.motion_qa import MotionQAInspector
+
+                inspector = MotionQAInspector()
+                qa_res = inspector.audit_video(
+                    video_path=out_video,
+                    bg_hex=spec["bg_hex"],
+                    fg_hex="#F1F5F9",
+                    accent_hex=spec["accent_hex"],
+                    personality=personality_key,
+                    generate_sheet=True,
+                    vision_critique=vision_critique,
+                )
+                qa_report_dict = qa_res.to_dict()
+                if qa_res.contact_sheet_path:
+                    sheet_path = Path(qa_res.contact_sheet_path)
+                if strict_qa and not qa_res.passed:
+                    rendered_ok = False
+                    error_msg = f"Motion QA Gate failed (score={qa_res.score}): {[f.code for f in qa_res.findings]}"
 
         return MotionCompositionResult(
             success=rendered_ok,
@@ -530,6 +768,10 @@ class HyperFramesMotionEngine:
             has_audio=has_audio_stream,
             video_props=video_props_dict,
             error=error_msg,
+            seed=resolved_seed,
+            personality=personality_key,
+            contact_sheet_path=sheet_path,
+            qa_report=qa_report_dict,
         )
 
     def _try_hyperframes_cli(self, html_path: Path, output_video: Path) -> bool:
@@ -579,11 +821,15 @@ class HyperFramesMotionEngine:
         fps: int,
         data: Optional[Dict[str, Any]],
         muted: bool,
+        seed: Optional[int] = None,
+        personality: Optional[str] = None,
     ) -> Tuple[bool, Optional[str]]:
         """Render crisp procedural frames in memory and pipe directly to FFmpeg H.264."""
         ffmpeg_bin = get_ffmpeg_binary()
         total_frames = max(1, int(round(duration_sec * fps)))
         spec = MOTION_TEMPLATES[template]
+        resolved_seed = _derive_seed(template, title, subtitle, explicit_seed=seed)
+        personality_key = personality or spec.get("personality", "cold_war_noir")
 
         cmd: List[str] = [
             ffmpeg_bin,
@@ -627,7 +873,7 @@ class HyperFramesMotionEngine:
             proc = subprocess.Popen(
                 cmd,
                 stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
+                stdout=subprocess.DEVNULL,
                 stderr=subprocess.PIPE,
                 env=self.resolve_ffmpeg_env(),
             )
@@ -643,6 +889,8 @@ class HyperFramesMotionEngine:
                     height=height,
                     progress=progress,
                     data=data or {},
+                    seed=resolved_seed,
+                    personality=personality_key,
                 )
                 proc.stdin.write(frame.tobytes())
             proc.stdin.close()
@@ -653,10 +901,17 @@ class HyperFramesMotionEngine:
                 return False, f"FFmpeg exited {proc.returncode}: {err_txt}"
             return True, None
         except (OSError, subprocess.SubprocessError) as exc:
-            if proc is not None and proc.poll() is None:
-                proc.kill()
-                proc.wait(timeout=5)
             return False, str(exc)
+        finally:
+            if proc is not None:
+                if proc.stdin and not proc.stdin.closed:
+                    try:
+                        proc.stdin.close()
+                    except OSError:
+                        pass
+                if proc.poll() is None:
+                    proc.kill()
+                    proc.wait(timeout=5)
 
     def _compose_frame(
         self,
@@ -668,25 +923,36 @@ class HyperFramesMotionEngine:
         height: int,
         progress: float,
         data: Dict[str, Any],
+        seed: Optional[int] = None,
+        personality: Optional[str] = None,
     ) -> np.ndarray:
         """Render one BGR24 numpy frame parameterized by template family."""
         bg_bgr = _hex_to_bgr(spec["bg_hex"])
         accent_bgr = _hex_to_bgr(spec["accent_hex"])
         accent_rgb = _hex_to_rgb(spec["accent_hex"])
+        resolved_seed = _derive_seed(template, title, subtitle, explicit_seed=seed)
+        personality_key = personality or spec.get("personality", "cold_war_noir")
+        eased = _apply_easing(progress, personality_key)
 
         frame = np.full((height, width, 3), bg_bgr, dtype=np.uint8)
         self._draw_blueprint_grid(frame, width, height, progress, template)
 
         if template in ("anatomy_mechanical", "isometric_architecture_flow"):
-            self._draw_isometric_assembly(frame, width, height, progress, data.get("components"))
+            self._draw_isometric_assembly(frame, width, height, eased, data.get("components"))
         elif template == "tactical_hud":
-            self._draw_tactical_hud_graphics(frame, width, height, progress, accent_bgr)
+            self._draw_tactical_hud_graphics(frame, width, height, eased, accent_bgr)
         elif template == "declassified_dossier":
-            self._draw_dossier_redactions(frame, width, height, progress, accent_bgr)
+            self._draw_dossier_redactions(frame, width, height, eased, accent_bgr)
         elif template == "lower_third":
-            self._draw_lower_third_plate(frame, width, height, progress, accent_bgr)
+            self._draw_lower_third_plate(frame, width, height, eased, accent_bgr)
+        elif template == "blueprint_notebook":
+            self._draw_blueprint_notebook_plate(frame, width, height, eased, accent_bgr, resolved_seed)
+        elif template == "risograph_declassified":
+            self._draw_risograph_declassified_plate(frame, width, height, eased, accent_bgr, resolved_seed)
+        elif template == "cut_paper_editorial":
+            self._draw_cut_paper_editorial_plate(frame, width, height, eased, accent_bgr, resolved_seed)
         else:
-            self._draw_b2b_telemetry_cards(frame, width, height, progress, accent_bgr)
+            self._draw_b2b_telemetry_cards(frame, width, height, eased, accent_bgr)
 
         return self._stamp_crisp_typography(
             frame=frame,
@@ -698,6 +964,94 @@ class HyperFramesMotionEngine:
             progress=progress,
             accent_rgb=accent_rgb,
         )
+
+    @staticmethod
+    def _draw_blueprint_notebook_plate(
+        frame: np.ndarray,
+        width: int,
+        height: int,
+        progress: float,
+        accent_bgr: Tuple[int, int, int],
+        seed: int,
+    ) -> None:
+        """Render deterministic drafting CAD calibration vectors & callout brackets (Zero-Blob)."""
+        rng = random.Random(seed)
+        border_x = int(width * 0.06)
+        border_y = int(height * 0.08)
+        cv2.rectangle(frame, (border_x, border_y), (width - border_x, height - border_y), accent_bgr, 2)
+
+        # Deterministic drafted measurement dimension arrows along bottom right
+        base_y = int(height * 0.72)
+        span_w = int(width * 0.44 * min(1.0, progress * 1.3 + 0.15))
+        start_x = int(width * 0.46)
+        cv2.line(frame, (start_x, base_y), (start_x + span_w, base_y), accent_bgr, 2)
+        for tick in range(6):
+            tx = start_x + int((width * 0.44) * (tick / 5.0))
+            if tx <= start_x + span_w:
+                tick_h = 18 if tick % 2 == 0 else 10
+                cv2.line(frame, (tx, base_y - tick_h), (tx, base_y + tick_h), accent_bgr, 2)
+
+        # Seeded drafting calibration crosshairs in peripheral safe zones (preserving central copy-space)
+        for idx in range(5):
+            px = int(width * (0.58 + rng.uniform(0.02, 0.30)))
+            py = int(height * (0.28 + rng.uniform(0.02, 0.36)))
+            r = max(6, int(min(width, height) * (0.015 + 0.01 * math.sin(progress * math.pi + idx))))
+            cv2.circle(frame, (px, py), r, accent_bgr, 1)
+            cv2.line(frame, (px - r - 4, py), (px + r + 4, py), accent_bgr, 1)
+
+    @staticmethod
+    def _draw_risograph_declassified_plate(
+        frame: np.ndarray,
+        width: int,
+        height: int,
+        progress: float,
+        accent_bgr: Tuple[int, int, int],
+        seed: int,
+    ) -> None:
+        """Render procedural dual-ink risograph halftone dots & misregistered paper frame."""
+        rng = random.Random(seed ^ 0xA5A5)
+        bone_bgr = (224, 234, 244)
+        shift_x = int(4 * math.sin(progress * math.pi))
+        rx1, ry1 = int(width * 0.08), int(height * 0.30)
+        rx2, ry2 = int(width * 0.90), int(height * 0.86)
+        cv2.rectangle(frame, (rx1 + shift_x, ry1), (rx2 + shift_x, ry2), accent_bgr, 2)
+        cv2.rectangle(frame, (rx1, ry1 + 3), (rx2, ry2 + 3), bone_bgr, 1)
+
+        # Halftone stochastic screen restricted to right telemetry zone
+        step = max(14, width // 48)
+        reveal_limit = int(width * (0.55 + 0.33 * min(1.0, progress * 1.25)))
+        for gx in range(int(width * 0.54), reveal_limit, step):
+            for gy in range(int(height * 0.36), int(height * 0.80), step):
+                if rng.random() > 0.32:
+                    dot_r = 2 if (gx + gy) % (step * 2) == 0 else 1
+                    cv2.circle(frame, (gx, gy), dot_r, accent_bgr, -1)
+
+    @staticmethod
+    def _draw_cut_paper_editorial_plate(
+        frame: np.ndarray,
+        width: int,
+        height: int,
+        progress: float,
+        accent_bgr: Tuple[int, int, int],
+        seed: int,
+    ) -> None:
+        """Render layered stepped architectural planes with cast depth shadows (Zero-Blob)."""
+        rng = random.Random(seed ^ 0x5A5A)
+        layers = [
+            ((30, 41, 59), 0.14),
+            ((45, 62, 86), 0.24),
+            ((64, 86, 118), 0.34),
+        ]
+        for idx, (bgr, x_frac) in enumerate(layers):
+            slide = min(1.0, max(0.0, progress * 1.4 - idx * 0.14))
+            jitter = rng.randint(-6, 6)
+            x1 = int(width * (0.48 + x_frac * 0.55))
+            y1 = int(height * (0.42 + idx * 0.09 + (1.0 - slide) * 0.22)) + jitter
+            x2 = int(width * 0.92)
+            y2 = int(height * 0.88)
+            cv2.rectangle(frame, (x1 + 6, y1 + 8), (x2 + 6, y2 + 8), (8, 12, 20), -1)
+            cv2.rectangle(frame, (x1, y1), (x2, y2), bgr, -1)
+            cv2.line(frame, (x1, y1), (x2, y1), accent_bgr if idx == 2 else (148, 163, 184), 2)
 
     @staticmethod
     def _draw_blueprint_grid(
@@ -872,9 +1226,12 @@ class HyperFramesMotionEngine:
         return cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
 
     @staticmethod
-    def _escape_xml(value: str) -> str:
+    def _escape_xml(value: Optional[str]) -> str:
+        if not value:
+            return ""
         return (
-            value.replace("&", "&amp;")
+            str(value)
+            .replace("&", "&amp;")
             .replace("<", "&lt;")
             .replace(">", "&gt;")
             .replace('"', "&quot;")

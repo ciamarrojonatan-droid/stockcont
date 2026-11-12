@@ -450,6 +450,39 @@
         <p style="font-size: 0.8rem; color: var(--label-secondary);">Log ao vivo dos subprocessos de conformação de vídeo e upload.</p>
       </div>
     </div>
+
+    <!-- Sprint 6 Telemetry Widget: Motion QA, SVG Deconstructor & Cadence Sync -->
+    <div id="sprint6-telemetry-panel" class="sprint6-telemetry-card" style="background: rgba(15,23,42,0.72); border: 1px solid rgba(56,189,248,0.22); border-radius: 14px; padding: 16px 18px; margin-bottom: 16px;">
+      <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px;">
+        <div>
+          <span class="mono" style="font-size: 0.72rem; letter-spacing: 0.08em; color: #38bdf8; text-transform: uppercase;">Sprint 6 Studio Telemetry</span>
+          <h3 style="font-size: 0.96rem; font-family: var(--font-display); color: #f8fafc; margin: 2px 0 0;">Motion QA Gate • SVG Deconstructor • Cadence Sync</h3>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+          <button type="button" id="btn-s6-motion-qa" class="btn btn-xs btn-primary" style="font-size: 0.78rem; padding: 6px 12px;">Testar Motion Overlay + QA</button>
+          <button type="button" id="btn-s6-refresh-telemetry" class="btn btn-xs btn-outline" style="font-size: 0.78rem; padding: 6px 12px;">Atualizar Telemetria</button>
+        </div>
+      </div>
+      <div id="sprint6-telemetry-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px;">
+        <div style="background: rgba(7,13,23,0.65); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 12px;">
+          <div class="mono" style="font-size: 0.7rem; color: var(--label-secondary);">MOTION QA & PERSONALITIES</div>
+          <div id="s6-qa-status" style="font-size: 0.88rem; font-weight: 600; color: #e2e8f0; margin-top: 4px;">Pronto (WCAG + Frame Guard)</div>
+          <div id="s6-qa-detail" class="mono" style="font-size: 0.72rem; color: #94a3b8; margin-top: 2px;">4 personalidades • Zero-Blob ativo</div>
+        </div>
+        <div style="background: rgba(7,13,23,0.65); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 12px;">
+          <div class="mono" style="font-size: 0.7rem; color: var(--label-secondary);">SVG VECTOR DECONSTRUCTOR</div>
+          <div id="s6-svg-status" style="font-size: 0.88rem; font-weight: 600; color: #e2e8f0; margin-top: 4px;">Motor Semântico Ativo</div>
+          <div id="s6-svg-detail" class="mono" style="font-size: 0.72rem; color: #94a3b8; margin-top: 2px;">grid / mark / callouts / wordmark</div>
+        </div>
+        <div style="background: rgba(7,13,23,0.65); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 12px;">
+          <div class="mono" style="font-size: 0.7rem; color: var(--label-secondary);">CADENCE & BEAT-SYNC ENGINE</div>
+          <div id="s6-cadence-status" style="font-size: 0.88rem; font-weight: 600; color: #e2e8f0; margin-top: 4px;">Transientes & Ducking 3-Stem</div>
+          <div id="s6-cadence-detail" class="mono" style="font-size: 0.72rem; color: #94a3b8; margin-top: 2px;">OTIO beat markers & Foley duck</div>
+        </div>
+      </div>
+      <div id="sprint6-telemetry-output" class="mono" style="display: none; margin-top: 10px; font-size: 0.75rem; color: #cbd5e1; background: rgba(2,6,23,0.78); border: 1px solid rgba(56,189,248,0.2); border-radius: 8px; padding: 8px 10px; word-break: break-word;"></div>
+    </div>
+
     <div class="timeline-feed" id="video-timeline-feed">
       <div class="loading">Carregando eventos de telemetria…</div>
     </div>

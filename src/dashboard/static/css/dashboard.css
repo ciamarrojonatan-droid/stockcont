@@ -110,6 +110,8 @@
 html {
   background-color: var(--bg-system);
   color-scheme: dark;
+  overflow-x: hidden;
+  max-width: 100%;
 }
 
 body {
@@ -2801,4 +2803,40 @@ body {
 
 .commercial-insights li {
   margin-bottom: 2px;
+}
+
+/* ── Mobile Responsive Overrides (<= 768px) ─────────────────────────────── */
+@media (max-width: 768px) {
+  .header,
+  .header-right,
+  .tab-toolbar,
+  .pipeline-section,
+  .tab-content,
+  .tabs {
+    max-width: 100%;
+    min-width: 0;
+  }
+  .header {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .header-right {
+    flex-wrap: wrap;
+  }
+  .kpi-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 0 10px;
+    gap: 10px;
+  }
+  .kpi-card {
+    min-width: 0;
+  }
+  .agencies-grid,
+  .qc-grid,
+  .quota-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .gallery-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  }
 }

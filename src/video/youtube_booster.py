@@ -623,9 +623,13 @@ class YouTubeAlgorithmBoosterBridge:
         # 8. STEPPS Virality & Hook Point (Jonah Berger & Brendan Kane)
         stepps_audit = self.score_viral_stepps(title=title, premise=description)
 
-        # 9. Closed-Loop Packaging Audits (Sprint 1)
+        # 9. Closed-Loop Packaging Audits (Sprint 1 + Sprint 4 5s Copy Clarity Gate)
         resolved_thumb_text = thumbnail_text if thumbnail_text is not None else "DECLASSIFIED"
         title_thumb_lint = self.lint_title_thumbnail_pair(title=title, thumbnail_text=resolved_thumb_text)
+        from src.video.story_validator import DarkFactoryStoryValidator
+
+        hook_source = (script_text or description or title).strip()
+        copy_clarity_audit = asdict(DarkFactoryStoryValidator().audit_5s_hook_clarity(hook_source))
         chapters_audit = (
             self.validate_youtube_chapters(chapters, total_duration_sec=duration_sec)
             if chapters is not None
@@ -657,6 +661,7 @@ class YouTubeAlgorithmBoosterBridge:
             "edsa_compliance_audit": edsa_audit,
             "stepps_virality_audit": stepps_audit,
             "title_thumbnail_lint": title_thumb_lint,
+            "copy_clarity_audit": copy_clarity_audit,
             "chapters_audit": chapters_audit,
             "retention_audit": retention_audit,
             "shorts_candidates": shorts_candidates,

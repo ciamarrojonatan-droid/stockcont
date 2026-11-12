@@ -14,8 +14,9 @@ baseado nas regras canônicas dos 27 livros:
 from __future__ import annotations
 
 import logging
+import re
 from dataclasses import asdict, dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from src.video.master_knowledge import (
     CronCuriosityResult,
@@ -27,6 +28,34 @@ from src.video.master_knowledge import (
 )
 
 logger = logging.getLogger("stockcont.video.story_validator")
+
+
+BANNED_HOOK_BUZZWORDS: Tuple[str, ...] = (
+    "in today's fast-paced world",
+    "in a world where",
+    "game changer",
+    "game-changer",
+    "revolutionary",
+    "unleash the power",
+    "dive deep into",
+    "unlock the secrets",
+    "next-level",
+    "buckle up",
+)
+
+
+@dataclass
+class CopyClarityResult:
+    """5-second opening copy clarity audit inspired by Leonxlnx/cinetic."""
+
+    passed: bool
+    score: float
+    opening_sentence: str
+    opening_word_count: int
+    estimated_spoken_sec: float
+    filler_buzzwords: List[str] = field(default_factory=list)
+    issues: List[str] = field(default_factory=list)
+    recommendations: List[str] = field(default_factory=list)
 
 
 @dataclass
@@ -45,6 +74,7 @@ class DarkFactoryAuditReport:
     total_cuts: int
     mean_shot_length: float
     remediation_roadmap: List[str] = field(default_factory=list)
+    copy_clarity_audit: Optional[CopyClarityResult] = None
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -55,6 +85,56 @@ class DarkFactoryStoryValidator:
 
     def __init__(self, engine: Optional[MasterKnowledgeEngine] = None):
         self.engine = engine or get_master_knowledge_engine()
+
+    @staticmethod
+    def audit_5s_hook_clarity(
+        hook_text: str,
+        max_words: int = 15,
+        words_per_second: float = 2.8,
+        max_seconds: float = 5.0,
+    ) -> CopyClarityResult:
+        """Enforce Leonxlnx/cinetic 5-second copy clarity rule on opening hook."""
+        cleaned = re.sub(r"\s+", " ", (hook_text or "").strip())
+        first_sentence = re.split(r"(?<=[.!?])\s+", cleaned, maxsplit=1)[0] if cleaned else ""
+        words = [w.strip(".,!?;:\"'()[]{}") for w in re.findall(r"\S+", first_sentence)]
+        words = [w for w in words if w]
+        word_count = len(words)
+        est_sec = round(word_count / max(0.5, words_per_second), 2)
+
+        opening_lower = first_sentence.lower()
+        found_buzzwords = [bw for bw in BANNED_HOOK_BUZZWORDS if bw in opening_lower]
+        issues: List[str] = []
+        recommendations: List[str] = []
+        score = 100.0
+
+        if word_count < 4:
+            issues.append("Opening hook is too thin (< 4 words) to establish stakes in 5 seconds.")
+            recommendations.append("Open with a concrete subject, timestamp/location, and immediate conflict.")
+            score -= 40.0
+        elif word_count > max_words or est_sec > max_seconds:
+            issues.append(
+                f"Opening sentence is {word_count} words (~{est_sec:.1f}s); exceeds {max_words}-word / {max_seconds:.0f}s clarity ceiling."
+            )
+            recommendations.append(f"Compress opening line to <= {max_words} crisp words so viewers grasp the stakes under 5s.")
+            score -= 30.0
+
+        if found_buzzwords:
+            issues.append(f"Generic buzzwords detected in opening hook: {found_buzzwords}")
+            recommendations.append("Replace vague hype clichés with concrete physical facts or archival numbers.")
+            score -= min(40.0, len(found_buzzwords) * 20.0)
+
+        final_score = max(0.0, round(score, 1))
+        passed = len(issues) == 0 and final_score >= 70.0
+        return CopyClarityResult(
+            passed=passed,
+            score=final_score,
+            opening_sentence=first_sentence,
+            opening_word_count=word_count,
+            estimated_spoken_sec=est_sec,
+            filler_buzzwords=found_buzzwords,
+            issues=issues,
+            recommendations=recommendations,
+        )
 
     def audit_episode_manifest(
         self,
@@ -186,6 +266,15 @@ class DarkFactoryStoryValidator:
         if not hook_3s_compliant:
             roadmap.append("Hook Point 3s: Acelerar a abertura para exibir o elemento de choque visual nos primeiros 3 segundos.")
 
+        hook_source = (script_narration_full or premise or "").strip()
+        copy_clarity_audit = (
+            self.audit_5s_hook_clarity(hook_source)
+            if hook_source
+            else None
+        )
+        if copy_clarity_audit and not copy_clarity_audit.passed:
+            roadmap.extend(copy_clarity_audit.recommendations)
+
         return DarkFactoryAuditReport(
             project_title=project_title,
             overall_retention_score=round(composite_score, 1),
@@ -200,4 +289,5 @@ class DarkFactoryStoryValidator:
             total_cuts=total_cuts,
             mean_shot_length=round(msl, 2),
             remediation_roadmap=roadmap,
+            copy_clarity_audit=copy_clarity_audit,
         )

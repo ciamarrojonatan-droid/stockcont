@@ -238,12 +238,15 @@ function applyVideoFilter() {
       ? `<span class="tech-badge tech-badge-ok">Catalogado</span>`
       : `<span class="tech-badge tech-badge-warn">Pendente CSV</span>`;
 
-    const posterSrc = v.poster_url || `/api/video/poster/${v.filename}`;
+    const posterSrc = v.poster_url || `/api/video/poster/${encodeURIComponent(v.filename)}`;
+    const safeFileAttr = escapeHtml(v.filename);
+    const safeTitle = escapeHtml(v.title);
+    const safePoster = escapeHtml(posterSrc);
 
     return `
-      <div class="video-card" onclick="openCinemaVideoModal('${v.filename}')">
+      <div class="video-card" data-filename="${safeFileAttr}" onclick="openCinemaVideoModal(this.dataset.filename)">
         <div class="video-card-thumb-wrap">
-          <img class="video-card-thumb" src="${posterSrc}" alt="${v.title}" onerror="this.src='/static/favicon.svg'; this.style.padding='40px';" loading="lazy">
+          <img class="video-card-thumb" src="${safePoster}" alt="${safeTitle}" onerror="this.src='/static/favicon.svg'; this.style.padding='40px';" loading="lazy">
           <div class="video-play-overlay">
             <div class="video-play-btn">
               <svg viewBox="0 0 16 16" width="18" height="18" fill="currentColor">
@@ -258,9 +261,9 @@ function applyVideoFilter() {
           <div class="video-duration-badge mono">00:08</div>
         </div>
         <div class="video-card-body">
-          <div class="video-card-title" title="${v.title}">${v.title}</div>
+          <div class="video-card-title" title="${safeTitle}">${safeTitle}</div>
           <div class="video-card-meta-row mono">
-            <span>${v.size_mb} MB</span>
+            <span>${escapeHtml(v.size_mb)} MB</span>
             <span>MP4 Rec.709</span>
           </div>
         </div>
@@ -431,24 +434,25 @@ function applyVideoQueueFilter() {
       ? `<span class="pill pill-idle" style="color:#AF52DE;">9:16 Vertical</span>`
       : `<span class="pill pill-idle" style="color:#007AFF;">16:9 Wide</span>`;
 
+    const safeHash = escapeHtml(p.prompt_hash);
     return `
       <tr>
         <td style="text-align:center;">
-          <input type="checkbox" class="prompt-select-checkbox" data-hash="${p.prompt_hash}" ${isChecked ? 'checked' : ''} onchange="togglePromptSelect('${p.prompt_hash}', this.checked)">
+          <input type="checkbox" class="prompt-select-checkbox" data-hash="${safeHash}" ${isChecked ? 'checked' : ''} onchange="togglePromptSelect(this.dataset.hash, this.checked)">
         </td>
-        <td class="mono" style="font-size:0.75rem; color:var(--color-system-cyan);">${p.prompt_hash}</td>
+        <td class="mono" style="font-size:0.75rem; color:var(--color-system-cyan);">${safeHash}</td>
         <td>
-          <div style="font-weight:600; color:#ffffff; font-size:0.84rem;">${p.concept || p.source_title || 'Cinematic Motion'}</div>
-          <div class="meta-text" style="font-size:0.74rem; display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; overflow:hidden;">${p.prompt_text}</div>
+          <div style="font-weight:600; color:#ffffff; font-size:0.84rem;">${escapeHtml(p.concept || p.source_title || 'Cinematic Motion')}</div>
+          <div class="meta-text" style="font-size:0.74rem; display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; overflow:hidden;">${escapeHtml(p.prompt_text)}</div>
         </td>
         <td>${aspectBadge}</td>
         <td>
-          <div style="font-size:0.76rem; color:#e2e8f0;">${p.camera_motion || 'Smooth Dolly-in'}</div>
-          <div class="meta-text mono" style="font-size:0.68rem;">Copy: ${p.copy_space_zone || 'Clean 35%'}</div>
+          <div style="font-size:0.76rem; color:#e2e8f0;">${escapeHtml(p.camera_motion || 'Smooth Dolly-in')}</div>
+          <div class="meta-text mono" style="font-size:0.68rem;">Copy: ${escapeHtml(p.copy_space_zone || 'Clean 35%')}</div>
         </td>
         <td>${statusBadge}</td>
         <td style="text-align:center;">
-          <button class="btn btn-xs btn-outline" onclick="openPromptDetail('${p.prompt_hash}')" title="Ver prompt completo de 500-800 palavras">Ver</button>
+          <button class="btn btn-xs btn-outline" data-hash="${safeHash}" onclick="openPromptDetail(this.dataset.hash)" title="Ver prompt completo de 500-800 palavras">Ver</button>
         </td>
       </tr>
     `;
@@ -489,7 +493,7 @@ async function markSelectedVideoGenerated() {
   try {
     const res = await fetch('/api/video/prompts/mark-generated', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: buildSprint6Headers(),
       body: JSON.stringify({ hashes }),
     });
     if (res.ok) {
@@ -509,7 +513,7 @@ async function markSelectedVideoPending() {
   try {
     const res = await fetch('/api/video/prompts/mark-pending', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: buildSprint6Headers(),
       body: JSON.stringify({ hashes }),
     });
     if (res.ok) {
@@ -587,15 +591,17 @@ async function loadI2VStudio() {
         ? `<span class="tech-badge tech-badge-ok">4 Prompts 4D Criados ✓</span>`
         : `<span class="tech-badge tech-badge-idle">Sem Vídeo Sintetizado</span>`;
 
+      const safeImgTitle = escapeHtml(img.title);
+      const safeImgStem = escapeHtml(img.stem);
       return `
         <div class="i2v-card">
           <div class="i2v-thumb-wrap">
-            <img class="i2v-thumb" src="/api/images/${img.filename}/thumb" alt="${img.title}" loading="lazy">
+            <img class="i2v-thumb" src="/api/images/${encodeURIComponent(img.filename)}/thumb" alt="${safeImgTitle}" loading="lazy">
           </div>
           <div class="i2v-card-body">
-            <div class="i2v-card-title" title="${img.title}">${img.title}</div>
+            <div class="i2v-card-title" title="${safeImgTitle}">${safeImgTitle}</div>
             <div>${statusBadge}</div>
-            <button class="btn btn-sm ${hasPrompts ? 'btn-outline' : 'btn-primary'}" onclick="triggerI2VSynthesis('${img.stem}', this)" style="margin-top:auto;">
+            <button class="btn btn-sm ${hasPrompts ? 'btn-outline' : 'btn-primary'}" data-stem="${safeImgStem}" onclick="triggerI2VSynthesis(this.dataset.stem, this)" style="margin-top:auto;">
               <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8">
                 <polygon points="6,3 12,8 6,13" fill="currentColor" stroke="none" />
               </svg>
@@ -606,7 +612,7 @@ async function loadI2VStudio() {
       `;
     }).join('');
   } catch (err) {
-    grid.innerHTML = `<div class="loading" style="color:var(--color-system-red);">Erro ao carregar estúdio I2V: ${err.message}</div>`;
+    grid.innerHTML = `<div class="loading" style="color:var(--color-system-red);">Erro ao carregar estúdio I2V: ${escapeHtml(err.message)}</div>`;
   }
 }
 
@@ -619,7 +625,7 @@ async function triggerI2VSynthesis(imageStem, btnElement) {
   try {
     const res = await fetch('/api/video/director/from-image', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: buildSprint6Headers(),
       body: JSON.stringify({ image_stem: imageStem }),
     });
     const data = await res.json();
@@ -688,17 +694,17 @@ async function loadVideoMatrix() {
       return `
         <tr>
           <td>
-            <div style="font-weight:600; color:#ffffff; font-size:0.82rem;">${r.title}</div>
-            <div class="mono meta-text" style="font-size:0.72rem;">${r.filename}</div>
+            <div style="font-weight:600; color:#ffffff; font-size:0.82rem;">${escapeHtml(r.title)}</div>
+            <div class="mono meta-text" style="font-size:0.72rem;">${escapeHtml(r.filename)}</div>
           </td>
-          <td class="mono" style="font-size:0.78rem;">${r.size_mb} MB</td>
+          <td class="mono" style="font-size:0.78rem;">${escapeHtml(r.size_mb)} MB</td>
           <td>${catBadge}</td>
           ${agencyCols}
         </tr>
       `;
     }).join('');
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="6" class="loading" style="color:var(--color-system-red);">Erro: ${err.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" class="loading" style="color:var(--color-system-red);">Erro: ${escapeHtml(err.message)}</td></tr>`;
   }
 }
 
@@ -706,7 +712,7 @@ async function toggleVideoMatrixCell(filename, agency, uploaded) {
   try {
     await fetch('/api/video/matrix/toggle', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: buildSprint6Headers(),
       body: JSON.stringify({ filename, agency, uploaded }),
     });
     await loadVideoStatus();
@@ -767,6 +773,7 @@ async function loadRunningTasks() {
 }
 
 async function loadVideoTimeline() {
+  bindSprint6TelemetryControls();
   const feed = document.getElementById('video-timeline-feed');
   if (!feed) return;
 
@@ -791,11 +798,11 @@ async function loadVideoTimeline() {
     return `
       <div style="background: rgba(15,23,42,0.65); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 14px 18px; margin-bottom: 12px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-          <span class="mono" style="font-weight: 700; color: #38bdf8;">${t.task_id}</span>
+          <span class="mono" style="font-weight: 700; color: #38bdf8;">${escapeHtml(t.task_id)}</span>
           ${statusBadge}
         </div>
         <div class="mono" style="font-size: 0.78rem; color: #e2e8f0; background: rgba(0,0,0,0.5); padding: 8px 12px; border-radius: 6px; max-height: 120px; overflow-y: auto;">
-          ${(t.logs || []).slice(-8).map((l) => `<div>${l}</div>`).join('') || t.last_log || 'Aguardando logs…'}
+          ${(t.logs || []).slice(-8).map((l) => `<div>${escapeHtml(l)}</div>`).join('') || escapeHtml(t.last_log || 'Aguardando logs…')}
         </div>
       </div>
     `;
@@ -818,7 +825,10 @@ async function triggerRunVideoPhase(phase, platform) {
       url += '?' + params.join('&');
     }
 
-    const res = await fetch(url, { method: 'POST' });
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: buildSprint6Headers(),
+    });
     const data = await res.json();
     if (data.success) {
       alert(`Fase ${phase} de Vídeo iniciada com sucesso!`);
@@ -835,4 +845,96 @@ async function triggerRunVideoPhase(phase, platform) {
 function setElText(id, text) {
   const el = document.getElementById(id);
   if (el) el.textContent = text;
+}
+
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function buildSprint6Headers(extra = {}) {
+  const headers = { 'Content-Type': 'application/json', ...extra };
+  try {
+    const tok = window.localStorage ? window.localStorage.getItem('stockcont_dashboard_token') : null;
+    if (tok) headers['X-Dashboard-Token'] = tok;
+  } catch (_) {
+    // Ignore storage restriction in private/headless contexts
+  }
+  return headers;
+}
+
+function bindSprint6TelemetryControls() {
+  const qaBtn = document.getElementById('btn-s6-motion-qa');
+  const refreshBtn = document.getElementById('btn-s6-refresh-telemetry');
+  if (qaBtn && !qaBtn.dataset.bound) {
+    qaBtn.dataset.bound = '1';
+    qaBtn.addEventListener('click', runSprint6MotionQADemo);
+  }
+  if (refreshBtn && !refreshBtn.dataset.bound) {
+    refreshBtn.dataset.bound = '1';
+    refreshBtn.addEventListener('click', refreshSprint6TelemetryStatus);
+  }
+}
+
+async function refreshSprint6TelemetryStatus() {
+  setElText('s6-qa-detail', 'Sincronizando com API…');
+  try {
+    const res = await fetch('/api/video/status', { headers: buildSprint6Headers() });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const payload = await res.json();
+    const kpis = payload.kpis || {};
+    setElText('s6-qa-status', 'QA Visual Pronta (4 Perfis)');
+    setElText('s6-qa-detail', `Vídeos: ${kpis.videos_total ?? 0} • Seed determinístico ativo`);
+    setElText('s6-svg-status', 'SVG Deconstructor Ativo');
+    setElText('s6-svg-detail', 'Endpoint: /api/v1/video/svg-deconstruct');
+    setElText('s6-cadence-status', 'Cadence Blueprint & Beat-Sync');
+    setElText('s6-cadence-detail', 'Endpoint: /api/v1/video/cadence-blueprint');
+  } catch (err) {
+    setElText('s6-qa-detail', `Falha ao atualizar: ${err.message}`);
+  }
+}
+
+async function runSprint6MotionQADemo() {
+  const out = document.getElementById('sprint6-telemetry-output');
+  const btn = document.getElementById('btn-s6-motion-qa');
+  if (btn) btn.disabled = true;
+  setElText('s6-qa-status', 'Renderizando & Auditando QA…');
+  try {
+    const res = await fetch('/api/v1/video/motion-overlay', {
+      method: 'POST',
+      headers: buildSprint6Headers(),
+      body: JSON.stringify({
+        template: 'blueprint_notebook',
+        title: 'TELEMETRY CHECK',
+        subtitle: 'ZERO-BLOB WCAG QA PASS',
+        personality: 'cold_war_noir',
+        seed: 2026,
+        duration_sec: 3.0,
+        fps: 24,
+        run_qa_gate: true
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+    const qaPassed = Boolean(data.qa_report && data.qa_report.passed);
+    setElText('s6-qa-status', qaPassed ? 'QA Visual: APROVADO' : 'QA Visual: ALERTA');
+    setElText('s6-qa-detail', `Personality: ${data.personality || 'cold_war_noir'} • Seed ${data.seed ?? 2026}`);
+    if (out) {
+      out.style.display = 'block';
+      out.textContent = `Overlay rendered: ${data.output_video_path || data.html_path || 'ok'} | QA Passed: ${qaPassed}`;
+    }
+  } catch (err) {
+    setElText('s6-qa-status', 'Erro no Gate QA');
+    if (out) {
+      out.style.display = 'block';
+      out.textContent = `Motion QA Demo Error: ${err.message}`;
+    }
+  } finally {
+    if (btn) btn.disabled = false;
+  }
 }

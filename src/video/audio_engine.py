@@ -12,9 +12,9 @@ import os
 import struct
 import sys
 import wave
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -74,6 +74,22 @@ class SoundtrackResult:
     sample_rate: int
     profile_used: str
     filesize_bytes: int
+
+
+@dataclass
+class AudioTransientAnalysis:
+    """Extracted beat/onset transient telemetry for beat-locked cutting."""
+
+    audio_path: str
+    duration_sec: float
+    sample_rate: int
+    estimated_bpm: float
+    beat_timestamps: List[float] = field(default_factory=list)
+    peak_timestamps: List[float] = field(default_factory=list)
+    mean_rms: float = 0.0
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
 
 
 class DarkFactoryAudioEngine:
@@ -237,6 +253,7 @@ class DarkFactoryAudioEngine:
                 f"[0:a][music]amix=inputs=2:duration=first:dropout_transition=2[outa]"
             )
 
+        is_mp3 = out_path.suffix.lower() == ".mp3"
         cmd = [
             get_ffmpeg_binary(),
             "-y",
@@ -245,11 +262,11 @@ class DarkFactoryAudioEngine:
             "-i", str(m_path),
             "-filter_complex", filter_complex,
             "-map", "[outa]",
-            "-c:a", "libmp3lame" if out_path.suffix.lower() == ".mp3" else "pcm_s16le",
-            "-b:a", "320k" if out_path.suffix.lower() == ".mp3" else None,
-            str(temp_out),
+            "-c:a", "libmp3lame" if is_mp3 else "pcm_s16le",
         ]
-        cmd = [c for c in cmd if c is not None]
+        if is_mp3:
+            cmd.extend(["-b:a", "320k"])
+        cmd.append(str(temp_out))
 
         logger.info(f"Mixing narration and soundtrack via FFmpeg (ducking={ducking})...")
         res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=120.0)
@@ -276,11 +293,12 @@ class DarkFactoryAudioEngine:
         music_volume: float = 0.15,
         foley_volume: float = 0.35,
         ducking: bool = True,
+        foley_sidechain_ducking: bool = False,
     ) -> Path:
         """3-Stem documentary audio mixer (Voiceover + Music + Foley SFX) via FFmpeg.
 
         Stem 1: Narration (0 dB reference, leads the mix).
-        Stem 2: Soundtrack (-16 to -18 dBFS, dynamically sidechain-ducked by voice).
+        Stem 2: Soundtrack (-16 to -18 dBFS, dynamically sidechain-ducked by voice and optionally SFX).
         Stem 3: Foley / SFX (-10 to -12 dBFS, positioned alongside speech).
         Master: Formatted to 320kbps MP3 or 24-bit PCM WAV.
         """
@@ -311,7 +329,16 @@ class DarkFactoryAudioEngine:
         out_path.parent.mkdir(parents=True, exist_ok=True)
         temp_out = out_path.with_suffix(f".tmp.{os.getpid()}{out_path.suffix}")
 
-        if ducking:
+        if ducking and foley_sidechain_ducking:
+            filter_complex = (
+                f"[1:a]volume={music_volume:.2f}[music];"
+                f"[2:a]volume={foley_volume:.2f},asplit=2[foley_main][foley_side];"
+                f"[0:a]asplit=2[voice_main][voice_side];"
+                f"[voice_side][foley_side]amix=inputs=2:duration=first[duck_trigger];"
+                f"[music][duck_trigger]sidechaincompress=threshold=0.08:ratio=4:attack=20:release=350[ducked_music];"
+                f"[voice_main][ducked_music][foley_main]amix=inputs=3:duration=first:dropout_transition=2[outa]"
+            )
+        elif ducking:
             filter_complex = (
                 f"[1:a]volume={music_volume:.2f}[music];"
                 f"[2:a]volume={foley_volume:.2f}[foley];"
@@ -326,6 +353,7 @@ class DarkFactoryAudioEngine:
                 f"[0:a][music][foley]amix=inputs=3:duration=first:dropout_transition=2[outa]"
             )
 
+        is_mp3 = out_path.suffix.lower() == ".mp3"
         cmd = [
             get_ffmpeg_binary(),
             "-y",
@@ -336,11 +364,11 @@ class DarkFactoryAudioEngine:
             "-i", str(f_path),
             "-filter_complex", filter_complex,
             "-map", "[outa]",
-            "-c:a", "libmp3lame" if out_path.suffix.lower() == ".mp3" else "pcm_s16le",
-            "-b:a", "320k" if out_path.suffix.lower() == ".mp3" else None,
-            str(temp_out),
+            "-c:a", "libmp3lame" if is_mp3 else "pcm_s16le",
         ]
-        cmd = [c for c in cmd if c is not None]
+        if is_mp3:
+            cmd.extend(["-b:a", "320k"])
+        cmd.append(str(temp_out))
 
         logger.info(f"Mixing 3-stem multitrack (voice + music + foley) via FFmpeg...")
         res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=120.0)
@@ -357,3 +385,152 @@ class DarkFactoryAudioEngine:
 
         logger.info(f"✅ 3-Stem documentary mix successfully created: {out_path.name}")
         return out_path
+
+    def analyze_audio_transients(
+        self,
+        audio_path: Path | str,
+        frame_ms: int = 25,
+        hop_ms: int = 10,
+        peak_z_threshold: float = 1.45,
+        min_peak_interval_sec: float = 0.25,
+    ) -> AudioTransientAnalysis:
+        """Extract energy envelope, dominant BPM, and beat transient timestamps."""
+        import subprocess
+        from src.video.ffmpeg_processor import get_ffmpeg_binary
+
+        src = Path(audio_path).resolve()
+        if not src.exists():
+            raise FileNotFoundError(f"Audio file not found for transient analysis: {src}")
+
+        target_sr = 16000
+        samples: Optional[np.ndarray] = None
+        if src.suffix.lower() == ".wav":
+            try:
+                with wave.open(str(src), "rb") as wf:
+                    channels = wf.getnchannels()
+                    sampwidth = wf.getsampwidth()
+                    if sampwidth not in (1, 2, 4):
+                        raise ValueError(f"Unsupported WAV sample width for native decode: {sampwidth}")
+                    target_sr = wf.getframerate()
+                    raw = wf.readframes(wf.getnframes())
+                dtype = np.int16 if sampwidth == 2 else (np.int32 if sampwidth == 4 else np.uint8)
+                arr = np.frombuffer(raw, dtype=dtype).astype(np.float32)
+                if sampwidth == 2:
+                    arr /= 32768.0
+                elif sampwidth == 4:
+                    arr /= 2147483648.0
+                else:
+                    arr = (arr - 128.0) / 128.0
+                if channels > 1:
+                    arr = arr.reshape(-1, channels).mean(axis=1)
+                samples = arr
+            except (wave.Error, EOFError, ValueError, RuntimeError):
+                target_sr = 16000
+                samples = None
+
+        if samples is None:
+            cmd = [
+                get_ffmpeg_binary(),
+                "-v",
+                "error",
+                "-i",
+                str(src),
+                "-ac",
+                "1",
+                "-ar",
+                str(target_sr),
+                "-f",
+                "s16le",
+                "-",
+            ]
+            res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=60.0)
+            if res.returncode != 0 or not res.stdout:
+                err_msg = res.stderr.decode("utf-8", errors="replace")[:300]
+                raise RuntimeError(f"FFmpeg PCM decode failed for {src.name}: {err_msg}")
+            samples = np.frombuffer(res.stdout, dtype=np.int16).astype(np.float32) / 32768.0
+
+        duration_sec = round(len(samples) / max(1, target_sr), 3)
+        if len(samples) == 0:
+            return AudioTransientAnalysis(
+                audio_path=src.as_posix(),
+                duration_sec=0.0,
+                sample_rate=target_sr,
+                estimated_bpm=0.0,
+            )
+
+        frame_len = max(64, int(target_sr * frame_ms / 1000.0))
+        hop_len = max(32, int(target_sr * hop_ms / 1000.0))
+        rms_values: List[float] = []
+        times: List[float] = []
+        for start in range(0, max(1, len(samples) - frame_len + 1), hop_len):
+            chunk = samples[start : start + frame_len]
+            rms_values.append(float(np.sqrt(np.mean(chunk * chunk))))
+            times.append(start / target_sr)
+
+        rms_arr = np.asarray(rms_values, dtype=np.float32)
+        mean_rms = float(np.mean(rms_arr)) if len(rms_arr) else 0.0
+        std_rms = float(np.std(rms_arr)) if len(rms_arr) else 0.0
+
+        # Spectral/energy onset flux emphasizes sudden drum/clock transients over sustained drones
+        flux = np.maximum(0.0, np.diff(rms_arr, prepend=rms_arr[0]))
+        flux_mean = float(np.mean(flux))
+        flux_std = float(np.std(flux))
+        thresh = max(1e-4, flux_mean + peak_z_threshold * flux_std)
+
+        peaks: List[float] = []
+        last_peak_t = -min_peak_interval_sec
+        for i in range(1, len(flux) - 1):
+            if flux[i] >= thresh and flux[i] >= flux[i - 1] and flux[i] >= flux[i + 1]:
+                t_sec = round(float(times[i]), 3)
+                if t_sec - last_peak_t >= min_peak_interval_sec:
+                    peaks.append(t_sec)
+                    last_peak_t = t_sec
+
+        # Estimate dominant BPM from inter-onset intervals
+        estimated_bpm = 0.0
+        if len(peaks) >= 2:
+            ibis = np.diff(np.asarray(peaks, dtype=np.float32))
+            valid_ibis = ibis[(ibis >= 0.25) & (ibis <= 1.5)]
+            if len(valid_ibis) > 0:
+                med_ibi = float(np.median(valid_ibis))
+                bpm = 60.0 / med_ibi
+                while bpm < 55.0:
+                    bpm *= 2.0
+                while bpm > 180.0:
+                    bpm /= 2.0
+                estimated_bpm = round(bpm, 1)
+
+        return AudioTransientAnalysis(
+            audio_path=src.as_posix(),
+            duration_sec=duration_sec,
+            sample_rate=target_sr,
+            estimated_bpm=estimated_bpm,
+            beat_timestamps=peaks,
+            peak_timestamps=peaks,
+            mean_rms=round(mean_rms, 5),
+        )
+
+    @staticmethod
+    def snap_cut_times_to_beats(
+        cut_times: List[float],
+        beat_timestamps: List[float],
+        tolerance_sec: float = 0.18,
+        min_spacing_sec: float = 0.60,
+    ) -> List[float]:
+        """Align scene cut times to nearby audio beats without crushing natural pacing."""
+        if not cut_times or not beat_timestamps:
+            return list(cut_times)
+
+        sorted_beats = sorted(float(b) for b in beat_timestamps)
+        snapped: List[float] = []
+        for idx, t in enumerate(cut_times):
+            t_val = float(t)
+            if idx == 0 and t_val <= 0.05:
+                snapped.append(0.0)
+                continue
+            nearest = min(sorted_beats, key=lambda b: abs(b - t_val))
+            candidate = nearest if abs(nearest - t_val) <= tolerance_sec else t_val
+            if snapped and (candidate - snapped[-1]) < min_spacing_sec:
+                candidate = max(t_val, snapped[-1] + min_spacing_sec)
+            snapped.append(round(candidate, 3))
+        return snapped

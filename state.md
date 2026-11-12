@@ -1,7 +1,21 @@
 # StockCont Pipeline State
 > Sincronizado automaticamente por hooks e comandos do ecossistema.
 
-## Sprint Atual: Sprints 1–3 — HyperFrames/Anatomy Motion, Image Codes, Unit Economics, Research Engine & Blindagem 24/7
+## Sprint Atual: Sprints 4–6 — Motion Personalities & Zero-Blob Plates, Motion QA Visual Gate, Beat-Sync Audio Engine, SVG Deconstructor & Playwright SPA Audit
+- **Status das Sprints 4–6**: [CONCLUÍDO & VERIFICADO]:
+  1. **Sprint 4 — Personalidades de Movimento, Zero-Blob Style Plates, Motion QA Gate & Linter 5s**:
+     - `src/video/motion_qa.py`: `MotionQAInspector` com auditoria determinística Nível 1 (`compute_contrast_ratio` WCAG >= 4.5, `check_text_safe_area`, detecção de congelamento de frames e clipping em bordas, `generate_contact_sheet` 3x3 PNG atômico) + gancho Nível 2 Gemini Vision (`vision_critique`).
+     - `src/video/hyperframes_engine.py`: 4 personalidades (`cold_war_noir`, `clinical_fintech`, `executive_corporate`, `high_energy_hook`), 3 plates Zero-Blob (`blueprint_notebook`, `risograph_declassified`, `cut_paper_editorial`), PRNG determinístico Mulberry32 (`seed` / `window.__hfRng`, zero `Math.random()`), render procedural blindado contra pipe deadlock (`stdout=DEVNULL` + `finally: proc.kill()`), escape XML seguro e `run_qa_gate`/`strict_qa`.
+     - `src/video/tactical_graphics.py`, `src/video/story_validator.py` & `src/video/youtube_booster.py`: `validate_overlay_legibility()`, pre-check QA opcional em `composite_motion_overlay()`, `audit_5s_hook_clarity()` isolado à frase de abertura (`max_words=15`, zero buzzwords genéricas) integrado ao `DarkFactoryAuditReport` e `build_master_youtube_package()`.
+  2. **Sprint 5 — Beat-Sync Audio Engine, Foley Sidechain Ducking, Cadence Blueprint & Shot Cards**:
+     - `src/video/audio_engine.py`: `analyze_audio_transients()` (WAV nativo + fallback automático FFmpeg PCM para 24-bit/IEEE float + estimador BPM por mediana IBI), `snap_cut_times_to_beats()`, `foley_sidechain_ducking` em `mix_multitrack_documentary` e correção da flag FFmpeg `-b:a` em saídas `.wav`.
+     - `src/video/pacing_analyzer.py`, `src/video/otio_exporter.py` & `src/analyzer/video_director.py`: `CadenceBlueprint` atômico via `get_ffprobe_binary()`, marcadores de batida e alinhamento de overlays no OTIO (`build_beat_markers`, `_align_clips_to_beats`) e catálogo `SHOT_CARD_RECIPES` (`get_shot_card_recipe`, `build_shot_card_directive`).
+  3. **Sprint 6 — Raster → SVG Semântico Animável, Endpoints Blindados & Look-and-Fix SPA**:
+     - `src/video/svg_deconstructor.py`: `RasterToAnimatedSVG` com extração de máscara, validação hex estrita (`^#[0-9a-fA-F]{6}$`), camadas semânticas (`grid`, `mark`, `callouts`, `wordmark`), `faithful_landing_iou`, `smoothness_gate_passed` e player seekable GSAP (`window.__timelines`) + template `deconstructed_emblem_vector`.
+     - `src/dashboard/app.py`, `schemas.py`, `static/index.html`, `static/video.html`, `static/js/video.js`, `static/css/dashboard.css`: novos endpoints `/api/v1/video/motion-qa`, `/api/v1/video/cadence-blueprint` e `/api/v1/video/svg-deconstruct` com contenção de workspace (`_validate_workspace_file` anti-traversal), painel Telemetry Studio em `/video`, `escapeHtml` + `buildSprint6Headers()` consistentes no `video.js`, correção mobile `@media (max-width: 768px)` e remoção de `src=""` no modal de `index.html`.
+     - Validação Playwright E2E (`tests/test_spa_look_and_fix.py`): auditoria Chromium desktop (`1440x900`) e mobile (`390x844`) em `/` e `/video` + novas suítes `tests/test_motion_qa_and_copy.py`, `tests/test_beat_sync_and_cadence.py` e `tests/test_svg_deconstructor.py`.
+
+### Marco Anterior: Sprints 1–3 — HyperFrames/Anatomy Motion, Image Codes, Unit Economics, Research Engine & Blindagem 24/7
 - **Status das Sprints 1–3**: [CONCLUÍDO & VERIFICADO]:
   1. **Sprint 1 — DarkFactory Motion Engine & YouTube Closed-Loop**:
      - `src/video/hyperframes_engine.py`: `HyperFramesMotionEngine` com contrato HTML/CSS/GSAP (`window.__timelines`, `paused: true`, `data-start`, `data-duration`), diagramas isométricos 4-tonalidades inspirados em `wheresryan22/anatomy`, injeção automática de `C:\ffmpeg\bin` via `get_ffmpeg_binary()`, gate determinístico `<= 20s` (`render_preview_gate`) e fallback procedural H.264 sem dependências externas pesadas.
@@ -14,9 +28,6 @@
      - `src/video/research_engine.py`: `PublicDomainResearchEngine` consultando Wikipedia REST, Wikimedia Commons (filtro rígido de licenças `Public Domain` / `CC0` / `PD-USGov`), Internet Archive e NASA Open APIs com cache em `data/raw/research_cache/`, dossiês atômicos em `data/processed/research_dossiers/` e fallback offline para `data/raw/dossiers/`.
      - `src/analyzer/seasonal_radar.py`: `fetch_live_signal_boosters()` e `get_merged_seasonal_opportunities()` mantendo a âncora D+75 `SEASONAL_CALENDAR` com fallback offline resiliente.
      - Blindagem & Telemetria: `DASHBOARD_ACCESS_TOKEN` middleware (Bearer / `X-Dashboard-Token`) em rotas mutáveis `/api/*` (`src/dashboard/app.py`), `AlertNotifier` por transição de estado e ping dead-man em `src/orchestrator/daemon.py`, guia `docs/REMOTE_TUNNEL_SETUP.md` e flags CLI unificadas em `main.py`.
-  4. **Validação Automatizada**:
-     - Novas suítes Sprints 1–3 (`test_hyperframes_engine.py`, `test_youtube_booster.py`, `test_director_image_codes.py`, `test_unit_economics.py`, `test_research_engine.py`, `test_sprint3_security.py`): 100% aprovadas.
-     - Suíte completa (`pytest -q`): **347 passed**, 3 falhas pré-existentes exclusivas de `tests/test_kokoro_voice.py` por ausência de modelos binários locais em workspace limpo (`data/models/kokoro/kokoro-v0_19.onnx` e áudios piloto).
 - **Última Atualização**: 2026-11-11
 - **Modo Operacional**: Dual-Mode (Antigravity & Claude Code via SSOT `AGENTS.md`)
 

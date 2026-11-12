@@ -238,11 +238,40 @@ class TacticalGraphicsEngine:
         ]
 
         try:
-            subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
+            subprocess.run(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                check=True,
+            )
             return out_vid.exists() and out_vid.stat().st_size > 0
         except subprocess.CalledProcessError as e:
             logger.error(f"Erro ao aplicar overlay com FFmpeg: {e.stderr}")
             return False
+
+    def validate_overlay_legibility(
+        self,
+        fg_hex: str = "#F1F5F9",
+        bg_hex: str = "#0A0F18",
+        accent_hex: Optional[str] = "#38BDF8",
+    ) -> Dict[str, Any]:
+        """Run WCAG contrast verification before rasterizing tactical overlays."""
+        from src.video.motion_qa import MotionQAInspector
+
+        inspector = MotionQAInspector()
+        passed, ratio, findings = inspector.inspect_palette_contrast(
+            bg_hex=bg_hex,
+            fg_hex=fg_hex,
+            accent_hex=accent_hex,
+        )
+        return {
+            "passed": passed,
+            "contrast_ratio": ratio,
+            "findings": [f.message for f in findings],
+        }
 
     def composite_motion_overlay(
         self,
@@ -255,6 +284,8 @@ class TacticalGraphicsEngine:
         scale_to_frame: bool = True,
         colorkey: Optional[str] = None,
         ffmpeg_bin: Optional[str] = None,
+        qa_check: bool = False,
+        strict_qa: bool = False,
     ) -> bool:
         """Compoe um clipe de motion graphics MP4/WebM sobre o vídeo mestre via FFmpeg."""
         in_base = Path(base_video_path)
@@ -264,6 +295,20 @@ class TacticalGraphicsEngine:
         if not in_base.exists() or not in_ov.exists():
             logger.error("Vídeo base ou motion overlay inexistente para composição.")
             return False
+
+        if qa_check:
+            from src.video.motion_qa import MotionQAInspector
+
+            qa_res = MotionQAInspector().audit_video(in_ov, generate_sheet=False)
+            if not qa_res.passed:
+                logger.warning(
+                    "Motion QA pre-composite warning on %s (score=%.1f): %s",
+                    in_ov.name,
+                    qa_res.score,
+                    [f.code for f in qa_res.findings],
+                )
+                if strict_qa:
+                    return False
 
         out_vid.parent.mkdir(parents=True, exist_ok=True)
         resolved_ffmpeg = self._resolve_ffmpeg_bin(ffmpeg_bin)
@@ -309,7 +354,15 @@ class TacticalGraphicsEngine:
         ]
 
         try:
-            subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
+            subprocess.run(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                check=True,
+            )
             return out_vid.exists() and out_vid.stat().st_size > 0
         except subprocess.CalledProcessError as e:
             logger.error(f"Erro ao compor motion overlay com FFmpeg: {e.stderr}")

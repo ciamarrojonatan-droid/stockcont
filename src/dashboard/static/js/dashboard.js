@@ -618,7 +618,7 @@ function renderModalMeta(meta) {
 
 function closeModal() {
   document.getElementById('modal-overlay').classList.remove('open');
-  document.getElementById('modal-img').src = '';
+  document.getElementById('modal-img').removeAttribute('src');
 }
 
 // ── Queue ──────────────────────────────────────────

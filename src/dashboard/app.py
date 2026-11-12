@@ -1247,6 +1247,29 @@ async def generate_minimax_h3_endpoint(req: schemas.MiniMaxH3VideoRequest):
 
 # ── HyperFrames Motion Overlay & YouTube Lint ───────
 
+def _validate_workspace_file(path_str: str, allowed_exts: set[str], label: str = "path") -> Path:
+    """Restrict user-supplied API file paths strictly inside workspace data/safe boundaries."""
+    if not path_str or not str(path_str).strip():
+        raise HTTPException(status_code=400, detail=f"Missing {label}.")
+    base = readers.BASE_DIR.resolve()
+    target = Path(path_str).resolve()
+    try:
+        rel = target.relative_to(base)
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Path traversal forbidden for {label}: path must reside inside workspace.",
+        )
+    if rel.parts and rel.parts[0].lower() in {"src", ".git", ".agents", "venv", ".venv"}:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Access forbidden for {label}: protected directory '{rel.parts[0]}'.",
+        )
+    if not target.is_file() or target.suffix.lower() not in allowed_exts:
+        raise HTTPException(status_code=400, detail=f"Invalid or missing {label}.")
+    return target
+
+
 @app.post("/api/v1/video/motion-overlay", response_model=schemas.MotionOverlayResponse)
 async def render_motion_overlay_endpoint(req: schemas.MotionOverlayRequest):
     """Renderiza overlay HyperFrames / Isometric CAD com envelope determinístico e gate 20s."""
@@ -1259,8 +1282,16 @@ async def render_motion_overlay_endpoint(req: schemas.MotionOverlayRequest):
             detail=f"Unknown motion template '{req.template}'. Valid: {sorted(MOTION_TEMPLATES)}",
         )
 
-    engine = HyperFramesMotionEngine()
-    data = {"components": req.components} if req.components else None
+    overlay_dir = (readers.BASE_DIR / "data" / "final" / "motion_overlays").resolve()
+    engine = HyperFramesMotionEngine(output_dir=overlay_dir)
+    data: dict = {}
+    if req.components:
+        data["components"] = req.components
+    if req.image_path:
+        img_target = _validate_workspace_file(
+            req.image_path, {".png", ".jpg", ".jpeg", ".webp", ".bmp"}, "image_path"
+        )
+        data["image_path"] = img_target.as_posix()
 
     if req.preview_gate_20s:
         res = await asyncio.to_thread(
@@ -1272,9 +1303,12 @@ async def render_motion_overlay_endpoint(req: schemas.MotionOverlayRequest):
             width=req.width,
             height=req.height,
             fps=req.fps,
-            data=data,
+            data=data or None,
             use_hyperframes_cli=req.use_hyperframes_cli,
             force_procedural=req.force_procedural,
+            seed=req.seed,
+            personality=req.personality,
+            run_qa_gate=True if req.run_qa_gate else False,
         )
     else:
         res = await asyncio.to_thread(
@@ -1286,16 +1320,115 @@ async def render_motion_overlay_endpoint(req: schemas.MotionOverlayRequest):
             width=req.width,
             height=req.height,
             fps=req.fps,
-            data=data,
+            data=data or None,
             use_hyperframes_cli=req.use_hyperframes_cli,
             force_procedural=req.force_procedural,
             muted=req.muted,
+            seed=req.seed,
+            personality=req.personality,
+            run_qa_gate=req.run_qa_gate,
         )
     return schemas.MotionOverlayResponse(**{
         k: v
         for k, v in res.to_dict().items()
         if k in schemas.MotionOverlayResponse.model_fields
     })
+
+
+@app.post("/api/v1/video/motion-qa", response_model=schemas.MotionQAResponse)
+async def audit_motion_qa_endpoint(req: schemas.MotionQARequest):
+    """Audita vídeo renderizado com Contact Sheet 3x3, contraste WCAG e detecção de congelamento."""
+    import asyncio
+    from dataclasses import asdict
+    from src.video.motion_qa import MotionQAInspector
+
+    target = _validate_workspace_file(
+        req.video_path, {".mp4", ".mov", ".webm", ".mkv", ".avi"}, "video_path for Motion QA"
+    )
+    telemetry_dir = (readers.BASE_DIR / "data" / "staging" / "telemetry").resolve()
+    telemetry_dir.mkdir(parents=True, exist_ok=True)
+    sheet_path = (telemetry_dir / f"{target.stem}_qa_sheet.png") if req.generate_sheet else None
+
+    inspector = MotionQAInspector()
+    report = await asyncio.to_thread(
+        inspector.audit_video,
+        video_path=target,
+        bg_hex=req.bg_hex,
+        fg_hex=req.fg_hex,
+        accent_hex=req.accent_hex,
+        personality=req.personality,
+        generate_sheet=req.generate_sheet,
+        contact_sheet_path=sheet_path,
+        vision_critique=req.vision_critique,
+    )
+    payload = report.to_dict()
+    payload["findings"] = [asdict(f) for f in report.findings]
+    return schemas.MotionQAResponse(**payload)
+
+
+@app.post("/api/v1/video/cadence-blueprint", response_model=schemas.CadenceBlueprintResponse)
+async def build_cadence_blueprint_endpoint(req: schemas.CadenceBlueprintRequest):
+    """Extrai Cadence Blueprint rítmico e transientes musicais para alinhamento de cortes."""
+    import asyncio
+    from src.video.audio_engine import DarkFactoryAudioEngine
+    from src.video.pacing_analyzer import CinematicPacingAnalyzer
+
+    vid_target = _validate_workspace_file(
+        req.video_path, {".mp4", ".mov", ".webm", ".mkv", ".avi"}, "video_path for Cadence Blueprint"
+    )
+
+    beats: list[float] = []
+    est_bpm: Optional[float] = None
+    if req.audio_path:
+        aud_target = _validate_workspace_file(
+            req.audio_path, {".wav", ".mp3", ".flac", ".aac", ".m4a"}, "audio_path for transient extraction"
+        )
+        audio_analysis = await asyncio.to_thread(DarkFactoryAudioEngine().analyze_audio_transients, aud_target)
+        beats = audio_analysis.beat_timestamps
+        est_bpm = audio_analysis.estimated_bpm
+
+    analyzer = CinematicPacingAnalyzer()
+    report = await asyncio.to_thread(analyzer.analyze_pacing, vid_target)
+    telemetry_dir = (readers.BASE_DIR / "data" / "staging" / "telemetry").resolve()
+    telemetry_dir.mkdir(parents=True, exist_ok=True)
+    out_json = (telemetry_dir / f"{vid_target.stem}.cadence.json") if req.save_json else None
+    blueprint = await asyncio.to_thread(
+        analyzer.export_cadence_blueprint,
+        report=report,
+        output_json_path=out_json,
+        beat_timestamps=beats or None,
+        snap_tolerance_sec=req.snap_tolerance_sec,
+    )
+    data = blueprint.to_dict()
+    data["estimated_bpm"] = est_bpm
+    data["audio_beats"] = beats
+    data["blueprint_json_path"] = out_json.as_posix() if out_json else None
+    return schemas.CadenceBlueprintResponse(**data)
+
+
+@app.post("/api/v1/video/svg-deconstruct", response_model=schemas.SVGDeconstructResponse)
+async def svg_deconstruct_endpoint(req: schemas.SVGDeconstructRequest):
+    """Converte emblemas ou diagramas raster em SVG semântico animável com Faithful Landing IoU."""
+    import asyncio
+    from src.video.svg_deconstructor import RasterToAnimatedSVG
+
+    img_target = _validate_workspace_file(
+        req.image_path, {".png", ".jpg", ".jpeg", ".webp", ".bmp"}, "image_path for SVG deconstruction"
+    )
+    telemetry_dir = (readers.BASE_DIR / "data" / "staging" / "telemetry").resolve()
+    telemetry_dir.mkdir(parents=True, exist_ok=True)
+
+    res = await asyncio.to_thread(
+        RasterToAnimatedSVG().deconstruct_raster,
+        image_path=img_target,
+        output_svg_path=telemetry_dir / f"{img_target.stem}.semantic.svg",
+        output_html_path=telemetry_dir / f"{img_target.stem}.semantic.html",
+        title=req.title,
+        subtitle=req.subtitle,
+        max_paths=req.max_paths,
+        duration_sec=req.duration_sec,
+    )
+    return schemas.SVGDeconstructResponse(**res.to_dict())
 
 
 @app.post("/api/v1/youtube/lint-package", response_model=schemas.YouTubeLintResponse)

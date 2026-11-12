@@ -288,6 +288,10 @@ class MotionOverlayRequest(BaseModel):
     use_hyperframes_cli: bool = False
     muted: bool = True
     components: Optional[List[str]] = None
+    seed: Optional[int] = None
+    personality: Optional[str] = None
+    run_qa_gate: bool = False
+    image_path: Optional[str] = None
 
 
 class MotionOverlayResponse(BaseModel):
@@ -304,6 +308,77 @@ class MotionOverlayResponse(BaseModel):
     render_backend: str
     is_preview_gate: bool = False
     has_audio: bool = False
+    error: Optional[str] = None
+    seed: Optional[int] = None
+    personality: Optional[str] = None
+    contact_sheet_path: Optional[str] = None
+    qa_report: Optional[Dict[str, Any]] = None
+
+
+class MotionQARequest(BaseModel):
+    video_path: str
+    bg_hex: str = "#070D17"
+    fg_hex: str = "#F1F5F9"
+    accent_hex: Optional[str] = "#38BDF8"
+    personality: str = "cold_war_noir"
+    generate_sheet: bool = True
+    vision_critique: bool = False
+
+
+class MotionQAResponse(BaseModel):
+    passed: bool
+    score: float
+    video_path: str
+    contact_sheet_path: Optional[str] = None
+    contrast_ratio: float
+    min_motion_delta: float
+    max_motion_delta: float
+    frozen_frame_pairs: int
+    safe_margin_ok: bool
+    sampled_frame_count: int
+    findings: List[Dict[str, Any]] = []
+    vision_critique: Optional[str] = None
+
+
+class CadenceBlueprintRequest(BaseModel):
+    video_path: str
+    audio_path: Optional[str] = None
+    snap_tolerance_sec: float = Field(default=0.18, ge=0.02, le=1.0)
+    save_json: bool = False
+
+
+class CadenceBlueprintResponse(BaseModel):
+    source_video: str
+    pacing_archetype: str
+    total_duration_sec: float
+    target_msl_sec: float
+    tension_score: int
+    rehook_timestamps_sec: List[float] = []
+    normalized_beats: List[Dict[str, Any]] = []
+    estimated_bpm: Optional[float] = None
+    audio_beats: List[float] = []
+    blueprint_json_path: Optional[str] = None
+
+
+class SVGDeconstructRequest(BaseModel):
+    image_path: str
+    title: str = "DECLASSIFIED ARTIFACT"
+    subtitle: str = "SEMANTIC VECTOR RECONSTRUCTION"
+    max_paths: int = Field(default=48, ge=1, le=200)
+    duration_sec: float = Field(default=4.0, ge=0.5, le=30.0)
+
+
+class SVGDeconstructResponse(BaseModel):
+    success: bool
+    source_image_path: str
+    svg_path: Optional[str] = None
+    html_path: Optional[str] = None
+    semantic_groups: List[str] = []
+    path_count: int = 0
+    total_vertices: int = 0
+    faithful_landing_iou: float = 0.0
+    smoothness_gate_passed: bool = False
+    svg_markup: str = ""
     error: Optional[str] = None
 
 
