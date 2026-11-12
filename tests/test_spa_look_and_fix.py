@@ -24,21 +24,20 @@ def test_spa_static_markup_and_sprint6_widgets(monkeypatch):
     res_root = client.get("/")
     assert res_root.status_code == 200
     assert "<html" in res_root.text.lower()
+    assert "8502" not in res_root.text
 
     res_video = client.get("/video")
     assert res_video.status_code == 200
+    assert "8502" not in res_video.text
     assert "StockCont Cinema" in res_video.text
     assert "Video & Motion Architecture" in res_video.text
     assert 'id="sprint6-telemetry-panel"' in res_video.text
     assert 'id="btn-s6-motion-qa"' in res_video.text
     assert 'id="btn-s6-refresh-telemetry"' in res_video.text
-    assert 'id="sprint9-studio-panel"' in res_video.text
-    assert 'id="btn-s9-map-demo"' in res_video.text
-    assert 'id="btn-s9-storyboard-demo"' in res_video.text
     assert 'id="sprint10-shorts-promo-panel"' in res_video.text
-    assert 'id="btn-s10-repurpose-short"' in res_video.text
     assert 'id="btn-s11-promo-pack"' in res_video.text
-    assert 'id="btn-s9-thumbs-demo"' in res_video.text
+    assert 'id="sprint9-studio-panel"' not in res_video.text
+    assert 'id="btn-s10-repurpose-short"' not in res_video.text
     assert "/static/js/video.js" in res_video.text
 
     res_js = client.get("/static/js/video.js")
@@ -46,7 +45,7 @@ def test_spa_static_markup_and_sprint6_widgets(monkeypatch):
     assert "bindSprint6TelemetryControls" in res_js.text
     assert "runSprint6MotionQADemo" in res_js.text
     assert "refreshSprint6TelemetryStatus" in res_js.text
-    assert "bindSprint9StudioControls" in res_js.text
+    assert "bindSprint9StudioControls" not in res_js.text
     assert "bindSprint10PromoControls" in res_js.text
 
 
@@ -154,7 +153,6 @@ def test_playwright_spa_look_and_fix_audit():
                                     tab_btn.first.click()
                                     page.wait_for_timeout(250)
                                     assert page.locator("#sprint6-telemetry-panel").is_visible()
-                                    assert page.locator("#sprint9-studio-panel").is_visible()
                                     assert page.locator("#sprint10-shorts-promo-panel").is_visible()
 
                         assert console_errors == [], f"Console errors on {vp_name}: {console_errors}"

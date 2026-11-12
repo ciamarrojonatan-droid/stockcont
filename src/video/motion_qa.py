@@ -1,4 +1,4 @@
-"""StockCont & DarkFactory — Deterministic Motion QA & Contact-Sheet Inspector.
+"""StockCont — Deterministic Motion QA & Contact-Sheet Inspector.
 
 Implements pre-release visual quality gates inspired by:
 - alexgreensh/anidoodle (risk-window sampling, determinism & clipping checks)
@@ -260,7 +260,7 @@ class MotionQAInspector:
         subtitle: str,
         width: int,
         height: int,
-        template: str = "tactical_hud",
+        template: str = "saas_fintech_telemetry_ui",
         safe_margin_ratio: float = 0.05,
     ) -> Tuple[bool, List[MotionQAFinding]]:
         """Verify rendered title/subtitle bounds stay inside title-safe area (no edge clipping)."""
@@ -273,10 +273,7 @@ class MotionQAInspector:
         title_font = _load_qa_font(title_size)
         sub_font = _load_qa_font(sub_size)
 
-        if template == "lower_third":
-            tx, ty = int(width * 0.09), int(height * 0.745)
-        else:
-            tx, ty = int(width * 0.07), int(height * 0.14)
+        tx, ty = int(width * 0.07), int(height * 0.14)
 
         margin_x = int(width * safe_margin_ratio)
         margin_y = int(height * safe_margin_ratio)

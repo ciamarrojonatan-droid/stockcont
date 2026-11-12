@@ -161,17 +161,8 @@ def check_status() -> None:
                 v_prompts_count = sum(len(p.get("derivative_prompts", [])) for p in v_data)
         except Exception:
             pass
-    print(f"  [V] Video Pipeline (4K):  Workflow: 2115926169974812674 (Load Image #164 -> Prompt #17 -> Video Combine #157)")
+    print(f"  [V] Video Pipeline (4K):  Workflow: 2115926169974812674 (Load Image #164 -> Prompt #17 -> Feihou Preview #185)")
     print(f"                            {v_prompts_count} video prompts prontos | {len(final_videos)} vídeos em data/final/videos/")
-
-    # DarkFactory Cinema Engine (T2V) Status
-    try:
-        from src.video.darkfactory_t2v import DarkFactoryT2VDirector
-        df_director = DarkFactoryT2VDirector()
-        df_stats = df_director.get_stats()
-        print(f"  [DF-T2V] DarkFactory Cinema:  {df_stats['total_scenes']} scenes ({df_stats['total_shots']} dual-shots) | Targets: MiniMax H3 & Google Veo 2")
-    except Exception:
-        pass
 
     # Cloud Backup: Google Drive
     from src.backup.gdrive_backup import GoogleDriveBackup
@@ -332,71 +323,6 @@ def run_backup(dry_run: bool = False, force: bool = False) -> None:
     run_gdrive_backup(dry_run=dry_run, force=force)
     logger.info("Google Drive Backup finished.")
 
-def run_darkfactory_t2v(
-    archetype: str = "all",
-    export_only: bool = False,
-    custom_title: str | None = None,
-    custom_beat: str | None = None
-) -> None:
-    """Execute DarkFactory T2V Cinema Engine: synthesize high-retention dual-shots."""
-    logger.info("--- Starting DarkFactory Cinema Engine (T2V Narrative Architect) ---")
-    from src.video.darkfactory_t2v import DarkFactoryT2VDirector, NARRATIVE_ARCHETYPES, initialize_default_darkfactory_pipeline
-    director = DarkFactoryT2VDirector()
-    if export_only:
-        minimax_f, veo_f = director.export_model_queues()
-        print(f"\n✅ Filas exportadas com sucesso:")
-        print(f"  • MiniMax H3 (Hailuo): {minimax_f}")
-        print(f"  • Google Flow (Veo 2): {veo_f}\n")
-        return
-
-    if custom_title and custom_beat:
-        logger.info(f"Generating custom dual-shot scene: '{custom_title}'")
-        res = director.create_custom_dual_shot(
-            scene_title=custom_title,
-            narrative_beat=custom_beat,
-            shot_a_subject=f"Dramatic medium close-up of protagonist in {custom_title}, {custom_beat}. Tense breathing, subtle light glinting in eyes, authentic emotion.",
-            shot_a_camera="Slow forward push-in dolly movement, eye-level, 35mm anamorphic",
-            shot_b_subject=f"Visceral macro cutaway detail supporting {custom_title}. Atmospheric environment, dynamic kinetic motion.",
-            shot_b_camera="Handheld visceral drift with macro rack-focus, shallow depth of field"
-        )
-        print(f"\n🎬 Bespoke Scene Created: {res['title']} (Scene #{res['scene_id']})")
-        for sh in res['shots']:
-            print(f"  • [{sh['shot_type'].upper()}] {sh['focus']}: {sh['camera_movement']}")
-        return
-
-    if archetype == "all":
-        director = initialize_default_darkfactory_pipeline()
-    else:
-        if archetype in NARRATIVE_ARCHETYPES:
-            arch = NARRATIVE_ARCHETYPES[archetype]
-            for idx in range(len(arch.get("scenes", []))):
-                director.create_scene_from_archetype(archetype, scene_index=idx)
-        else:
-            logger.error(f"Archetype '{archetype}' not recognized. Available: {list(NARRATIVE_ARCHETYPES.keys())}")
-            return
-
-    stats = director.get_stats()
-    print("\n=== DARKFACTORY CINEMA ENGINE (T2V) SUMMARY:")
-    print(f"  • Total de Cenas Narrativas: {stats['total_scenes']}")
-    print(f"  • Total de Planos Dual-Shot: {stats['total_shots']} (Shot A: Tensão / Shot B: Macro)")
-    print(f"  • Modelos Alvo Calibrados:   MiniMax H3 (Hailuo) & Google Flow (Veo 2)")
-    print(f"  • Filas Prontas em:          data/processed/minimax_t2v_queue.json")
-    print(f"                               data/processed/google_veo_queue.json\n")
-
-
-def run_nolan_director(topic: str = "1983 Soviet nuclear false alarm incident") -> None:
-    """Execute Christopher Nolan Showrunner Engine to direct a dark historical documentary episode."""
-    logger.info(f"--- Starting Christopher Nolan Dark History Director on '{topic}' ---")
-    df_root = Path(__file__).resolve().parent.parent / "darkfactory"
-    nolan_script = df_root / "src" / "nolan_director.py"
-    if nolan_script.exists():
-        import subprocess
-        python_exe = sys.executable
-        subprocess.run([python_exe, str(nolan_script), "--topic", topic])
-    else:
-        logger.error(f"Nolan Director script not found at {nolan_script}")
-
-
 def run_video_phase_2(max_items: int | None = None, image_stem: str | None = None) -> None:
     """Execute Video Phase 2: Video Director of Photography."""
     logger.info("--- Starting Video Phase 2: Video Director (Gemini Vision 4D Temporal Prompts) ---")
@@ -494,10 +420,6 @@ def main() -> None:
     parser.add_argument("--qc-mode", choices=["auto", "manual"], default=None, help="QC mode: 'auto' (Gemini Vision default) or 'manual' (Dashboard triage)")
     parser.add_argument("--upscale", action="store_true", help="Upscale all approved staging images to 8K")
     parser.add_argument("--seasonal", action="store_true", help="Display predictive seasonal demand forecast and Blue Ocean niches")
-    parser.add_argument("--narration", action="store_true", help="Generate AI voice narration via CosyVoice on RunningHub")
-    parser.add_argument("--script", type=str, default=None, help="Script text for CosyVoice narration")
-    parser.add_argument("--emotion", type=str, default=None, help="Emotion and tone instruction for CosyVoice")
-    parser.add_argument("--speed", type=float, default=1.0, help="Speech speed for CosyVoice (default: 1.0)")
     parser.add_argument("--dashboard", action="store_true", help="Launch the StockCont web dashboard (http://localhost:8501)")
     parser.add_argument("--port", type=int, default=8501, help="Port for the dashboard server (default: 8501)")
     parser.add_argument("--no-browser", action="store_true", help="Start dashboard without auto-opening browser")
@@ -559,62 +481,12 @@ def main() -> None:
     video_group.add_argument("--input-image", type=Path, default=None, help="Reference image path for video generation (Node #164)")
     video_group.add_argument("--video-prompt", type=str, default=None, help="Custom prompt text for video generation (Node #17)")
     video_group.add_argument("--image-stem", type=str, default=None, help="Specific image stem for I2V prompt synthesis")
-    video_group.add_argument("--t2v", action="store_true", help="Execute DarkFactory Text-to-Video (T2V) Cinema Engine for YouTube Dark channels")
-    video_group.add_argument("--t2v-archetype", choices=["cold_war_espionage", "cyber_warfare", "deep_space_scifi", "all"], default="all", help="Narrative archetype for T2V synthesis (default: all)")
-    video_group.add_argument("--t2v-export", action="store_true", help="Export formatted queues for MiniMax H3 and Google Veo 2")
-    video_group.add_argument("--t2v-title", type=str, default=None, help="Title for custom dual-shot scene")
-    video_group.add_argument("--t2v-beat", type=str, default=None, help="Narrative story beat for custom dual-shot scene")
-    video_group.add_argument("--nolan-direct", action="store_true", help="Execute Christopher Nolan Showrunner Engine to direct a dark historical documentary episode")
-    video_group.add_argument("--nolan-topic", type=str, default="1983 Soviet nuclear false alarm incident", help="Historical topic to direct with Nolan non-linear methodology")
-    video_group.add_argument("--youtube-boost", action="store_true", help="Execute YouTube Algorithm Booster (MLA, chapters, tri-variant thumbnails, series playlist)")
-    video_group.add_argument("--youtube-compliance", action="store_true", help="Execute YouTube Compliance QC and Self-Certification Pre-Rater for Green Dollar Sign")
-    video_group.add_argument("--youtube-title", type=str, default="The 1983 Soviet Glitch: 20 Minutes to Armageddon", help="Title for YouTube master optimization package")
-    video_group.add_argument("--youtube-desc", type=str, default="A detailed historical Cold War documentary investigating Serpukhov-15 declassified telemetry.", help="Description for YouTube package")
-    video_group.add_argument("--youtube-duration", type=float, default=600.0, help="Video duration in seconds for YouTube package calculation")
-    video_group.add_argument("--cinematic-profiles", action="store_true", help="List all Hollywood/35mm film emulation look profiles available")
-    video_group.add_argument("--cinematic-grade", type=str, default=None, choices=["kodak_2383", "fuji_eterna", "bleach_bypass", "oppenheimer_mono", "cold_war_noir", "cyber_tactical"], help="Apply Hollywood cinematic color grade and film grain")
-    video_group.add_argument("--cinematic-grain", type=float, default=None, help="Custom film grain strength (0.0 to 1.0)")
-    video_group.add_argument("--cinematic-letterbox", action="store_true", help="Apply 2.39:1 CinemaScope anamorphic matte")
-    video_group.add_argument("--video-in", type=str, default=None, help="Input video file path for cinematic processing or pacing analysis")
-    video_group.add_argument("--video-out", type=str, default=None, help="Output video file path for cinematic processing")
-    video_group.add_argument("--analyze-pacing", type=str, default=None, help="Analyze video pacing (MSL, Cuts Per Minute, Tension Score) for a video file")
-    video_group.add_argument("--export-otio", action="store_true", help="Export universal OpenTimelineIO (.otio) project for DaVinci Resolve Studio")
-    video_group.add_argument("--otio-title", type=str, default="DarkFactory_Master_Cut", help="Title for OTIO project")
-    video_group.add_argument("--tactical-hud", action="store_true", help="Generate tactical military radar HUD overlay PNG")
-    video_group.add_argument("--tactical-stamp", action="store_true", help="Generate declassified TOP SECRET stamp overlay PNG")
-    video_group.add_argument("--dop-plan", action="store_true", help="Synthesize Hollywood Director of Photography (DoP) & Composition Plan")
-    video_group.add_argument("--dop-title", type=str, default="Nuclear Bunker False Alarm", help="Title for DoP shot plan")
-    video_group.add_argument("--dop-lens", type=str, default="cooke_anamorphic_i", choices=["panavision_c_series", "cooke_anamorphic_i", "arri_master_anamorphic", "zeiss_supreme_prime", "leica_summilux_c", "arri_signature_75mm", "laowa_probe_24mm"], help="Optical cinema lens family")
-    video_group.add_argument("--dop-comp", type=str, default="rule_of_thirds", choices=["rule_of_thirds", "golden_spiral", "kubrick_one_point", "dutch_angle", "dirty_single", "low_angle_oppression", "high_angle_vuln"], help="Compositional framing geometry")
-    video_group.add_argument("--dop-lighting", type=str, default="8_to_1", choices=["16:1", "8_to_1", "4_to_1", "2_to_1"], help="Key-to-Fill chiaroscuro lighting ratio")
-    video_group.add_argument("--audit-keyframe", type=str, default=None, help="Audit keyframe composition, rule of thirds adherence, and render visual guides")
-    video_group.add_argument("--extract-keyframes", type=str, default=None, help="Extract strategic cinematic keyframes (Opening, Golden Ratio, Climax) from a video")
-    video_group.add_argument("--list-palettes", action="store_true", help="List all calibrated 60-30-10 cinematic color psychology palettes")
-    video_group.add_argument("--color-palette", type=str, default=None, choices=["cold_war_paranoia", "nuclear_dread_siren", "cyber_espionage", "deep_space_void", "bio_pathogen_hazard", "gordon_willis_noir", "fincher_muted_sage"], help="Synthesize 60-30-10 color psychology prompt clause")
-    video_group.add_argument("--audit-palette", type=str, default=None, help="Audit keyframe 60-30-10 color distribution via K-Means clustering and render swatch card")
-    video_group.add_argument("--render-motion-hud", action="store_true", help="Render deterministic HyperFrames/Anatomy motion overlay or B2B 4K loop")
-    video_group.add_argument("--motion-template", type=str, default="tactical_hud", help="Motion template name (e.g. tactical_hud, anatomy_mechanical, saas_fintech_telemetry_ui)")
-    video_group.add_argument("--motion-title", type=str, default="CLASSIFIED TELEMETRY UNIT", help="Primary headline for HyperFrames overlay")
-    video_group.add_argument("--motion-subtitle", type=str, default="SIGNAL ARCHIVE 1961", help="Secondary subtitle for HyperFrames overlay")
+    video_group.add_argument("--render-motion-hud", action="store_true", help="Render deterministic HyperFrames B2B motion overlay or 4K loop")
+    video_group.add_argument("--motion-template", type=str, default="saas_fintech_telemetry_ui", help="Motion template name (e.g. saas_fintech_telemetry_ui, isometric_architecture_flow, cut_paper_editorial)")
+    video_group.add_argument("--motion-title", type=str, default="ENTERPRISE TELEMETRY SUITE", help="Primary headline for HyperFrames overlay")
+    video_group.add_argument("--motion-subtitle", type=str, default="REALTIME CLOUD ARCHITECTURE", help="Secondary subtitle for HyperFrames overlay")
     video_group.add_argument("--preview-20s", action="store_true", help="Enforce deterministic <=20s preview gate during motion render")
-    video_group.add_argument("--yt-lint", action="store_true", help="Run YouTube title/thumbnail/chapters/retention closed-loop linter")
-    video_group.add_argument("--yt-title", type=str, default="Why The Secret 1961 Archive Stayed Buried", help="YouTube title to audit with --yt-lint")
-    video_group.add_argument("--yt-thumb", type=str, default="LEAKED BLUEPRINT", help="YouTube thumbnail overlay text to audit with --yt-lint")
-    video_group.add_argument("--yt-retention-csv", type=str, default=None, help="Optional YouTube retention CSV file or inline data")
     video_group.add_argument("--unit-economics", action="store_true", help="Print B2B niche unit economics, break-even, and ROI rankings")
-    video_group.add_argument("--research-topic", type=str, default=None, help="Fetch public-domain dossier facts & PD media assets (Wikipedia/Wikimedia/IA/NASA)")
-    video_group.add_argument("--map-animate", type=str, default=None, help="Render deterministic editorial vector map (title string)")
-    video_group.add_argument("--map-theater", type=str, default="europe_cold_war", help="Geopolitical theater preset for --map-animate / --compose-dossier")
-    video_group.add_argument("--compose-dossier", type=str, default=None, help="Compose word-timed documentary episode for a historical topic")
-    video_group.add_argument("--dossier-script", type=str, default=None, help="Narration script text for --compose-dossier")
-    video_group.add_argument("--dossier-audio", type=str, default=None, help="Path to narration WAV/FLAC audio for --compose-dossier")
-    video_group.add_argument("--reverse-video", type=str, default=None, help="Reverse-engineer reference video into T2VA/I2V MiniMax & Veo prompts")
-    video_group.add_argument("--reverse-mode", type=str, default="AUTO", choices=["AUTO", "T2VA", "I2V", "DUAL"], help="Prompt synthesis mode for --reverse-video")
-    video_group.add_argument("--compile-storyboard", type=str, default=None, help="Compile script into budgeted, overlap-audited storyboard JSON (episode title)")
-    video_group.add_argument("--storyboard-niche", type=str, default="industrial_automation", help="Target B2B niche ID for --compile-storyboard")
-    video_group.add_argument("--repurpose-short", type=str, default=None, help="Repurpose vertical 9:16 Short + clean -an B-roll (episode title)")
-    video_group.add_argument("--short-style", type=str, default="editorial_karaoke", help="Kinetic caption style (editorial_karaoke, hormozi_pop, terminal_typewriter)")
-    video_group.add_argument("--short-safe-zone", type=str, default="youtube_shorts", choices=["youtube_shorts", "tiktok", "instagram_reels", "none"], help="Mobile UI safe-zone profile for --repurpose-short")
     video_group.add_argument("--promo-pack", type=str, default=None, help="Generate zero-trademark B2B promo motion stock batch (campaign title)")
     video_group.add_argument("--promo-preset", type=str, default="AUTO", help="Promo motion preset (AUTO, onetake_bento_launch, cursor_spotlight_demo, kpi_metric_cascade)")
     video_group.add_argument("--promo-niche", type=str, default="finance", help="Target B2B niche ID for --promo-pack (finance, tech_space, biotech, abstract, podium)")
@@ -723,261 +595,6 @@ def main() -> None:
         run_sync_raw(force=args.force)
         return
 
-    if getattr(args, "narration", False):
-        from src.factory.runninghub_bot import run_narration_bot
-        script = getattr(args, "script", None) or "At 12:15 AM on September 26, 1983, a red siren illuminated a top-secret Soviet bunker outside Moscow..."
-        emotion = getattr(args, "emotion", None)
-        speed = getattr(args, "speed", 1.0)
-        logger.info("🎙️ Disparando CosyVoice Narration Bot via RunningHub...")
-        res = run_narration_bot(script=script, emotion=emotion, speed=speed)
-        logger.info(f"🏁 Benchmark Narração: {res}")
-        return
-
-    if getattr(args, "t2v", False):
-        run_darkfactory_t2v(
-            archetype=getattr(args, "t2v_archetype", "all"),
-            export_only=getattr(args, "t2v_export", False),
-            custom_title=getattr(args, "t2v_title", None),
-            custom_beat=getattr(args, "t2v_beat", None),
-        )
-        return
-
-    if getattr(args, "nolan_direct", False):
-        run_nolan_director(topic=getattr(args, "nolan_topic", "1983 Soviet nuclear false alarm incident"))
-        return
-
-    if getattr(args, "youtube_boost", False):
-        from src.video.youtube_booster import run_youtube_booster_cli
-        run_youtube_booster_cli(
-            title=getattr(args, "youtube_title", "The 1983 Soviet Glitch: 20 Minutes to Armageddon"),
-            description=getattr(args, "youtube_desc", "A detailed historical Cold War documentary."),
-            duration=getattr(args, "youtube_duration", 600.0),
-        )
-        return
-
-    if getattr(args, "youtube_compliance", False):
-        from src.video.youtube_booster import YouTubeAlgorithmBoosterBridge
-        bridge = YouTubeAlgorithmBoosterBridge()
-        cert = bridge.generate_self_certification_manifest(
-            project_id="cli_audit",
-            title=getattr(args, "youtube_title", "The 1983 Soviet Glitch"),
-            description=getattr(args, "youtube_desc", "Historical documentary."),
-        )
-        edsa = bridge.evaluate_edsa_framing(
-            title=getattr(args, "youtube_title", "The 1983 Soviet Glitch"),
-            description=getattr(args, "youtube_desc", "Historical documentary."),
-        )
-        print("\n==================================================================")
-        print("🛡️ YOUTUBE COMPLIANCE & EDSA SELF-CERTIFICATION REPORT")
-        print("==================================================================")
-        print(f"  • Projected Monetization: {cert.get('projected_monetization_status')}")
-        print(f"  • Rating Accuracy Tier:   {cert.get('rating_accuracy_tier')}")
-        print(f"  • EDSA Protection:        {edsa.get('status')} (Score: {edsa.get('edsa_score')}/100)")
-        anchors = edsa.get('anchors_detected', [])
-        print(f"  • Anchors Detected:       {', '.join(anchors)}\n")
-        return
-
-    if getattr(args, "cinematic_profiles", False):
-        from src.video.cinematic_color import CinematicColorGrader
-        grader = CinematicColorGrader()
-        profiles = grader.list_profiles()
-        print("\n==================================================================")
-        print("🎬 DARKFACTORY CINEMATIC COLOR SCIENCE (35MM FILM PROFILES)")
-        print("==================================================================")
-        for p in profiles:
-            print(f"  • [{p['id'].upper()}] {p['name']}")
-            print(f"    - Diretor / Vibe: {p['director_vibe']}")
-            print(f"    - Descrição:      {p['description']}")
-            print(f"    - Grão Padrão:    {int(p['recommended_grain'] * 100)}% film grain\n")
-        return
-
-    if getattr(args, "cinematic_grade", None):
-        profile = getattr(args, "cinematic_grade")
-        in_file = getattr(args, "video_in", None)
-        out_file = getattr(args, "video_out", None) or f"data/final/videos/{profile}_graded.mp4"
-        if not in_file:
-            print("[ERRO] Informe o arquivo de entrada via --video-in <caminho.mp4>")
-            return
-        from src.video.cinematic_color import CinematicColorGrader
-        grader = CinematicColorGrader()
-        ok = grader.apply_grade(
-            input_path=in_file,
-            output_path=out_file,
-            profile=profile,
-            film_grain=True,
-            grain_strength=getattr(args, "cinematic_grain", None),
-            letterbox_239=getattr(args, "cinematic_letterbox", False),
-        )
-        if ok:
-            print(f"\n✅ Color grading '{profile}' aplicado com sucesso: {out_file}")
-        else:
-            print(f"\n❌ Falha ao aplicar color grading em: {in_file}")
-        return
-
-    if getattr(args, "analyze_pacing", None):
-        video_to_analyze = getattr(args, "analyze_pacing")
-        from src.video.pacing_analyzer import CinematicPacingAnalyzer
-        analyzer = CinematicPacingAnalyzer()
-        report = analyzer.analyze_pacing(video_to_analyze)
-        print("\n==================================================================")
-        print("⏱️ CINEMATIC PACING & MONTAGE RHYTHM REPORT (THE EDITOR'S BRAIN)")
-        print("==================================================================")
-        print(f"  • Vídeo Analisado:       {report.video_path}")
-        print(f"  • Duração Total:         {report.total_duration_sec:.2f}s ({report.total_shots} planos)")
-        print(f"  • Mean Shot Length (MSL): {report.mean_shot_length:.2f}s por plano")
-        print(f"  • Cuts Per Minute (CPM): {report.cuts_per_minute:.1f} cortes/min")
-        print(f"  • Arquétipo de Pacing:   {report.pacing_archetype.upper()}")
-        print(f"  • Tension Pacing Score:  {report.tension_score}/100")
-        print(f"  • Penalidade Monotonia:  -{report.monotony_penalty:.1f} pts\n")
-        return
-
-    if getattr(args, "export_otio", False):
-        from src.video.otio_exporter import UniversalTimelineExporter, TimelineClipRef, TimelineMarker
-        exporter = UniversalTimelineExporter(fps=24.0)
-        # Monta timeline com as tomadas da fila T2V
-        clips = [
-            TimelineClipRef(name="Shot_A_Tension_Lead", media_path="data/final/videos/shot_a_tension.mp4", duration_sec=5.0),
-            TimelineClipRef(name="Shot_B_Tactical_Macro", media_path="data/final/videos/shot_b_macro.mp4", duration_sec=4.5),
-        ]
-        markers = [
-            TimelineMarker(name="00:00 - The Serpukhov Glitch", timecode_sec=0.0, color="RED"),
-            TimelineMarker(name="00:05 - The False Alarm Climax", timecode_sec=5.0, color="YELLOW"),
-        ]
-        out_otio = exporter.export_to_file(
-            output_path="data/processed/davinci_resolve_timeline.otio",
-            timeline_name=getattr(args, "otio_title", "DarkFactory_Master_Cut"),
-            video_clips=clips,
-            markers=markers,
-        )
-        print(f"\n✅ Linha do tempo OpenTimelineIO (.otio) exportada com sucesso: {out_otio}")
-        print("   -> Importe diretamente no DaVinci Resolve Studio (File > Import > Timeline...)")
-        return
-
-    if getattr(args, "tactical_hud", False):
-        from src.video.tactical_graphics import TacticalGraphicsEngine
-        t_engine = TacticalGraphicsEngine()
-        hud_path = t_engine.create_tactical_hud_overlay("data/processed/tactical_hud_overlay.png")
-        print(f"\n✅ HUD tático de radar militar gerado em: {hud_path}")
-        return
-
-    if getattr(args, "tactical_stamp", False):
-        from src.video.tactical_graphics import TacticalGraphicsEngine
-        t_engine = TacticalGraphicsEngine()
-        stamp_path = t_engine.create_declassified_stamp_overlay("data/processed/declassified_stamp.png")
-        print(f"\n✅ Carimbo de documento desclassificado gerado em: {stamp_path}")
-        return
-
-    if getattr(args, "dop_plan", False):
-        from src.video.cinematography_dop import (
-            CinematographyEngine,
-            LensOpticsType,
-            CompositionGeometry,
-            LightingRatio,
-        )
-        engine = CinematographyEngine()
-        plan = engine.build_shot_plan(
-            shot_name=getattr(args, "dop_title", "Nuclear Bunker False Alarm"),
-            lens_type=LensOpticsType(getattr(args, "dop_lens", "cooke_anamorphic_i")),
-            composition=CompositionGeometry(getattr(args, "dop_comp", "rule_of_thirds")),
-            lighting_ratio=LightingRatio(getattr(args, "dop_lighting", "8_to_1")),
-        )
-        print("\n==================================================================")
-        print("🎬 DIRECTOR OF PHOTOGRAPHY (DoP) & COMPOSITION BLUEPRINT")
-        print("==================================================================")
-        print(f"  • Tomada / Cena:        {plan.shot_name}")
-        print(f"  • Câmera:               {plan.camera_body}")
-        print(f"  • Lente Óptica:         {plan.lens.model_name} ({plan.lens.focal_length_mm}mm T{plan.lens.t_stop})")
-        print(f"  • Anamórfica / Squeeze: {'SIM (2.39:1 CinemaScope)' if plan.lens.anamorphic else 'NÃO (Esférica Prime)'}")
-        print(f"  • Bokeh & Flares:       {plan.lens.bokeh_shape} | {plan.lens.flare_character}")
-        print(f"  • Geometria de Quadro:  {plan.composition.value.upper()}")
-        print(f"  • Razão Chiaroscuro:    {plan.lighting_ratio.value} (Key {plan.kelvin_key}K vs Fill {plan.kelvin_fill}K)")
-        print(f"  • Shutter & Movimento:  {plan.shutter_angle} | {plan.camera_movement}")
-        print("\n  [DoP Prompt Injector]:")
-        print(f"  \"{plan.to_dop_prompt()}\"\n")
-        return
-
-    if getattr(args, "audit_keyframe", None):
-        img_path = getattr(args, "audit_keyframe")
-        from src.video.cinematography_dop import CinematographyEngine
-        engine = CinematographyEngine()
-        audit = engine.audit_keyframe_composition(img_path, generate_annotated_grid=True)
-        print("\n==================================================================")
-        print("📐 KEYFRAME COMPOSITION & DoP COMPUTER VISION AUDIT")
-        print("==================================================================")
-        print(f"  • Imagem Auditada:           {audit.image_path}")
-        print(f"  • Resolução:                 {audit.width} x {audit.height}")
-        print(f"  • Rule of Thirds Score:      {audit.rule_of_thirds_score:.1f}% de alinhamento")
-        print(f"  • Contraste Chiaroscuro:     {audit.chiaroscuro_contrast_ratio}:1")
-        print(f"  • Balanço Quente/Frio:       {audit.warm_cold_kelvin_bias.upper()}")
-        print(f"  • Equilíbrio Horizontal:     {audit.visual_balance_horizontal:+.3f}")
-        if audit.annotated_guide_path:
-            print(f"  • Guia Visual Anotada:       {audit.annotated_guide_path}")
-        print("==================================================================\n")
-        return
-
-    if getattr(args, "extract_keyframes", None):
-        video_path = getattr(args, "extract_keyframes")
-        from src.video.cinematography_dop import CinematographyEngine
-        engine = CinematographyEngine()
-        out_dir = Path("data/processed/keyframes")
-        kfs = engine.extract_cinematic_keyframes(video_path, out_dir)
-        print(f"\n✅ {len(kfs)} keyframes cinematográficos extraídos em: {out_dir}")
-        for k in kfs:
-            audit = engine.audit_keyframe_composition(k, generate_annotated_grid=True)
-            print(f"  • [{k.name}] Thirds: {audit.rule_of_thirds_score:.1f}% | Contrast: {audit.chiaroscuro_contrast_ratio}:1 | Guide: {audit.annotated_guide_path}")
-        return
-
-    if getattr(args, "list_palettes", False):
-        from src.video.color_psychology import ColorPsychologyEngine
-        engine = ColorPsychologyEngine()
-        palettes = engine.list_palettes()
-        print("\n==================================================================")
-        print("🎨 CINEMATIC COLOR PSYCHOLOGY & 60-30-10 PALETTE REGISTRY")
-        print("==================================================================")
-        for p in palettes:
-            print(f"  • [{p['id'].upper()}] {p['name']} ({p['harmony'].upper()})")
-            print(f"    - Tese Semiótica: {p['psychological_thesis']}")
-            print(f"    - 60% Dominante:  {p['dominant_60']['name']} ({p['dominant_60']['hex']})")
-            print(f"    - 30% Secundária: {p['secondary_30']['name']} ({p['secondary_30']['hex']})")
-            print(f"    - 10% Acento:     {p['accent_10']['name']} ({p['accent_10']['hex']})")
-            print(f"    - Referências:    {p['director_references']}\n")
-        return
-
-    if getattr(args, "color_palette", None):
-        pal_id = getattr(args, "color_palette")
-        from src.video.color_psychology import ColorPsychologyEngine
-        engine = ColorPsychologyEngine()
-        pal = engine.get_palette(pal_id)
-        print("\n==================================================================")
-        print(f"🎨 60-30-10 COLOR PROMPT CLAUSE: {pal.name.upper()}")
-        print("==================================================================")
-        print(f"  • Harmonia:      {pal.harmony.value.upper()}")
-        print(f"  • 60% Base:      {pal.dominant_60.name} ({pal.dominant_60.hex_code})")
-        print(f"  • 30% Estrutura: {pal.secondary_30.name} ({pal.secondary_30.hex_code})")
-        print(f"  • 10% Acento:    {pal.accent_10.name} ({pal.accent_10.hex_code})")
-        print("\n  [Color Psychology Prompt Injector]:")
-        print(f"  \"{pal.to_color_prompt()}\"\n")
-        return
-
-    if getattr(args, "audit_palette", None):
-        img_to_audit = getattr(args, "audit_palette")
-        from src.video.color_psychology import ColorPsychologyEngine
-        engine = ColorPsychologyEngine()
-        audit = engine.audit_keyframe_palette(img_to_audit, render_swatch_card=True)
-        print("\n==================================================================")
-        print("🎨 60-30-10 K-MEANS COLOR AUDIT & PSYCHOLOGICAL MAPPING")
-        print("==================================================================")
-        print(f"  • Imagem Auditada:           {audit.image_path}")
-        print(f"  • 60% Base Dominante Real:   {audit.dominant_pct:.1f}% (Hex: {audit.dominant_color_hex})")
-        print(f"  • 30% Secundária Real:       {audit.secondary_pct:.1f}% (Hex: {audit.secondary_color_hex})")
-        print(f"  • 10% Acento Punctum Real:   {audit.accent_pct:.1f}% (Hex: {audit.accent_color_hex})")
-        print(f"  • Score de Aderência 60-30-10: {audit.rule_60_30_10_adherence_score:.1f}/100")
-        print(f"  • Arquétipo Mais Próximo:    {audit.closest_archetype.upper()}")
-        if audit.annotated_palette_card_path:
-            print(f"  • Cartela Visual Anotada:    {audit.annotated_palette_card_path}")
-        print("==================================================================\n")
-        return
-
     if args.seasonal:
         show_seasonal_radar()
         return
@@ -1002,94 +619,10 @@ def main() -> None:
         print(json.dumps(res.to_dict(), indent=2, ensure_ascii=False))
         return
 
-    if getattr(args, "yt_lint", False):
-        from src.video.youtube_booster import YouTubeAlgorithmBoosterBridge
-        bridge = YouTubeAlgorithmBoosterBridge()
-        lint_out = bridge.lint_title_thumbnail_pair(title=args.yt_title, thumbnail_text=args.yt_thumb)
-        retention_out = bridge.parse_retention_csv(args.yt_retention_csv) if args.yt_retention_csv else None
-        print(json.dumps({"title_thumbnail_lint": lint_out, "retention_audit": retention_out}, indent=2, ensure_ascii=False))
-        return
-
     if getattr(args, "unit_economics", False):
         from src.analyzer.unit_economics import UnitEconomicsCalculator
         calc = UnitEconomicsCalculator()
         print(json.dumps(calc.recommend_priority_niches(), indent=2, ensure_ascii=False))
-        return
-
-    if getattr(args, "research_topic", None):
-        from src.video.research_engine import PublicDomainResearchEngine
-        engine = PublicDomainResearchEngine()
-        pack = engine.build_dossier(args.research_topic)
-        print(json.dumps(pack.to_dict(), indent=2, ensure_ascii=False))
-        return
-
-    if getattr(args, "map_animate", None):
-        from src.video.map_animator import MapAnimator
-        animator = MapAnimator()
-        res = animator.render_map_animation(
-            title=args.map_animate,
-            theater=getattr(args, "map_theater", "europe_cold_war"),
-        )
-        print(json.dumps(res.to_dict(), indent=2, ensure_ascii=False))
-        return
-
-    if getattr(args, "compose_dossier", None):
-        from src.video.documentary_composer import DocumentaryComposer
-        if not getattr(args, "dossier_audio", None):
-            print("Error: --dossier-audio is required with --compose-dossier")
-            sys.exit(2)
-        script_text = getattr(args, "dossier_script", None) or f"Classified dossier overview on {args.compose_dossier}."
-        composer = DocumentaryComposer()
-        res = composer.compose_episode(
-            topic=args.compose_dossier,
-            script=script_text,
-            narration_audio_path=args.dossier_audio,
-            theater=getattr(args, "map_theater", "europe_cold_war"),
-        )
-        print(json.dumps(res.to_dict(), indent=2, ensure_ascii=False))
-        return
-
-    if getattr(args, "reverse_video", None):
-        from src.video.video_reverse_engineer import VideoReverseEngineer
-        rev = VideoReverseEngineer()
-        res = rev.reverse_engineer_video(
-            video_path=args.reverse_video,
-            mode=getattr(args, "reverse_mode", "AUTO"),
-        )
-        print(json.dumps(res.to_dict(), indent=2, ensure_ascii=False))
-        return
-
-    if getattr(args, "compile_storyboard", None):
-        from src.video.storyboard_compiler import StoryboardCompiler
-        script_text = getattr(args, "dossier_script", None) or (
-            f"In 1983 classified telemetry from {args.compile_storyboard} stunned analysts. "
-            "Emergency protocols engaged while radar operators cross-checked satellite glint. "
-            "Every second revealed a hidden orbital anomaly above Eurasia. "
-            "What happened inside the bunker rewrote strategic deterrence forever."
-        )
-        compiler = StoryboardCompiler()
-        res = compiler.compile_storyboard(
-            title=args.compile_storyboard,
-            script=script_text,
-            target_niche=getattr(args, "storyboard_niche", "industrial_automation"),
-        )
-        print(json.dumps(res.to_dict(), indent=2, ensure_ascii=False))
-        return
-
-    if getattr(args, "repurpose_short", None):
-        from src.video.shorts_repurposer import ShortsRepurposerEngine
-
-        script_text = args.video_prompt or f"{args.repurpose_short}. Vertical documentary analysis briefing."
-        repurposer = ShortsRepurposerEngine()
-        res = repurposer.repurpose_to_vertical_short(
-            title=args.repurpose_short,
-            script=script_text,
-            source_video_path=getattr(args, "input_image", None) if str(getattr(args, "input_image", "")).lower().endswith((".mp4", ".mov", ".mkv", ".webm")) else None,
-            audio_path=getattr(args, "dossier_audio", None),
-            style=getattr(args, "short_style", "editorial_karaoke"),
-            safe_zone_profile=getattr(args, "short_safe_zone", "youtube_shorts"),
-        )
-        print(json.dumps(res.to_dict(), indent=2, ensure_ascii=False))
         return
 
     if getattr(args, "promo_pack", None):

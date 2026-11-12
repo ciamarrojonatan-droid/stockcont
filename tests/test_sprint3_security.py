@@ -6,45 +6,66 @@ from src.dashboard.app import app
 from src.orchestrator.daemon import AlertNotifier
 
 
-def test_dashboard_auth_middleware_disabled_when_token_unset(monkeypatch):
+def test_dashboard_auth_middleware_disabled_when_token_unset(monkeypatch, tmp_path):
     monkeypatch.delenv("DASHBOARD_ACCESS_TOKEN", raising=False)
     client = TestClient(app)
     resp = client.post(
-        "/api/v1/youtube/lint-package",
-        json={"title": "Test Title Clean", "thumbnail_text": "SECRET"},
+        "/api/v1/video/motion-overlay",
+        json={
+            "template": "saas_fintech_telemetry_ui",
+            "title": "TEST AUTH DISABLED",
+            "subtitle": "CLEAN PAYLOAD",
+            "duration_sec": 1.0,
+            "width": 640,
+            "height": 360,
+            "fps": 12,
+            "output_path": str(tmp_path / "auth_disabled.mp4"),
+            "force_procedural": True,
+        },
     )
     assert resp.status_code == 200
 
 
-def test_dashboard_auth_middleware_enforced_when_token_configured(monkeypatch):
+def test_dashboard_auth_middleware_enforced_when_token_configured(monkeypatch, tmp_path):
     monkeypatch.setenv("DASHBOARD_ACCESS_TOKEN", "stockcont-secret-token")
     client = TestClient(app)
+    payload = {
+        "template": "saas_fintech_telemetry_ui",
+        "title": "TEST AUTH ENABLED",
+        "subtitle": "CLEAN PAYLOAD",
+        "duration_sec": 1.0,
+        "width": 640,
+        "height": 360,
+        "fps": 12,
+        "output_path": str(tmp_path / "auth_ok.mp4"),
+        "force_procedural": True,
+    }
 
     # Read-only status still accessible; mutable endpoint blocked without token
     unauth = client.post(
-        "/api/v1/youtube/lint-package",
-        json={"title": "Test Title Clean", "thumbnail_text": "SECRET"},
+        "/api/v1/video/motion-overlay",
+        json=payload,
     )
     assert unauth.status_code == 401
 
     wrong = client.post(
-        "/api/v1/youtube/lint-package",
+        "/api/v1/video/motion-overlay",
         headers={"Authorization": "Bearer wrong-token"},
-        json={"title": "Test Title Clean", "thumbnail_text": "SECRET"},
+        json=payload,
     )
     assert wrong.status_code == 401
 
     bearer_ok = client.post(
-        "/api/v1/youtube/lint-package",
+        "/api/v1/video/motion-overlay",
         headers={"Authorization": "Bearer stockcont-secret-token"},
-        json={"title": "Test Title Clean", "thumbnail_text": "SECRET"},
+        json=payload,
     )
     assert bearer_ok.status_code == 200
 
     header_ok = client.post(
-        "/api/v1/youtube/lint-package",
+        "/api/v1/video/motion-overlay",
         headers={"X-Dashboard-Token": "stockcont-secret-token"},
-        json={"title": "Test Title Clean", "thumbnail_text": "SECRET"},
+        json=payload,
     )
     assert header_ok.status_code == 200
 

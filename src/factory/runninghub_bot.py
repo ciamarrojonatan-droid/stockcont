@@ -5,13 +5,12 @@ import sys
 import time
 import base64
 import uuid
-import re
 import urllib.request
 import subprocess
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Union
+from typing import Any, Dict, List, Optional, Union
 from dotenv import load_dotenv
-from playwright.sync_api import sync_playwright, Page, Frame, Error as PlaywrightError, TimeoutError as PlaywrightTimeoutError
+from playwright.sync_api import sync_playwright, Page, Frame
 
 # Reconfigure stdout/stderr to UTF-8 on Windows consoles (ADR-01)
 if sys.platform.startswith("win"):
@@ -30,7 +29,6 @@ FINAL_IMAGES_DIR: Path = BASE_DIR / "data" / "final" / "images"
 FINAL_VIDEOS_DIR: Path = BASE_DIR / "data" / "final" / "videos"
 STAGING_VIDEOS_DIR: Path = BASE_DIR / "data" / "staging" / "videos"
 VIDEO_PROMPTS_FILE: Path = BASE_DIR / "data" / "processed" / "video_prompts.json"
-FINAL_AUDIO_DIR: Path = BASE_DIR / "data" / "final" / "audio"
 
 # ══════════════════════════════════════════════════════
 # Dual-Account Topologies & Configurations
@@ -103,70 +101,6 @@ CONTA_VIDEO_CONFIG = {
     "execute_mode": "lite_plus",  # Botão do meio (Lite/Plus - cor amarela/ouro) mandatário em todos os workflows
 }
 
-# CosyVoice Audio Pipeline: Narração e Modulação Emocional de Voz
-CONTA_COSYVOICE_CONFIG = {
-    "account": 4,
-    "role": "audio_narration_cosyvoice",
-    "workflow_url": os.getenv("RUNNINGHUB_COSYVOICE_WORKFLOW_URL", "https://www.runninghub.ai/pt-br/workflow/2118531898170486785?source=workspace"),
-    "workflow_id": os.getenv("RUNNINGHUB_COSYVOICE_WORKFLOW_ID", "2118531898170486785"),
-    "script_node": int(os.getenv("RUNNINGHUB_COSYVOICE_SCRIPT_NODE", "345")),       # CR Prompt Text: node #345
-    "emotion_node": int(os.getenv("RUNNINGHUB_COSYVOICE_EMOTION_NODE", "355")),    # CR Prompt Text (Instruct): node #355
-    "speed_node": int(os.getenv("RUNNINGHUB_COSYVOICE_SPEED_NODE", "352")),        # FL_CosyVoice3_Instruct2: node #352
-    "output_audio_node": int(os.getenv("RUNNINGHUB_COSYVOICE_OUTPUT_NODE", "346")), # SaveAudio: node #346
-    "output_node": int(os.getenv("RUNNINGHUB_COSYVOICE_OUTPUT_NODE", "346")),
-    "prompt_nodes": [int(os.getenv("RUNNINGHUB_COSYVOICE_SCRIPT_NODE", "345"))],
-    "default_batch_size": 1,
-    "destination_dir": FINAL_AUDIO_DIR,
-    "prefix": "narration",
-    "save_mode": "audio_output",
-    "session_dir_name": "playwright_session_cosyvoice",
-    "execute_mode": "lite_plus",
-}
-
-# MiniMax Music 3 Audio Pipeline: Trilha Sonora Orquestral / Tensão Hans Zimmer
-CONTA_MINIMAX_MUSIC_CONFIG = {
-    "account": 5,
-    "role": "soundtrack_minimax_music",
-    "workflow_url": os.getenv("RUNNINGHUB_MINIMAX_MUSIC_WORKFLOW_URL", "https://www.runninghub.ai/pt-br/workflow/2120003151633174529?source=workspace"),
-    "workflow_id": os.getenv("RUNNINGHUB_MINIMAX_MUSIC_WORKFLOW_ID", "2120003151633174529"),
-    "style_node": int(os.getenv("RUNNINGHUB_MINIMAX_STYLE_NODE", "15")),         # Text Multiline (Style): node #15
-    "structure_node": int(os.getenv("RUNNINGHUB_MINIMAX_STRUCTURE_NODE", "16")), # Text Multiline (Structure/Lyrics): node #16
-    "duration_node": int(os.getenv("RUNNINGHUB_MINIMAX_DURATION_NODE", "14")),   # PrimitiveFloat: node #14
-    "output_audio_node": int(os.getenv("RUNNINGHUB_MINIMAX_OUTPUT_NODE", "7")),   # SaveAudioAdvanced (flac): node #7
-    "output_node": int(os.getenv("RUNNINGHUB_MINIMAX_OUTPUT_NODE", "7")),
-    "prompt_nodes": [int(os.getenv("RUNNINGHUB_MINIMAX_STYLE_NODE", "15")), int(os.getenv("RUNNINGHUB_MINIMAX_STRUCTURE_NODE", "16"))],
-    "default_batch_size": 1,
-    "destination_dir": FINAL_AUDIO_DIR,
-    "prefix": "soundtrack_minimax",
-    "save_mode": "audio_output",
-    "session_dir_name": "playwright_session_cosyvoice",
-    "execute_mode": "lite_plus",  # Lite/Plus mandatório (ADR-08)
-}
-
-
-# MiniMax H3 Cinematic V2 Turbo: Fallback Cinemático de Vídeo (Workflow 2118560390471745537)
-CONTA_MINIMAX_H3_CONFIG = {
-    "account": 7,
-    "role": "video_minimax_h3_cinematic",
-    "workflow_url": os.getenv("RUNNINGHUB_MINIMAX_H3_WORKFLOW_URL", "https://www.runninghub.ai/pt-br/workflow/2118560390471745537?source=workspace"),
-    "workflow_id": os.getenv("RUNNINGHUB_MINIMAX_H3_WORKFLOW_ID", "2118560390471745537"),
-    "prompt_node": int(os.getenv("RUNNINGHUB_MINIMAX_H3_PROMPT_NODE", "35")),         # PrimitiveStringMultiline: node #35
-    "input_image_node": int(os.getenv("RUNNINGHUB_MINIMAX_H3_INPUT_NODE", "48")),    # LoadImage (图1): node #48
-    "input_node": int(os.getenv("RUNNINGHUB_MINIMAX_H3_INPUT_NODE", "48")),
-    "duration_node": int(os.getenv("RUNNINGHUB_MINIMAX_H3_DURATION_NODE", "66")),   # PrimitiveFloat: node #66
-    "resolution_node": int(os.getenv("RUNNINGHUB_MINIMAX_H3_RES_NODE", "62")),       # ResolutionSelector: node #62
-    "output_video_node": int(os.getenv("RUNNINGHUB_MINIMAX_H3_OUTPUT_NODE", "107")), # FeiHouVideoPreview: node #107 (sem watermark!)
-    "output_node": int(os.getenv("RUNNINGHUB_MINIMAX_H3_OUTPUT_NODE", "107")),
-    "prompt_nodes": [int(os.getenv("RUNNINGHUB_MINIMAX_H3_PROMPT_NODE", "35"))],
-    "default_batch_size": 1,
-    "destination_dir": FINAL_VIDEOS_DIR,
-    "prefix": "minimax_h3_cinematic",
-    "save_mode": "video_output",
-    "session_dir_name": "playwright_session_video",
-    "upload_wait_sec": int(os.getenv("RUNNINGHUB_IMAGE_UPLOAD_WAIT_SEC", "30")),
-    "execute_mode": "lite_plus",  # Lite/Plus mandatório (ADR-08)
-}
-
 # Default Active Configuration (Padrão: Conta 1 - Raw Producer)
 DEFAULT_ACCOUNT: int = int(os.getenv("RUNNINGHUB_ACCOUNT", "1"))
 DEFAULT_BATCH_SIZE: int = 210
@@ -181,18 +115,12 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 
 def get_account_config(account: Union[int, str] = 1) -> Dict[str, Any]:
-    """Retorna o dicionário de configuração da conta selecionada ou do pipeline de vídeo/áudio."""
+    """Retorna o dicionário de configuração da conta selecionada (Conta 1, Conta 2 ou Vídeo 4K)."""
     acc_str = str(account).lower()
     if acc_str in ("2", "upscale", "seedvr"):
         return dict(CONTA_2_CONFIG)
     elif acc_str in ("3", "video", "video_4k", "video_generator_4k"):
         return dict(CONTA_VIDEO_CONFIG)
-    elif acc_str in ("4", "cosyvoice", "audio", "narration", "audio_narration_cosyvoice"):
-        return dict(CONTA_COSYVOICE_CONFIG)
-    elif acc_str in ("5", "minimax_music", "minimax", "music", "soundtrack", "soundtrack_minimax_music"):
-        return dict(CONTA_MINIMAX_MUSIC_CONFIG)
-    elif acc_str in ("7", "minimax_h3", "minimax_video", "h3", "h3_cinematic", "video_minimax_h3_cinematic"):
-        return dict(CONTA_MINIMAX_H3_CONFIG)
     return dict(CONTA_1_CONFIG)
 
 
@@ -949,151 +877,6 @@ def save_video_from_src(
     return None
 
 
-def get_node_audios(page: Page, node_id: int) -> List[str]:
-    """Extrai URLs ou referências de áudio gerados no nó SaveAudio (#346) do ComfyUI/LiteGraph."""
-    node_audios = []
-    for frame in page.frames:
-        try:
-            auds = frame.evaluate("""(id) => {
-                let res = [];
-                if (typeof window.app !== 'undefined' && window.app.graph) {
-                    let node = window.app.graph.getNodeById(id);
-                    if (node) {
-                        if (node.audio) {
-                            if (Array.isArray(node.audio)) {
-                                res.push(...node.audio.map(a => a.src || a.currentSrc || a).filter(Boolean));
-                            } else if (node.audio.src || node.audio.currentSrc) {
-                                res.push(node.audio.src || node.audio.currentSrc);
-                            } else if (typeof node.audio === 'string') {
-                                res.push(node.audio);
-                            }
-                        }
-                        if (node.widgets) {
-                            for (let w of node.widgets) {
-                                if (w.element) {
-                                    const aEls = w.element.tagName === 'AUDIO' ? [w.element] : Array.from(w.element.querySelectorAll('audio'));
-                                    for (let a of aEls) {
-                                        if (a.src || a.currentSrc) res.push(a.src || a.currentSrc);
-                                    }
-                                }
-                                if (w.value) {
-                                    if (typeof w.value === 'string' && (w.value.endsWith('.flac') || w.value.endsWith('.mp3') || w.value.endsWith('.wav'))) {
-                                        res.push('/view?filename=' + encodeURIComponent(w.value) + '&type=output');
-                                        res.push('/view?filename=' + encodeURIComponent(w.value) + '&type=temp');
-                                    } else if (typeof w.value === 'object' && w.value !== null) {
-                                        const fn = w.value.filename || w.value.name;
-                                        if (fn && typeof fn === 'string') {
-                                            const sub = w.value.subfolder ? '&subfolder=' + encodeURIComponent(w.value.subfolder) : '';
-                                            res.push('/view?filename=' + encodeURIComponent(fn) + '&type=output' + sub);
-                                            res.push('/view?filename=' + encodeURIComponent(fn) + '&type=temp' + sub);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        if (node.preview && (node.preview.src || node.preview.currentSrc)) {
-                            res.push(node.preview.src || node.preview.currentSrc);
-                        }
-                    }
-                }
-                const domAudios = Array.from(document.querySelectorAll('audio'));
-                for (let a of domAudios) {
-                    const src = a.src || a.currentSrc;
-                    if (src && (src.includes('audio') || src.includes('.flac') || src.includes('.mp3') || src.includes('.wav') || src.includes('view?'))) {
-                        res.push(src);
-                    }
-                }
-                // Também coletar elementos <video> renderizados no DOM do frame (ex: FeiHou Video Preview)
-                const domVids = Array.from(document.querySelectorAll('video'));
-                for (let v of domVids) {
-                    const isOld = v && v.getAttribute && v.getAttribute('data-pre-existing') === 'true';
-                    const s = v ? (v.src || v.currentSrc) : null;
-                    if (s && !isOld) res.push(s);
-                }
-                return Array.from(new Set(res.filter(Boolean)));
-            }""", node_id)
-            if auds:
-                node_audios.extend(auds)
-        except Exception:
-            pass
-    return list(dict.fromkeys(node_audios))
-
-
-def save_audio_from_src(
-    page: Page,
-    src: str,
-    destination_dir: Optional[Path] = None,
-    prefix: str = "narration",
-) -> Optional[str]:
-    """Salva o áudio do canvas/DOM/blob em disco de forma transacional (.tmp) (ADR-02)."""
-    target_dir = destination_dir or FINAL_AUDIO_DIR
-    target_dir.mkdir(parents=True, exist_ok=True)
-    ext = ".flac" if ".flac" in src.lower() else (".wav" if ".wav" in src.lower() else ".mp3")
-    filename = target_dir / f"{prefix}_{uuid.uuid4().hex[:8]}{ext}"
-    while filename.exists():
-        filename = target_dir / f"{prefix}_{uuid.uuid4().hex[:8]}{ext}"
-    tmp_filename = filename.with_suffix(".tmp")
-
-    try:
-        data: Optional[bytes] = None
-        if src.startswith("data:audio"):
-            header, encoded = src.split(",", 1)
-            raw_data = base64.b64decode(encoded)
-            if len(raw_data) > 5000:
-                data = raw_data
-        elif src.startswith("blob:") or src.startswith("http") or src.startswith("/"):
-            for frame in page.frames:
-                try:
-                    b64_url = frame.evaluate("""async (url) => {
-                        try {
-                            const resp = await fetch(url, { credentials: 'include' });
-                            if (!resp.ok) return null;
-                            const blob = await resp.blob();
-                            return new Promise((resolve) => {
-                                const reader = new FileReader();
-                                reader.onloadend = () => resolve(reader.result);
-                                reader.onerror = () => resolve(null);
-                                reader.readAsDataURL(blob);
-                            });
-                        } catch (e) {
-                            return null;
-                        }
-                    }""", src)
-                    if b64_url and "," in b64_url:
-                        header, encoded = b64_url.split(",", 1)
-                        raw_data = base64.b64decode(encoded)
-                        if len(raw_data) > 5000:
-                            data = raw_data
-                            break
-                except Exception:
-                    pass
-
-            if data is None and src.startswith("http"):
-                try:
-                    req = urllib.request.Request(src, headers={"User-Agent": "Mozilla/5.0"})
-                    with urllib.request.urlopen(req, timeout=30) as response:
-                        http_data = response.read()
-                        if len(http_data) > 5000:
-                            data = http_data
-                except Exception:
-                    pass
-
-        if data:
-            with open(tmp_filename, "wb") as f:
-                f.write(data)
-            tmp_filename.replace(filename)
-            logger.info("🎙️ Áudio de narração gravado com sucesso: %s (%d KB)", filename.name, len(data) // 1024)
-            return filename.name
-    except Exception as e:
-        logger.error("Erro ao salvar áudio de '%s': %s", src[:60], e)
-        if tmp_filename.exists():
-            try:
-                tmp_filename.unlink()
-            except Exception:
-                pass
-    return None
-
-
 def upload_zip_to_node(page: Page, frame: Optional[Frame], node_id: int, zip_path: Path) -> bool:
     """
     Injeta o arquivo ZIP empacotado no Nó ComfyUI (ex: Nó #5 'Load Images (zip)').
@@ -1703,7 +1486,6 @@ def ensure_chrome_cdp_desktop(account: int, workflow_url: str) -> bool:
     interativa do Windows (WinSta0\\Default) com a porta de depuração 9222 ativa e pronta
     para conexões CDP sem falhas de desktop isolado.
     """
-    import urllib.request
     try:
         with urllib.request.urlopen("http://localhost:9222/json/version", timeout=1) as resp:
             logger.info("⚡ Porta 9222 já está ativa e pronta para conexão CDP!")
@@ -1803,37 +1585,20 @@ def run_factory_bot(
     session_dir: Optional[Path] = None,
     input_image_path: Optional[Union[str, Path]] = None,
     custom_prompt_text: Optional[str] = None,
-    custom_script_text: Optional[str] = None,
-    custom_emotion_text: Optional[str] = None,
-    custom_speed: Optional[float] = None,
-    custom_music_style: Optional[str] = None,
-    custom_music_structure: Optional[str] = None,
-    custom_music_duration: Optional[float] = None,
-    custom_video_duration: Optional[float] = None,
     upload_wait_sec: Optional[int] = None,
     execute_mode: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
-    Executa a Fábrica RPA adaptando o comportamento entre Conta 1, Conta 2, Pipeline de Vídeo 4K, CosyVoice,
-    MiniMax Music 3 e MiniMax H3 Cinematic:
+    Executa a Fábrica RPA adaptando o comportamento entre Conta 1, Conta 2 e Pipeline de Vídeo 4K:
     - Conta 1 (Raw Producer): Injeta prompts (#128-#254) e salva todas as imagens brutas no Nó #121.
     - Conta 2 (SeedVR 8K Upscaler): Ingestão zip no Nó #5 e monitoramento tempo real 1 a 1 no Nó #55.
     - Pipeline de Vídeo 4K (Conta 3): Ingestão de imagem no Nó #164, Prompt no Nó #17 e saída de vídeo 4K no Nó #185.
-    - CosyVoice (Conta 4): Roteiro no Nó #345, Emoção no Nó #355, e captura direta no SaveAudio #346.
-    - MiniMax Music (Conta 5): Estilo no Nó #15, Estrutura no Nó #16, Duração no Nó #14 e captura no SaveAudio #7.
-    - MiniMax H3 Cinematic (Conta 7): Ingestão de imagem no Nó #48 (图1), prompt no Nó #35, duração no Nó #66 e saída sem watermark no Nó #107 FeiHou.
     """
     if isinstance(account, str):
         if account.isdigit():
             account = int(account)
         elif account.lower() in ("video", "video_4k"):
             account = 3
-        elif account.lower() in ("cosyvoice", "audio", "narration"):
-            account = 4
-        elif account.lower() in ("minimax_music", "minimax", "music", "soundtrack"):
-            account = 5
-        elif account.lower() in ("minimax_h3", "minimax_video", "h3", "h3_cinematic", "video_minimax_h3_cinematic"):
-            account = 7
     cfg = get_account_config(account)
     out_node = output_node_id if output_node_id is not None else cfg["output_node"]
     input_node = cfg.get("input_node", 5)
@@ -1841,7 +1606,7 @@ def run_factory_bot(
     target_nodes = prompt_nodes if prompt_nodes is not None else cfg["prompt_nodes"]
     target_dir = destination_dir if destination_dir is not None else cfg["destination_dir"]
     target_dir.mkdir(parents=True, exist_ok=True)
-    save_mode = cfg["save_mode"]  # 'batch_all', 'realtime_single', 'video_output', 'audio_output'
+    save_mode = cfg["save_mode"]  # 'batch_all', 'realtime_single', 'video_output'
     effective_execute_mode = execute_mode or cfg.get("execute_mode", "lite_plus")
     if effective_execute_mode.strip().lower() == "standard":
         logger.warning("⚠️ Modo 'standard' bloqueado por diretriz: Lite/Plus é mandatório em todos os workflows do RunningHub. Redirecionando para 'lite_plus'.")
@@ -1889,23 +1654,6 @@ def run_factory_bot(
         logger.info(f"  • Modo de Salvamento: TEMPO REAL 1 A 1 (Salva instantâneo no Nó #{out_node})")
         logger.info(f"  • Alerta Anti-Overwrite: Captura imediata antes da próxima imagem substituir o nó!")
         logger.info(f"  • Nó Preview 8K:      #{out_node}")
-    elif account == 4:
-        logger.info("🎙️ INICIANDO FÁBRICA RPA — CONTA 4 (COSYVOICE AUDIO NARRATION)")
-        logger.info(f"  • Modo de Salvamento: AUDIO OUTPUT (Nó #{out_node})")
-        logger.info(f"  • Nó Roteiro / Fala:  #{cfg.get('script_node', 345)}")
-        logger.info(f"  • Nó Emoção / Tom:    #{cfg.get('emotion_node', 355)}")
-    elif account == 5:
-        logger.info("🎼 INICIANDO FÁBRICA RPA — MINIMAX MUSIC 3 (TRILHA SONORA CINEMATOGRÁFICA)")
-        logger.info(f"  • Modo de Salvamento: AUDIO FLAC/WAV (Nó #{out_node})")
-        logger.info(f"  • Nó Estilo Musical:  #{cfg.get('style_node', 15)}")
-        logger.info(f"  • Nó Estrutura/Letra: #{cfg.get('structure_node', 16)}")
-        logger.info(f"  • Nó Duração:         #{cfg.get('duration_node', 14)}")
-    elif account == 7 or cfg.get("role") == "video_minimax_h3_cinematic":
-        logger.info("🎬 INICIANDO FÁBRICA RPA — MINIMAX H3 CINEMÁTICO V2 TURBO (FALLBACK)")
-        logger.info(f"  • Modo de Salvamento: VÍDEO SEM WATERMARK (Nó #107 FeiHou)")
-        logger.info(f"  • Nó Ingestão Imagem: #{input_node} (Load Image 图1)")
-        logger.info(f"  • Nó Injeção Prompt:  #{cfg.get('prompt_node', 35)} (PrimitiveStringMultiline)")
-        logger.info(f"  • Nó Duração Vídeo:   #{cfg.get('duration_node', 66)} (PrimitiveFloat)")
     else:
         logger.info("🎬 INICIANDO FÁBRICA RPA — PIPELINE DE VÍDEO (GERAÇÃO & UPSCALE 4K)")
         logger.info(f"  • Modo de Salvamento: VÍDEO OUTPUT 4K (Nó #{out_node})")
@@ -2046,7 +1794,7 @@ def run_factory_bot(
                 if not all_batches and batch_count >= max_batches:
                     break
 
-                current_pending = queue_mgr.get_pending_prompts(batch_size=b_size) if account not in (3, 4, 5, 7) and cfg.get("role") not in ("video_4k_generator", "video_minimax_h3_cinematic", "audio_narration_cosyvoice", "soundtrack_minimax_music") else []
+                current_pending = queue_mgr.get_pending_prompts(batch_size=b_size) if account != 3 and cfg.get("role") != "video_4k_generator" else []
                 v_item = None
                 ref_img = None
                 p_text_video = ""
@@ -2070,19 +1818,6 @@ def run_factory_bot(
                         cand_imgs = sorted(list(FINAL_IMAGES_DIR.glob("*.jpg")) + list(FINAL_IMAGES_DIR.glob("*.png")), key=lambda f: f.stat().st_mtime, reverse=True)
                         if cand_imgs:
                             ref_img = cand_imgs[0]
-                elif account in (7, "minimax_h3") or cfg.get("role") == "video_minimax_h3_cinematic":
-                    p_text_video = custom_prompt_text or ""
-                    if not p_text_video:
-                        pending_v = queue_mgr.get_pending_video_prompts(batch_size=1)
-                        if pending_v:
-                            v_item = pending_v[0]
-                            p_text_video = v_item.prompt_text
-                    # MiniMax H3 opera por padrão em modo T2V (Text-to-Video).
-                    # Load Image (Nó #48) só é acionado se explicitamente solicitado via input_image_path (I2V / REF2V).
-                    if input_image_path and Path(input_image_path).exists():
-                        ref_img = Path(input_image_path)
-                    else:
-                        ref_img = None
 
                 batch_count += 1
                 batch_prompts = [p.prompt_text for p in current_pending]
@@ -2181,129 +1916,11 @@ def run_factory_bot(
                         time.sleep(chunk)
                     logger.info(f"✅ [Nó #{input_node} Load Image] Janela de {effective_wait}s concluída com sucesso! Imagem pronta.")
 
-                elif account == 4:
-                    s_node = cfg.get("script_node", 345)
-                    e_node = cfg.get("emotion_node", 355)
-                    sp_node = cfg.get("speed_node", 352)
-                    s_text = custom_script_text or custom_prompt_text or (batch_prompts[0] if batch_prompts else "At 12:15 AM on September 26, 1983, a red siren illuminated a top-secret Soviet bunker outside Moscow...")
-                    e_text = custom_emotion_text or "Speak with controlled urgency and rising dread, deep baritone documentary tone, sharp articulation."
-                    logger.info(f"🎙️ [CosyVoice] Injetando roteiro no Nó #{s_node} e emoção no Nó #{e_node}...")
-                    inject_video_prompt_to_node(comfy_frame, s_node, s_text)
-                    inject_video_prompt_to_node(comfy_frame, e_node, e_text)
-                    if custom_speed is not None:
-                        try:
-                            comfy_frame.evaluate("""({nodeId, speed}) => {
-                                if (typeof window.app !== 'undefined' && window.app.graph) {
-                                    const node = window.app.graph.getNodeById(nodeId);
-                                    if (node && node.widgets) {
-                                        const spW = node.widgets.find(w => w.name === 'speed');
-                                        if (spW) {
-                                            spW.value = speed;
-                                            if (spW.callback) spW.callback(speed);
-                                        }
-                                    }
-                                }
-                            }""", {"nodeId": sp_node, "speed": custom_speed})
-                        except Exception:
-                            pass
-                    time.sleep(1.0)
-
-                elif account in (5, "minimax_music") or cfg.get("role") == "soundtrack_minimax_music":
-                    st_node = cfg.get("style_node", 15)
-                    struct_node = cfg.get("structure_node", 16)
-                    dur_node = cfg.get("duration_node", 14)
-                    st_text = custom_music_style or custom_prompt_text or (
-                        "### Global Metadata\n"
-                        "[Instrumental track, purely orchestral score, no vocals, non-vocal, cinematic background soundtrack]\n"
-                        "### Vocal Details\n"
-                        "[No vocals, instrumental only, no singing, no voice, no choir, no humming]\n"
-                        "### Style Description\n"
-                        "Hans Zimmer style dark cinematic tension soundtrack, 60 BPM pulse, analog synthesizer drones, "
-                        "cello swells, subtle acoustic ticking, sub-bass rumble, Nolan thriller soundscape"
-                    )
-                    struct_text = custom_music_structure or (
-                        "[Instrumental]\n"
-                        "[Intro: Instrumental]\n"
-                        "[Tension: Instrumental]\n"
-                        "[Climax: Instrumental]\n"
-                        "[Outro: Instrumental]"
-                    )
-                    dur_val = float(custom_music_duration or 180.0)
-                    logger.info(f"🎼 [MiniMax Music] Injetando estilo no Nó #{st_node} e estrutura no Nó #{struct_node}...")
-                    inject_video_prompt_to_node(comfy_frame, st_node, st_text)
-                    inject_video_prompt_to_node(comfy_frame, struct_node, struct_text)
-                    try:
-                        comfy_frame.evaluate("""({nodeId, dur}) => {
-                            if (typeof window.app !== 'undefined' && window.app.graph) {
-                                const node = window.app.graph.getNodeById(nodeId);
-                                if (node && node.widgets) {
-                                    const w = node.widgets.find(w => w.name === 'value') || node.widgets[0];
-                                    if (w) {
-                                        w.value = dur;
-                                        if (w.callback) w.callback(dur);
-                                    }
-                                }
-                            }
-                        }""", {"nodeId": dur_node, "dur": dur_val})
-                        logger.info(f"⏱️ [MiniMax Music] Duração configurada para {dur_val}s no Nó #{dur_node}.")
-                    except Exception as e:
-                        logger.warning(f"⚠️ Aviso ao configurar duração no Nó #{dur_node}: {e}")
-                    time.sleep(1.0)
-
-
-                elif account in (7, "minimax_h3") or cfg.get("role") == "video_minimax_h3_cinematic":
-                    in_img_node = cfg.get("input_image_node", 48)
-                    p_node = cfg.get("prompt_node", 35)
-                    dur_node = cfg.get("duration_node", 66)
-                    dur_val = float(custom_video_duration or 10.0)
-
-                    # Injeção de imagem APENAS quando explicitamente solicitado (I2V / REF2V)
-                    if ref_img and ref_img.exists():
-                        target_ar = "16:9"
-                        upload_ref = optimize_reference_image_for_video(ref_img, aspect_ratio=target_ar)
-                        logger.info(f"📤 [MiniMax H3] Modo I2V/REF2V: Injetando imagem de referência ({upload_ref.name}) no Nó #{in_img_node} (Load Image 图1)...")
-                        upload_image_to_node(page, comfy_frame, in_img_node, upload_ref)
-                        effective_wait = upload_wait_sec if upload_wait_sec is not None else cfg.get("upload_wait_sec", DEFAULT_IMAGE_UPLOAD_WAIT_SEC)
-                        logger.info(f"⏳ [MiniMax H3] Aguardando {effective_wait}s para o servidor carregar a imagem no Nó #{in_img_node}...")
-                        for s in range(effective_wait, 0, -5):
-                            chunk = min(5, s)
-                            logger.info(f"⏳ [Nó #{in_img_node} Load Image] Carregando imagem... {s}s restantes")
-                            time.sleep(chunk)
-                        logger.info(f"✅ [Nó #{in_img_node} Load Image] Imagem pronta.")
-                    else:
-                        logger.info("🎬 [MiniMax H3] Modo T2V (Text-to-Video) ativo: Geração 100% por prompt, sem injeção de imagem.")
-
-                    if p_text_video:
-                        logger.info(f"📝 [MiniMax H3] Injetando prompt cinemático no Nó #{p_node}...")
-                        inject_video_prompt_to_node(comfy_frame, p_node, p_text_video)
-                        time.sleep(1.0)
-
-                    try:
-                        comfy_frame.evaluate("""({nodeId, dur}) => {
-                            if (typeof window.app !== 'undefined' && window.app.graph) {
-                                const node = window.app.graph.getNodeById(nodeId);
-                                if (node && node.widgets) {
-                                    const w = node.widgets.find(w => w.name === 'value') || node.widgets[0];
-                                    if (w) {
-                                        w.value = dur;
-                                        if (w.callback) w.callback(dur);
-                                    }
-                                }
-                            }
-                        }""", {"nodeId": dur_node, "dur": dur_val})
-                        logger.info(f"⏱️ [MiniMax H3] Duração configurada para {dur_val}s no Nó #{dur_node}.")
-                    except Exception as e:
-                        logger.warning(f"⚠️ Aviso ao configurar duração no Nó #{dur_node}: {e}")
-
                 # Captura pré-existente no nó de saída
-                initial_node_images = get_node_images(page, out_node) if account not in (3, 4, 5, 7) and cfg.get("role") not in ("video_4k_generator", "video_minimax_h3_cinematic", "audio_narration_cosyvoice", "soundtrack_minimax_music") else []
+                initial_node_images = get_node_images(page, out_node) if account != 3 and cfg.get("role") != "video_4k_generator" else []
                 initial_node_videos: List[str] = []
-                initial_node_audios: List[str] = []
-                if account in (4, 5) or cfg.get("role") in ("audio_narration_cosyvoice", "soundtrack_minimax_music"):
-                    initial_node_audios = get_node_audios(page, out_node)
-                    logger.info(f"🚫 [{cfg['role']}] Registrados {len(initial_node_audios)} áudios pré-existentes na blacklist antes da execução no Nó #{out_node}.")
-                if account in (3, 7) or cfg.get("role") in ("video_4k_generator", "video_minimax_h3_cinematic"):
-                    tag_v = "MiniMax H3" if (account in (7, "minimax_h3") or cfg.get("role") == "video_minimax_h3_cinematic") else "Vídeo 4K"
+                if account == 3 or cfg.get("role") == "video_4k_generator":
+                    tag_v = "Vídeo 4K"
                     # Registrar todos os vídeos presentes no nó e no DOM como blacklist permanente antes do disparo
                     initial_node_videos = get_node_videos(page, out_node)
                     for f in page.frames:
@@ -2451,12 +2068,10 @@ def run_factory_bot(
                             except Exception:
                                 pass
 
-                # ── ESTRATÉGIA C: PIPELINE DE VÍDEO 4K & MINIMAX H3 (Save video / FeiHou Node #107) ──
-                elif save_mode == "video_output" or account in (3, 7) or cfg.get("role") in ("video_4k_generator", "video_minimax_h3_cinematic"):
-                    is_h3 = account in (7, "minimax_h3") or cfg.get("role") == "video_minimax_h3_cinematic"
-                    tag_v = "MiniMax H3" if is_h3 else "Pipeline de Vídeo 4K"
-                    default_wait = 1800 if is_h3 else 3600
-                    max_wait_video = int(os.getenv("RUNNINGHUB_MINIMAX_H3_MAX_WAIT_SEC" if is_h3 else "RUNNINGHUB_VIDEO_MAX_WAIT_SEC", str(default_wait)))
+                # ── ESTRATÉGIA C: PIPELINE DE VÍDEO 4K (Conta 3 / Save video) ──
+                elif save_mode == "video_output" or account == 3 or cfg.get("role") == "video_generator_4k":
+                    tag_v = "Pipeline de Vídeo 4K"
+                    max_wait_video = int(os.getenv("RUNNINGHUB_VIDEO_MAX_WAIT_SEC", "3600"))
                     logger.info(f"⏳ [{tag_v}] Monitorando renderização no Nó #{out_node} (aguardando conclusão da geração no RunningHub)...")
                     video_saved = False
                     video_wait_start = time.time()
@@ -2527,9 +2142,6 @@ def run_factory_bot(
                                             logger.info(f"✅ Novo vídeo [{tag_v}] gravado com sucesso: {saved_name} ({elapsed_total_min}m {elapsed_total_sec}s decorridos, {saved_path.stat().st_size // 1024} KB) em {target_dir.name}!")
                                             if v_item:
                                                 queue_mgr.mark_video_prompts_generated([v_item], saved_videos=[saved_name])
-                                            if is_h3:
-                                                logger.info("🛑 Cancelando tarefa ativa no RunningHub pós-salvamento para economizar créditos GPU...")
-                                                cancel_runninghub_task(page)
                                             break
                                 if video_saved:
                                     break
@@ -2539,7 +2151,7 @@ def run_factory_bot(
                             logger.error("❌ Tarefa reportou erro ativo no painel do RunningHub!")
                             break
 
-                        # Timeout de segurança de 30/60 minutos
+                        # Timeout de segurança de 60 minutos
                         if elapsed_sec > max_wait_video:
                             logger.warning(f"⚠️ Limite máximo de espera por renderização de vídeo atingido ({max_wait_video // 60} min).")
                             break
@@ -2547,53 +2159,6 @@ def run_factory_bot(
                         time.sleep(4)
 
                     # NUNCA cancelar a tarefa no RunningHub para Conta 3 (Vídeo), deixando o render persistir naturalmente
-
-                # ── ESTRATÉGIA D: AUDIO PIPELINE (CosyVoice #346 / MiniMax Music #7) ──
-                elif save_mode == "audio_output" or account in (4, 5):
-                    max_wait_audio = int(os.getenv("RUNNINGHUB_AUDIO_MAX_WAIT_SEC", "300"))  # 5 minutos
-                    pipeline_tag = "MiniMax Music" if account == 5 else "CosyVoice Narração"
-                    logger.info(f"⏳ [{pipeline_tag}] Monitorando geração de áudio no Nó #{out_node}...")
-                    audio_saved = False
-                    audio_wait_start = time.time()
-                    last_heartbeat = audio_wait_start
-
-                    while True:
-                        page.keyboard.press("Escape")
-                        now = time.time()
-                        elapsed_sec = int(now - audio_wait_start)
-
-                        if now - last_heartbeat >= 10:
-                            logger.info(f"⏳ [{pipeline_tag}] Monitorando Nó #{out_node}... ({elapsed_sec}s decorridos)")
-                            last_heartbeat = now
-
-                        # Capturar áudios gerados no Nó de saída
-                        current_node_audios = get_node_audios(page, out_node)
-                        new_auds = [a for a in current_node_audios if a not in initial_node_audios]
-
-                        if new_auds:
-                            for cand in new_auds:
-                                logger.info(f"🎵 Novo áudio detectado no Nó #{out_node}! Extraindo arquivo final...")
-                                saved_name = save_audio_from_src(page, cand, destination_dir=target_dir, prefix=cfg["prefix"])
-                                if saved_name:
-                                    saved_path = target_dir / saved_name
-                                    if saved_path.exists() and saved_path.stat().st_size > 1000:
-                                        images_saved += 1
-                                        batch_saved_files.append(saved_name)
-                                        audio_saved = True
-                                        logger.info(f"✅ [{pipeline_tag}] Áudio salvo com sucesso: {saved_name} ({saved_path.stat().st_size} bytes) em {target_dir.name}!")
-                                        # Cancelar imediatamente para economizar GPU
-                                        cancel_runninghub_task(page)
-                                        break
-                                    else:
-                                        logger.warning("⚠️ Arquivo de áudio temporário ou incompleto detectado. Continuando monitoramento...")
-                        if audio_saved:
-                            break
-
-                        if elapsed_sec > max_wait_audio:
-                            logger.warning(f"⚠️ Limite máximo de espera por áudio ({pipeline_tag}) atingido ({max_wait_audio}s).")
-                            break
-
-                        time.sleep(2)
 
                 # ── ESTRATÉGIA B: CONTA 2 (Real-Time Single — 1 a 1 antes de sobrescrever) ──
                 else:
@@ -2698,73 +2263,15 @@ def run_factory_bot(
                 pass
 
 
-def run_narration_bot(
-    script: str,
-    emotion: Optional[str] = None,
-    speed: float = 1.0,
-    destination_dir: Optional[Path] = None,
-    timeout_sec: int = 300,
-) -> Dict[str, Any]:
-    """Dispara a geração de áudio no CosyVoice via RunningHub e retorna os metadados do áudio gerado."""
-    return run_factory_bot(
-        account=4,
-        destination_dir=destination_dir or FINAL_AUDIO_DIR,
-        custom_script_text=script,
-        custom_emotion_text=emotion,
-        custom_speed=speed,
-    )
-
-
-def run_minimax_music_bot(
-    style: Optional[str] = None,
-    structure: Optional[str] = None,
-    duration_sec: float = 180.0,
-    destination_dir: Optional[Path] = None,
-    timeout_sec: int = 300,
-) -> Dict[str, Any]:
-    """Dispara a geração de trilha sonora no MiniMax Music 3 via RunningHub e retorna metadados."""
-    return run_factory_bot(
-        account="minimax_music",
-        destination_dir=destination_dir or FINAL_AUDIO_DIR,
-        custom_music_style=style,
-        custom_music_structure=structure,
-        custom_music_duration=duration_sec,
-    )
-
-
-def run_minimax_h3_video_bot(
-    prompt: str,
-    reference_image_path: Optional[Union[str, Path]] = None,
-    duration_sec: float = 10.0,
-    destination_dir: Optional[Path] = None,
-    timeout_sec: int = 1800,
-) -> Dict[str, Any]:
-    """Dispara a geração de vídeo via MiniMax H3 Cinemático V2 Turbo no RunningHub e salva no Nó #107 FeiHou sem marca d'água."""
-    return run_factory_bot(
-        account=7,
-        destination_dir=destination_dir or FINAL_VIDEOS_DIR,
-        custom_prompt_text=prompt,
-        input_image_path=reference_image_path,
-        custom_video_duration=duration_sec,
-    )
-
-
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser(description="RunningHub ComfyUI Automation Bot (Dual-Account / Audio / Video / MiniMax H3)")
-    parser.add_argument("--account", default="1", help="RunningHub Account: 1 (Raw Producer), 2 (SeedVR 8K), 3 (Video 4K), 4 (CosyVoice Narration), 5 (MiniMax Music), 7 (MiniMax H3 Cinematic Fallback)")
-    parser.add_argument("--node", type=int, default=None, help="Output Node ID (default: 121 for Conta 1, 55 for Conta 2, 346 for CosyVoice, 7 for Music, 107 for H3)")
+    parser = argparse.ArgumentParser(description="RunningHub ComfyUI Automation Bot (Dual-Account / Video 4K)")
+    parser.add_argument("--account", default="1", help="RunningHub Account: 1 (Raw Producer), 2 (SeedVR 8K), 3 (Video 4K)")
+    parser.add_argument("--node", type=int, default=None, help="Output Node ID (default: 121 for Conta 1, 55 for Conta 2, 185 for Video 4K)")
     parser.add_argument("--batch-size", type=int, default=210, help="Number of images per batch (default: 210)")
     parser.add_argument("--batches", type=int, default=1, help="Number of consecutive batches (default: 1)")
     parser.add_argument("--all-batches", action="store_true", help="Run until queue is exhausted")
-    parser.add_argument("--script", type=str, default=None, help="Script text for CosyVoice narration")
-    parser.add_argument("--emotion", type=str, default=None, help="Emotion and tone instruction for CosyVoice")
-    parser.add_argument("--speed", type=float, default=1.0, help="Voice speed (default: 1.0)")
-    parser.add_argument("--music-style", type=str, default=None, help="Style description for MiniMax Music 3")
-    parser.add_argument("--music-structure", type=str, default=None, help="Structure/lyrics prompt for MiniMax Music 3")
-    parser.add_argument("--music-duration", type=float, default=180.0, help="Music duration in seconds (default: 180.0)")
-    parser.add_argument("--ref-image", type=str, default=None, help="Reference image path for MiniMax H3 / Video")
-    parser.add_argument("--video-duration", type=float, default=10.0, help="Video duration in seconds for MiniMax H3")
+    parser.add_argument("--ref-image", type=str, default=None, help="Reference image path for Video 4K (Conta 3)")
     args = parser.parse_args()
 
     run_factory_bot(
@@ -2774,11 +2281,4 @@ if __name__ == "__main__":
         max_batches=args.batches,
         all_batches=args.all_batches,
         input_image_path=args.ref_image,
-        custom_script_text=args.script,
-        custom_emotion_text=args.emotion,
-        custom_speed=args.speed,
-        custom_music_style=args.music_style,
-        custom_music_structure=args.music_structure,
-        custom_music_duration=args.music_duration,
-        custom_video_duration=args.video_duration,
     )

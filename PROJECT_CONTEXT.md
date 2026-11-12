@@ -178,11 +178,10 @@ Diferente de fluxos manuais de geração com IA generativa, o StockCont opera co
   - Topologia Conta 1 (Raw Producer): 42 nós PromptList (#128, #129, #130, #131, #204, #218, #224, #223, #222, #221, #219, #220, #230, #229, #228, #227, #225, #226, #236, #235, #234, #233, #231, #232, #242, #241, #240, #239, #237, #238, #254, #253, #252, #251, #249, #250, #248, #247, #246, #245, #243, #244), 5 prompts por nó = até 210 prompts por lote na janela de 40 minutos do RunningHub, saída no nó #121.
   - Topologia Conta 2 (SeedVR 8K): Ingestão zip no nó #5, saída preview instantânea 1 a 1 no nó #55.
   - Topologia Pipeline de Vídeo 4K (Conta 3): Workflow 2115926169974812674, Ingestão de Imagem no nó #164 (Load Image), Prompt temporal no nó #17, Saída final de vídeo 4K no nó #185 (Feihou Preview Video sem watermark), salvamento em data/final/videos/.
-  - DarkFactory Cinema Engine (T2V Nativo para Canal Dark no YouTube): Módulo central em src/video/darkfactory_t2v.py com arquitetura Dual-Shot (Shot A: Tensão/Drama + Shot B: Macro/Ação), adapters dedicados para MiniMax H3 (Hailuo) e Google Flow (Veo 2), arquétipos narrativos (cold_war_espionage, cyber_warfare, deep_space_scifi) e exportação em lote para data/processed/minimax_t2v_queue.json e data/processed/google_veo_queue.json.
+  - B2B Motion & Promo Stock (`src/video/`): `hyperframes_engine.py`, `motion_qa.py`, `promo_motion_director.py`, `ffmpeg_processor.py` e `video_metadata.py` (ativos `-an` para Adobe Stock, Freepik, Pond5, 123RF, Dreamstime, Vecteezy e Ingram; bloqueio Alamy ADR-05).
   - Hashing SHA-256 canônico de cada prompt para garantir idempotência.
   - Cancelamento atômico pós-última imagem renderizada para economizar créditos de GPU.
   - **Botão de Execução Mandatório (Lite/Plus)**: Em TODOS os workflows (Conta 1 Raw Producer, Conta 2 SeedVR 8K Upscaler e Conta 3/Vídeo 4K), o botão de execução acionado no RunningHub é SEMPRE o **Lite/Plus** (botão do meio). O botão **Standard** é terminantemente proibido e desabilitado em todo o código.
-  - **DarkFactory Knowledge Vault & Story Auditor**: Módulos em `src/video/master_knowledge.py`, `src/video/knowledge_distiller.py` e `src/video/story_validator.py` destilados dos 27 livros canônicos de referência (Walter Murch, MrBeast, Lisa Cron, Jonah Berger, Brendan Kane, Derral Eves, Derek Thompson, Alex Hormozi). Valida matematicamente a *Rule of Six* de Murch (51% Emoção > 23% História > 10% Ritmo > 7% Eye-Trace), a cadência MrBeast dos primeiros 60s (MSL <= 4.2s, re-hook aos 60s, zero dead air), os *Curiosity Gaps* de Lisa Cron a cada 20s e o índice viral *STEPPS* de Jonah Berger.
 
 ### Fase 4: O Catalogador & Metadados Binários
 
@@ -311,34 +310,6 @@ Diferente de fluxos manuais de geração com IA generativa, o StockCont opera co
 ### ADR-08: Execução Mandatória via Botão Lite/Plus no RunningHub
 - **Contexto**: O botão 'Standard' no RunningHub possui limitações de recursos e alocação inadequada de nós para esteiras de produção em escala de microstock.
 - **Decisão**: Todos os workflows (Conta 1 Raw Producer, Conta 2 SeedVR 8K Upscaler e Conta 3/Vídeo 4K) devem acionar EXCLUSIVAMENTE o botão 'Lite/Plus' (botão do meio). O botão 'Standard' é terminantemente proibido; qualquer tentativa de acioná-lo é interceptada e redirecionada em nível de código para 'Lite/Plus'.
-
-### ADR-09: Hierarquia de Narração e Invariante de Narrador Único por Vídeo
-- **Contexto**: A narração é a espinha dorsal de retenção e autoridade dos documentários do DarkFactory. Mudar de voz ou motor no meio de um vídeo (ex: cena 1 com CosyVoice e cena 2 com Kokoro) quebra a ilusão cinematográfica e destrói a retenção do espectador.
-- **Decisão**: Estabelecer hierarquia oficial tripartite gerenciada pelo `src/video/voice_router.py`:
-  1. **Tier 1 (Padrão Ouro Lossless)**: CosyVoice Neural no RunningHub ComfyUI (Workflow 2118531898170486785, nós #345/#355/#352 e saída lossless FLAC no #346).
-  2. **Tier 2 (Fallback 1)**: Kokoro Neural LOCAL (`bm_george` britânico solene / BBC / Nolan, zero custo, inferência local CPU).
-  3. **Tier 3 (Fallback 2)**: Deepgram Aura REST API (`aura-helios-en` barítono, 1.6s latência, créditos comerciais de $200).
-- **Invariante Mandatório de Unidade Vocal (`NarratorLock`)**:
-  - O narrador e motor selecionados na **Cena 1** ficam travados em `data/processed/narrator_locks.json`.
-  - Todas as cenas subsequentes (2..N) do mesmo vídeo DEVEM obrigatoriamente utilizar o mesmo narrador. É terminantemente proibido alternar vozes ou motores dentro do mesmo vídeo.
-  - Se o motor travado falhar no meio da produção, o sistema lança `NarratorConsistencyViolationError` e impede a contaminação do vídeo, oferecendo re-renderização uniforme de todas as cenas caso o usuário opte por trocar de motor.
-
-### ADR-10: Arquitetura Multitrack de Áudio (MiniMax Music 3 Instrumental & Mixagem 3-Stem)
-- **Contexto**: Documentários dark e vídeos de alta retenção demandam uma esteira de áudio cinematográfica com stems profissionais: (1) Narração solene na voz do narrador travado, (2) Trilha sonora orquestral com tensão Hans Zimmer / Ludwig Göransson, e (3) Efeitos sonoros / Foley (passos, trancas de portas, cliques, estática de rádio).
-- **Decisão**:
-  1. **MiniMax Music 3 (Soundtrack Engine)**: Workflow ComfyUI 2120003151633174529 na Conta 4/Audio Command Center, injetando prompt de estilo no Nó #15 (`Text Multiline`), estrutura sinfônica de 4 atos no Nó #16 (`Text Multiline`), duração no Nó #14 (`PrimitiveFloat`, padrão 180.0s) e saída lossless FLAC no Nó #7 (`SaveAudioAdvanced`), acionando mandatoriamente o botão Lite/Plus (ADR-08).
-  - **Invariante Mandatório 100% Instrumental (Zero Vocais)**: Para erradicar qualquer geração vocal ou canto pelo modelo MiniMax Music 3: (a) o Nó #15 (`caption`) recebe obrigatoriamente metadados globais explícitos `### Global Metadata\n[Instrumental track, purely orchestral score, no vocals...]` e `### Vocal Details\n[No vocals, instrumental only, no singing, no voice, no choir, no humming]`; (b) o Nó #16 (`lyrics`) JAMAIS deve conter prosa ou palavras descritivas (que o modelo interpreta como letra cantada), contendo EXCLUSIVAMENTE marcadores estruturais puros como `[Instrumental]\n[Intro: Instrumental]\n[Tension: Instrumental]\n[Climax: Instrumental]\n[Outro: Instrumental]`.
-  2. **Mixagem Multitrack 3-Stem (-14 LUFS EBU R128)**: O `DarkFactoryAudioEngine.mix_multitrack_documentary` realiza a mixagem profissional dos 3 stems com compressão sidechain (ducking automático de -14dB na música quando há fala do narrador), balanceando os níveis (Voz 0dB, Trilha -16dB, Foley -12dB) e normalizando para broadcast e YouTube.
-
-### ADR-11: Fallback Cinemático de Vídeo via MiniMax H3 Cinematic V2 Turbo (FeiHou Node #107 sem Watermark)
-- **Contexto**: A esteira de produção de vídeo 4K (Google Flow / Veo 2 / Conta 3) pode enfrentar contingências operacionais, limites de GPU ou downtime. Documentários históricos para canais dark demandam tomadas de alta tensão com movimento de câmera cinemático de alto impacto e ausência total de marcas d'água de plataformas.
-- **Decisão**:
-  1. **Topologia MiniMax H3 (Workflow 2118560390471745537)**: Integrado na Conta 7 (`minimax_h3`) em `src/factory/runninghub_bot.py` e `src/video/minimax_h3_engine.py`.
-  2. **Nós de Ingestão**: Nó #35 (`PrimitiveStringMultiline`) para prompts cinematográficos estilizados para o MiniMax H3, Nó #48 (`LoadImage` 图1) para imagens de referência com conversão de aspect ratio 16:9, Nó #66 (`PrimitiveFloat`) para controle de duração em segundos (padrão 10.0s), e Nó #62 (`ResolutionSelector` 16:9).
-  3. **Invariante Mandatório de Saída sem Marca D'água (`FeiHouVideoPreview`)**: A extração final de vídeo é **OBRIGATORIAMENTE** realizada no **Nó #107 (`FeiHouVideoPreview` - 'FeiHou-视频预览')**, garantindo render em alta definição com áudio sincronizado e sem a marca d'água do RunningHub.
-  4. **Execução Mandatória (Lite/Plus)**: O acionamento segue estritamente o botão Lite/Plus do RunningHub (ADR-08).
-  5. **Cancelamento Atômico Pós-Salvamento**: Para economizar GPU, a tarefa ativa no RunningHub é cancelada imediatamente após a gravação do vídeo em disco.
-  6. **Fallback Procedural Local**: Em modo offline ou falha no RPA, o `MiniMaxH3VideoEngine` sintetiza proceduralmente um clipe 1080p 24fps com deriva cinematográfica e grão analógico suave.
 
 
 

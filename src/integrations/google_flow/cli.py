@@ -10,9 +10,9 @@ import argparse
 import asyncio
 import json
 import logging
+import os
 import sys
-import time
-from pathlib import Path
+import uuid
 from typing import Optional
 
 from src.integrations.google_flow.api_server import start_server
@@ -188,7 +188,7 @@ async def _run_queue_processor() -> int:
             duration_seconds=duration,
             variations_count=1,
             auto_upscale=True,
-            project_name=f"DarkFactory_{shot_id}",
+            project_name=f"StockCont_{shot_id}",
         )
         job = await service.enqueue_generation(req)
         while True:
@@ -202,11 +202,15 @@ async def _run_queue_processor() -> int:
                     item["outputs"] = curr.final_output_paths
                 break
 
-    # Persist updated queue atomically
-    tmp = GOOGLE_VEO_QUEUE_FILE.with_suffix(".tmp.json")
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(queue, f, indent=2, ensure_ascii=False)
-    tmp.replace(GOOGLE_VEO_QUEUE_FILE)
+    # Persist updated queue atomically (ADR-02)
+    tmp = GOOGLE_VEO_QUEUE_FILE.with_suffix(f".tmp.{os.getpid()}.{uuid.uuid4().hex[:6]}.json")
+    try:
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(queue, f, indent=2, ensure_ascii=False)
+        tmp.replace(GOOGLE_VEO_QUEUE_FILE)
+    finally:
+        if tmp.exists():
+            tmp.unlink(missing_ok=True)
     print("✅ Queue processing batch complete.")
     return 0
 

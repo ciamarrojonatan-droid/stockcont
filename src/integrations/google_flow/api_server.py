@@ -14,7 +14,7 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse
 
 from src.integrations.google_flow.config import (
     DEFAULT_API_HOST,
@@ -26,7 +26,6 @@ from src.integrations.google_flow.config import (
 from src.integrations.google_flow.models import (
     AuthStatusResponse,
     GenerationRequest,
-    JobStatus,
     JobStatusResponse,
     ProjectCreateRequest,
     ProjectResponse,
@@ -90,7 +89,7 @@ def create_app(service: Optional[GoogleFlowService] = None) -> FastAPI:
             "video_models": SUPPORTED_VIDEO_MODELS,
             "image_models": SUPPORTED_IMAGE_MODELS,
             "aspect_ratios": [
-                {"ratio": "16:9", "name": "Landscape (Widescreen)", "use_case": "YouTube / Desktop / Stock Footage"},
+                {"ratio": "16:9", "name": "Landscape (Widescreen)", "use_case": "Desktop / Hero Web / Stock Footage"},
                 {"ratio": "9:16", "name": "Vertical (Portrait)", "use_case": "Shorts / Reels / TikTok"},
                 {"ratio": "1:1", "name": "Square", "use_case": "Social Feed / Microstock Icons"},
                 {"ratio": "4:3", "name": "Classic Television", "use_case": "Editorial / Archival"},

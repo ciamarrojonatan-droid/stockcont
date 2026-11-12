@@ -1,15 +1,14 @@
-"""DarkFactory & StockCont — Gemini API Unified Capability Test Suite.
+"""StockCont — Gemini API Unified Capability Test Suite.
 
-Tests the 4 pillars requested:
-1. Roteiro & Pacing de Retenção (Gemini Text/Reasoning)
-2. Thumbnails & Imagens Base (Imagen 3 / Nano Banana Image)
-3. Narração / Voiceover (Gemini 3.8 Flash TTS — SEM FALLBACK)
-4. Músicas / SFX / Vídeo (Interactions API / Omni Flash)
+Tests Gemini capabilities used by StockCont:
+1. Text/Reasoning Synthesis
+2. Images (Imagen 3 / Nano Banana Image)
+3. Audio Synthesis Capability Check
+4. Media / Video Models Discovery
 """
 
 from __future__ import annotations
 
-import json
 import os
 import sys
 from pathlib import Path
@@ -33,16 +32,6 @@ def get_api_key() -> str | None:
     if key and key != "sua_chave_gemini_aqui" and len(key) > 10:
         return key
 
-    # Checar .env do DarkFactory
-    df_env = Path("C:/Users/WDAGUtilityAccount/Downloads/darkfactory/.env")
-    if df_env.exists():
-        with open(df_env, "r", encoding="utf-8") as f:
-            for line in f:
-                if line.startswith("GEMINI_API_KEY="):
-                    val = line.split("=", 1)[1].strip().strip('"').strip("'")
-                    if val and val != "sua_chave_gemini_aqui" and len(val) > 10:
-                        return val
-
     # Checar .env do StockCont
     sc_env = BASE_DIR / ".env"
     if sc_env.exists():
@@ -58,7 +47,7 @@ def get_api_key() -> str | None:
 
 def run_suite():
     print("=" * 65)
-    print("  DARKFACTORY / STOCKCONT — GEMINI API CAPABILITY AUDIT")
+    print("  STOCKCONT — GEMINI API CAPABILITY AUDIT")
     print("=" * 65)
 
     api_key = get_api_key()
@@ -66,7 +55,6 @@ def run_suite():
         print("\n[ERRO CRÍTICO] Nenhuma GEMINI_API_KEY válida encontrada no .env!")
         print("Status atual verificado:")
         print("  - StockCont (.env): GEMINI_API_KEY='sua_chave_gemini_aqui' (Placeholder padrão)")
-        print("  - DarkFactory (.env): GEMINI_API_KEY='sua_chave_gemini_aqui' (Copiado do StockCont)")
         print("\nPara executar a geração via API no terminal, cole sua chave do Google AI Studio:")
         print("  Obtenha gratuitamente em: https://aistudio.google.com/app/apikey")
         print("  E adicione no arquivo .env: GEMINI_API_KEY=AIzaSy...")
@@ -77,7 +65,6 @@ def run_suite():
 
     try:
         from google import genai
-        from google.genai import types
         print("[OK] SDK oficial google-genai carregado com sucesso.")
     except ImportError as e:
         print(f"[ERRO] Falha ao importar google-genai: {e}")

@@ -48,23 +48,23 @@ PREFERRED_MODELS = [
 ]
 
 SHOT_CARD_RECIPES: Dict[str, Dict[str, Any]] = {
-    "dolly_in_tension": {
-        "name": "Dolly-In Archival Tension",
+    "dolly_in_commercial": {
+        "name": "Dolly-In Commercial Hero",
         "camera_rig": "35mm Anamorphic on motorized silent dolly",
         "lens": "35mm T2.0",
-        "duration_band_sec": (3.2, 4.5),
+        "duration_band_sec": (4.0, 8.0),
         "copy_space_zone": "left_third",
-        "recommended_overlay": "tactical_hud",
-        "prompt_directive": "Slow measured dolly push at 0.8 m/s toward focal artifact; maintain clean left-third shadow negative space.",
+        "recommended_overlay": "cut_paper_editorial",
+        "prompt_directive": "Slow measured dolly push at 0.8 m/s toward focal subject; maintain clean left-third negative space for corporate typography.",
     },
-    "macro_archival_reveal": {
-        "name": "Macro Declassified Reveal",
+    "macro_product_reveal": {
+        "name": "Macro Studio Material Reveal",
         "camera_rig": "100mm Macro Probe Lens on slider",
         "lens": "100mm f/2.8",
-        "duration_band_sec": (2.4, 3.8),
+        "duration_band_sec": (3.0, 6.0),
         "copy_space_zone": "upper_half",
-        "recommended_overlay": "risograph_declassified",
-        "prompt_directive": "Lateral macro rack focus gliding across paper grain, ink stamps, and brushed dial markings under tungsten spotlight.",
+        "recommended_overlay": "kinetic_grid_background",
+        "prompt_directive": "Lateral macro rack focus gliding across brushed aluminum, glass, and precision surfaces under clean studio lighting.",
     },
     "hud_telemetry_cut": {
         "name": "B2B SaaS Telemetry Cut",
@@ -76,13 +76,13 @@ SHOT_CARD_RECIPES: Dict[str, Dict[str, Any]] = {
         "prompt_directive": "Crisp minimalist FinTech workstation motion with generous clean glass wall on right third for data HUD overlays.",
     },
     "blueprint_wipe_transition": {
-        "name": "Blueprint Technical Wipe",
+        "name": "Isometric Architecture Glide",
         "camera_rig": "Overhead orthometric gantry camera",
         "lens": "40mm rectilinear",
         "duration_band_sec": (3.0, 5.0),
         "copy_space_zone": "center_clean",
-        "recommended_overlay": "blueprint_notebook",
-        "prompt_directive": "Overhead orthographic glide across technical schematics with even cool 5600K studio illumination and uncluttered central space.",
+        "recommended_overlay": "isometric_architecture_flow",
+        "prompt_directive": "Overhead orthographic glide across minimalist architectural modules with even cool 5600K studio illumination and uncluttered central space.",
     },
 }
 

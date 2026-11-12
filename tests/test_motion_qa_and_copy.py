@@ -1,4 +1,4 @@
-"""Sprint 4 unit and integration tests for Motion Personalities, Style Plates, Motion QA & 5s Copy Gate."""
+"""Unit and integration tests for Motion Personalities, Stock Style Plates, and Motion QA."""
 
 from pathlib import Path
 import subprocess
@@ -15,9 +15,6 @@ from src.video.hyperframes_engine import (
     HyperFramesMotionEngine,
 )
 from src.video.motion_qa import MotionQAInspector
-from src.video.story_validator import DarkFactoryStoryValidator
-from src.video.tactical_graphics import TacticalGraphicsEngine
-from src.video.youtube_booster import YouTubeAlgorithmBoosterBridge
 
 
 def _make_frozen_mp4(path: Path, width: int = 320, height: int = 180, frames: int = 24, fps: int = 24) -> Path:
@@ -53,41 +50,44 @@ def _make_frozen_mp4(path: Path, width: int = 320, height: int = 180, frames: in
 
 
 def test_zero_blob_style_plates_and_personalities_deterministic_html():
-    assert {"cold_war_noir", "clinical_fintech", "executive_corporate", "high_energy_hook"}.issubset(
+    assert {"clinical_fintech", "executive_corporate", "high_energy_hook"}.issubset(
         set(MOTION_PERSONALITIES.keys())
     )
-    assert {"blueprint_notebook", "risograph_declassified", "cut_paper_editorial"}.issubset(
-        set(MOTION_TEMPLATES.keys())
-    )
+    assert {
+        "cut_paper_editorial",
+        "saas_fintech_telemetry_ui",
+        "isometric_architecture_flow",
+        "kinetic_grid_background",
+    }.issubset(set(MOTION_TEMPLATES.keys()))
 
     engine = HyperFramesMotionEngine()
     html_a = engine.build_composition_html(
-        template="blueprint_notebook",
-        title="SERPUKHOV RADAR CALIBRATION",
-        subtitle="SPEC 1983-09",
+        template="cut_paper_editorial",
+        title="ENTERPRISE SETTLEMENT FLOW",
+        subtitle="SPEC Q4-2026",
         duration_sec=4.0,
         seed=424242,
-        personality="cold_war_noir",
+        personality="clinical_fintech",
     )
     html_b = engine.build_composition_html(
-        template="blueprint_notebook",
-        title="SERPUKHOV RADAR CALIBRATION",
-        subtitle="SPEC 1983-09",
+        template="cut_paper_editorial",
+        title="ENTERPRISE SETTLEMENT FLOW",
+        subtitle="SPEC Q4-2026",
         duration_sec=4.0,
         seed=424242,
-        personality="cold_war_noir",
+        personality="clinical_fintech",
     )
     assert html_a == html_b
     assert "window.__hfRng" in html_a
     assert "Math.random" not in html_a
     assert "transition-property: transform, opacity" in html_a
-    assert 'data-personality="cold_war_noir"' in html_a
+    assert 'data-personality="clinical_fintech"' in html_a
     assert 'data-seed="424242"' in html_a
 
 
 @pytest.mark.parametrize(
     "template",
-    ["blueprint_notebook", "risograph_declassified", "cut_paper_editorial"],
+    ["cut_paper_editorial", "saas_fintech_telemetry_ui", "isometric_architecture_flow"],
 )
 def test_render_zero_blob_plates_with_preview_qa_gate(tmp_path, template):
     engine = HyperFramesMotionEngine(output_dir=tmp_path)
@@ -133,7 +133,7 @@ def test_motion_qa_detects_low_contrast_and_unsafe_text_margins():
         subtitle="SUB",
         width=400,
         height=240,
-        template="tactical_hud",
+        template="saas_fintech_telemetry_ui",
         safe_margin_ratio=0.05,
     )
     assert safe_ok is False
@@ -145,7 +145,7 @@ def test_motion_qa_detects_frozen_video_stream(tmp_path):
     inspector = MotionQAInspector()
     report = inspector.audit_video(
         video_path=frozen_vid,
-        personality="cold_war_noir",
+        personality="clinical_fintech",
         generate_sheet=True,
     )
     assert report.passed is False
@@ -157,9 +157,9 @@ def test_motion_qa_detects_frozen_video_stream(tmp_path):
 def test_motion_qa_optional_vision_critique_callback(tmp_path):
     engine = HyperFramesMotionEngine(output_dir=tmp_path)
     res = engine.render_motion_clip(
-        template="tactical_hud",
-        title="BERLIN ARCHIVE",
-        subtitle="SECTOR ALPHA",
+        template="saas_fintech_telemetry_ui",
+        title="ENTERPRISE ARCHIVE",
+        subtitle="TREASURY ALPHA",
         output_path=tmp_path / "hud.mp4",
         duration_sec=1.0,
         width=640,
@@ -181,62 +181,3 @@ def test_motion_qa_optional_vision_critique_callback(tmp_path):
     )
     assert len(called) == 1
     assert "Contrast clear" in (report.vision_critique or "")
-
-
-def test_tactical_graphics_legibility_and_qa_precheck(tmp_path):
-    gfx = TacticalGraphicsEngine()
-    legibility = gfx.validate_overlay_legibility(fg_hex="#F1F5F9", bg_hex="#0A0F18")
-    assert legibility["passed"] is True
-    assert legibility["contrast_ratio"] >= 10.0
-
-    bad_legibility = gfx.validate_overlay_legibility(fg_hex="#222222", bg_hex="#111111")
-    assert bad_legibility["passed"] is False
-
-    base_vid = _make_frozen_mp4(tmp_path / "base.mp4", width=640, height=360, frames=16, fps=16)
-    frozen_ov = _make_frozen_mp4(tmp_path / "frozen_ov.mp4", width=640, height=360, frames=16, fps=16)
-    ok = gfx.composite_motion_overlay(
-        base_video_path=base_vid,
-        overlay_video_path=frozen_ov,
-        output_video_path=tmp_path / "blocked.mp4",
-        qa_check=True,
-        strict_qa=True,
-    )
-    assert ok is False
-    assert not (tmp_path / "blocked.mp4").exists()
-
-
-def test_copy_clarity_5s_linter_and_youtube_booster_integration(tmp_path):
-    validator = DarkFactoryStoryValidator()
-    good = validator.audit_5s_hook_clarity(
-        "At 00:23 UTC, Moscow radar logged five incoming nuclear warheads."
-    )
-    assert good.passed is True
-    assert good.opening_word_count <= 15
-    assert good.estimated_spoken_sec <= 5.0
-
-    bad = validator.audit_5s_hook_clarity(
-        "In today's fast-paced world, let us dive deep into this revolutionary game changer that will unlock the secrets of history for everyone."
-    )
-    assert bad.passed is False
-    assert len(bad.filler_buzzwords) >= 3
-    assert bad.opening_word_count > 15
-
-    # Regression check: later-episode buzzwords in sentence 2 must not penalize crisp 5s opening hook
-    episode_script = (
-        "At 00:23 UTC, Moscow radar logged five incoming warheads. "
-        "Later in the chapter we dive deep into this revolutionary game changer."
-    )
-    isolated = validator.audit_5s_hook_clarity(episode_script)
-    assert isolated.passed is True
-    assert isolated.filler_buzzwords == []
-
-    bridge = YouTubeAlgorithmBoosterBridge(output_dir=tmp_path)
-    pkg = bridge.build_master_youtube_package(
-        project_id="sprint4_copy_test",
-        title="The 20-Minute Radar Glitch That Nearly Ended Europe",
-        description="Serpukhov-15 archive logs show an unprecedented orbital reflection error in September 1983.",
-        script_text="At 00:23 UTC, Moscow radar logged five incoming warheads. Duty officer Petrov had three minutes.",
-        duration_sec=480.0,
-    )
-    assert "copy_clarity_audit" in pkg
-    assert pkg["copy_clarity_audit"]["passed"] is True

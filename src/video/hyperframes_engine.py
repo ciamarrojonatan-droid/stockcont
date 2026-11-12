@@ -87,80 +87,6 @@ MOTION_PERSONALITIES: Dict[str, Dict[str, Any]] = {
 }
 
 MOTION_TEMPLATES: Dict[str, Dict[str, Any]] = {
-    # DarkFactory Documentary Overlays
-    "tactical_hud": {
-        "category": "darkfactory",
-        "personality": "cold_war_noir",
-        "default_width": 1920,
-        "default_height": 1080,
-        "default_fps": 30,
-        "default_duration_sec": 5.0,
-        "muted": True,
-        "accent_hex": "#38BDF8",
-        "bg_hex": "#070D17",
-        "description": "Classified military/radar HUD with rotating reticle and live telemetry bars.",
-    },
-    "declassified_dossier": {
-        "category": "darkfactory",
-        "personality": "cold_war_noir",
-        "default_width": 1920,
-        "default_height": 1080,
-        "default_fps": 30,
-        "default_duration_sec": 6.0,
-        "muted": True,
-        "accent_hex": "#EF4444",
-        "bg_hex": "#13100E",
-        "description": "Archival declassified dossier with sliding redaction bars and stamp reveal.",
-    },
-    "lower_third": {
-        "category": "darkfactory",
-        "personality": "cold_war_noir",
-        "default_width": 1920,
-        "default_height": 1080,
-        "default_fps": 30,
-        "default_duration_sec": 4.0,
-        "muted": True,
-        "accent_hex": "#F59E0B",
-        "bg_hex": "#0A0F18",
-        "description": "Editorial documentary lower-third title card with sliding accent bar.",
-    },
-    "anatomy_mechanical": {
-        "category": "darkfactory",
-        "personality": "clinical_fintech",
-        "default_width": 1920,
-        "default_height": 1080,
-        "default_fps": 30,
-        "default_duration_sec": 6.0,
-        "muted": True,
-        "accent_hex": "#38BDF8",
-        "bg_hex": ANATOMY_FOUR_TONE_PALETTE["bg_blueprint"],
-        "description": "Exploded 4-tone isometric CAD diagram with callout leader lines.",
-    },
-    # Sprint 4 Zero-Blob Procedural Style Plates (anidoodle-inspired)
-    "blueprint_notebook": {
-        "category": "darkfactory",
-        "personality": "cold_war_noir",
-        "default_width": 1920,
-        "default_height": 1080,
-        "default_fps": 30,
-        "default_duration_sec": 6.0,
-        "muted": True,
-        "accent_hex": "#38BDF8",
-        "bg_hex": "#0A192F",
-        "description": "Procedural drafting blueprint plate with seeded calibration marks and CAD arrows.",
-    },
-    "risograph_declassified": {
-        "category": "darkfactory",
-        "personality": "cold_war_noir",
-        "default_width": 1920,
-        "default_height": 1080,
-        "default_fps": 30,
-        "default_duration_sec": 6.0,
-        "muted": True,
-        "accent_hex": "#FB7185",
-        "bg_hex": "#141210",
-        "description": "Procedural dual-ink risograph halftone plate with deterministic paper grain.",
-    },
     "cut_paper_editorial": {
         "category": "stock_b2b",
         "personality": "executive_corporate",
@@ -172,18 +98,6 @@ MOTION_TEMPLATES: Dict[str, Dict[str, Any]] = {
         "accent_hex": "#F59E0B",
         "bg_hex": "#0F172A",
         "description": "Zero-blob stepped cut-paper architectural planes with 40% editorial copy-space.",
-    },
-    "deconstructed_emblem_vector": {
-        "category": "darkfactory",
-        "personality": "clinical_fintech",
-        "default_width": 1920,
-        "default_height": 1080,
-        "default_fps": 30,
-        "default_duration_sec": 5.0,
-        "muted": True,
-        "accent_hex": "#38BDF8",
-        "bg_hex": "#0B1524",
-        "description": "Semantic raster-to-SVG deconstructed vector assembly with Faithful Landing verification.",
     },
     # StockCont Sprint 2 B2B 4K Silent Motion Loops
     "saas_fintech_telemetry_ui": {
@@ -233,31 +147,6 @@ MOTION_TEMPLATES: Dict[str, Dict[str, Any]] = {
         "accent_hex": "#22D3EE",
         "bg_hex": "#060E17",
         "description": "Enterprise HUD data telemetry loop engineered with 40% central copy-space.",
-    },
-    # Sprint 10 Vertical 9:16 Shorts & Social Templates
-    "vertical_dossier_short": {
-        "category": "shorts_social",
-        "personality": "high_energy_hook",
-        "default_width": 1080,
-        "default_height": 1920,
-        "default_fps": 30,
-        "default_duration_sec": 15.0,
-        "muted": False,
-        "accent_hex": "#F59E0B",
-        "bg_hex": "#090F1A",
-        "description": "Vertical 9:16 DarkFactory signal dossier with top-safe headline and kinetic subtitle lane.",
-    },
-    "vertical_kinetic_quote": {
-        "category": "shorts_social",
-        "personality": "executive_corporate",
-        "default_width": 1080,
-        "default_height": 1920,
-        "default_fps": 30,
-        "default_duration_sec": 15.0,
-        "muted": False,
-        "accent_hex": "#38BDF8",
-        "bg_hex": "#0B1324",
-        "description": "Vertical 9:16 typographic reel backdrop preserving mobile safe-zones.",
     },
     # Sprint 11 Zero-Trademark B2B Promo & Demo Templates (4K silent -an stock ready)
     "onetake_bento_launch": {
@@ -500,30 +389,13 @@ class HyperFramesMotionEngine:
         accent = spec["accent_hex"]
         bg = spec["bg_hex"]
         resolved_seed = _derive_seed(template, title, subtitle, explicit_seed=seed)
-        personality_key = personality or spec.get("personality", "cold_war_noir")
+        personality_key = personality or spec.get("personality", "executive_corporate")
         if personality_key not in MOTION_PERSONALITIES:
             raise ValueError(f"Unknown motion personality '{personality_key}'. Valid: {sorted(MOTION_PERSONALITIES)}")
         pers_spec = MOTION_PERSONALITIES[personality_key]
 
         inner_markup = ""
-        if template == "deconstructed_emblem_vector" and extra.get("image_path"):
-            from src.video.svg_deconstructor import RasterToAnimatedSVG
-
-            vec_res = RasterToAnimatedSVG().deconstruct_raster(
-                image_path=extra["image_path"],
-                title=title,
-                subtitle=subtitle or "SEMANTIC VECTOR RECONSTRUCTION",
-                bg_hex=bg,
-                stroke_hex=accent,
-                canvas_width=width,
-                canvas_height=height,
-                duration_sec=duration_sec,
-                seed=resolved_seed,
-            )
-            inner_markup = vec_res.svg_markup or self.build_anatomy_isometric_svg(
-                title=title, subtitle=subtitle, components=extra.get("components")
-            )
-        elif template in ("anatomy_mechanical", "isometric_architecture_flow", "deconstructed_emblem_vector"):
+        if template == "isometric_architecture_flow":
             components = extra.get("components")
             inner_markup = self.build_anatomy_isometric_svg(title=title, subtitle=subtitle, components=components)
         else:
@@ -711,7 +583,7 @@ class HyperFramesMotionEngine:
         h = int(height if height is not None else spec["default_height"])
         target_fps = int(fps if fps is not None else spec["default_fps"])
         resolved_seed = _derive_seed(template, title, subtitle, explicit_seed=seed)
-        personality_key = personality or spec.get("personality", "cold_war_noir")
+        personality_key = personality or spec.get("personality", "executive_corporate")
         if personality_key not in MOTION_PERSONALITIES:
             raise ValueError(f"Unknown motion personality '{personality_key}'. Valid: {sorted(MOTION_PERSONALITIES)}")
 
@@ -735,21 +607,7 @@ class HyperFramesMotionEngine:
         _atomic_write_text(html_path, html_content)
 
         svg_path: Optional[Path] = None
-        if template == "deconstructed_emblem_vector" and (data or {}).get("image_path"):
-            from src.video.svg_deconstructor import RasterToAnimatedSVG
-
-            svg_path = out_video.with_suffix(".svg")
-            RasterToAnimatedSVG().deconstruct_raster(
-                image_path=(data or {})["image_path"],
-                output_svg_path=svg_path,
-                title=title,
-                subtitle=subtitle or "SEMANTIC VECTOR RECONSTRUCTION",
-                bg_hex=spec["bg_hex"],
-                stroke_hex=spec["accent_hex"],
-                duration_sec=dur,
-                seed=resolved_seed,
-            )
-        elif template in ("anatomy_mechanical", "isometric_architecture_flow", "deconstructed_emblem_vector"):
+        if template == "isometric_architecture_flow":
             svg_path = out_video.with_suffix(".svg")
             svg_content = self.build_anatomy_isometric_svg(
                 title=title,
@@ -891,7 +749,7 @@ class HyperFramesMotionEngine:
         total_frames = max(1, int(round(duration_sec * fps)))
         spec = MOTION_TEMPLATES[template]
         resolved_seed = _derive_seed(template, title, subtitle, explicit_seed=seed)
-        personality_key = personality or spec.get("personality", "cold_war_noir")
+        personality_key = personality or spec.get("personality", "executive_corporate")
 
         cmd: List[str] = [
             ffmpeg_bin,
@@ -1009,28 +867,16 @@ class HyperFramesMotionEngine:
         accent_bgr = _hex_to_bgr(accent_hex)
         accent_rgb = _hex_to_rgb(accent_hex)
         resolved_seed = _derive_seed(template, title, subtitle, explicit_seed=seed)
-        personality_key = personality or spec.get("personality", "cold_war_noir")
+        personality_key = personality or spec.get("personality", "executive_corporate")
         eased = _apply_easing(progress, personality_key)
 
         frame = np.full((height, width, 3), bg_bgr, dtype=np.uint8)
         self._draw_blueprint_grid(frame, width, height, progress, template)
 
-        if template in ("anatomy_mechanical", "isometric_architecture_flow"):
+        if template == "isometric_architecture_flow":
             self._draw_isometric_assembly(frame, width, height, eased, data.get("components"))
-        elif template == "tactical_hud":
-            self._draw_tactical_hud_graphics(frame, width, height, eased, accent_bgr)
-        elif template == "declassified_dossier":
-            self._draw_dossier_redactions(frame, width, height, eased, accent_bgr)
-        elif template == "lower_third":
-            self._draw_lower_third_plate(frame, width, height, eased, accent_bgr)
-        elif template == "blueprint_notebook":
-            self._draw_blueprint_notebook_plate(frame, width, height, eased, accent_bgr, resolved_seed)
-        elif template == "risograph_declassified":
-            self._draw_risograph_declassified_plate(frame, width, height, eased, accent_bgr, resolved_seed)
         elif template == "cut_paper_editorial":
             self._draw_cut_paper_editorial_plate(frame, width, height, eased, accent_bgr, resolved_seed)
-        elif template in ("vertical_dossier_short", "vertical_kinetic_quote"):
-            self._draw_vertical_dossier_plate(frame, width, height, eased, accent_bgr, resolved_seed)
         elif template == "onetake_bento_launch":
             self._draw_onetake_bento_plate(frame, width, height, eased, accent_bgr, resolved_seed, data)
         elif template == "cursor_spotlight_demo":
@@ -1050,67 +896,6 @@ class HyperFramesMotionEngine:
             progress=progress,
             accent_rgb=accent_rgb,
         )
-
-    @staticmethod
-    def _draw_blueprint_notebook_plate(
-        frame: np.ndarray,
-        width: int,
-        height: int,
-        progress: float,
-        accent_bgr: Tuple[int, int, int],
-        seed: int,
-    ) -> None:
-        """Render deterministic drafting CAD calibration vectors & callout brackets (Zero-Blob)."""
-        rng = random.Random(seed)
-        border_x = int(width * 0.06)
-        border_y = int(height * 0.08)
-        cv2.rectangle(frame, (border_x, border_y), (width - border_x, height - border_y), accent_bgr, 2)
-
-        # Deterministic drafted measurement dimension arrows along bottom right
-        base_y = int(height * 0.72)
-        span_w = int(width * 0.44 * min(1.0, progress * 1.3 + 0.15))
-        start_x = int(width * 0.46)
-        cv2.line(frame, (start_x, base_y), (start_x + span_w, base_y), accent_bgr, 2)
-        for tick in range(6):
-            tx = start_x + int((width * 0.44) * (tick / 5.0))
-            if tx <= start_x + span_w:
-                tick_h = 18 if tick % 2 == 0 else 10
-                cv2.line(frame, (tx, base_y - tick_h), (tx, base_y + tick_h), accent_bgr, 2)
-
-        # Seeded drafting calibration crosshairs in peripheral safe zones (preserving central copy-space)
-        for idx in range(5):
-            px = int(width * (0.58 + rng.uniform(0.02, 0.30)))
-            py = int(height * (0.28 + rng.uniform(0.02, 0.36)))
-            r = max(6, int(min(width, height) * (0.015 + 0.01 * math.sin(progress * math.pi + idx))))
-            cv2.circle(frame, (px, py), r, accent_bgr, 1)
-            cv2.line(frame, (px - r - 4, py), (px + r + 4, py), accent_bgr, 1)
-
-    @staticmethod
-    def _draw_risograph_declassified_plate(
-        frame: np.ndarray,
-        width: int,
-        height: int,
-        progress: float,
-        accent_bgr: Tuple[int, int, int],
-        seed: int,
-    ) -> None:
-        """Render procedural dual-ink risograph halftone dots & misregistered paper frame."""
-        rng = random.Random(seed ^ 0xA5A5)
-        bone_bgr = (224, 234, 244)
-        shift_x = int(4 * math.sin(progress * math.pi))
-        rx1, ry1 = int(width * 0.08), int(height * 0.30)
-        rx2, ry2 = int(width * 0.90), int(height * 0.86)
-        cv2.rectangle(frame, (rx1 + shift_x, ry1), (rx2 + shift_x, ry2), accent_bgr, 2)
-        cv2.rectangle(frame, (rx1, ry1 + 3), (rx2, ry2 + 3), bone_bgr, 1)
-
-        # Halftone stochastic screen restricted to right telemetry zone
-        step = max(14, width // 48)
-        reveal_limit = int(width * (0.55 + 0.33 * min(1.0, progress * 1.25)))
-        for gx in range(int(width * 0.54), reveal_limit, step):
-            for gy in range(int(height * 0.36), int(height * 0.80), step):
-                if rng.random() > 0.32:
-                    dot_r = 2 if (gx + gy) % (step * 2) == 0 else 1
-                    cv2.circle(frame, (gx, gy), dot_r, accent_bgr, -1)
 
     @staticmethod
     def _draw_cut_paper_editorial_plate(
@@ -1195,97 +980,6 @@ class HyperFramesMotionEngine:
                 end_pt = (cx + scale_x + max(50, int(width * 0.12)), cy)
                 cv2.circle(frame, anchor, 5, accent_bgr, -1)
                 cv2.line(frame, anchor, end_pt, accent_bgr, 2)
-
-    @staticmethod
-    def _draw_tactical_hud_graphics(
-        frame: np.ndarray,
-        width: int,
-        height: int,
-        progress: float,
-        accent_bgr: Tuple[int, int, int],
-    ) -> None:
-        margin = max(20, int(min(width, height) * 0.05))
-        arm = max(24, int(min(width, height) * 0.07))
-        corners = [
-            ((margin, margin), (margin + arm, margin), (margin, margin + arm)),
-            ((width - margin, margin), (width - margin - arm, margin), (width - margin, margin + arm)),
-            ((margin, height - margin), (margin + arm, height - margin), (margin, height - margin - arm)),
-            ((width - margin, height - margin), (width - margin - arm, height - margin), (width - margin, height - margin - arm)),
-        ]
-        for corner, hx, vy in corners:
-            cv2.line(frame, corner, hx, accent_bgr, 3)
-            cv2.line(frame, corner, vy, accent_bgr, 3)
-
-        center = (int(width * 0.78), int(height * 0.50))
-        radius = max(36, int(min(width, height) * 0.18))
-        cv2.circle(frame, center, radius, accent_bgr, 2)
-        angle = progress * 2.0 * math.pi
-        end_x = int(center[0] + radius * math.cos(angle))
-        end_y = int(center[1] + radius * math.sin(angle))
-        cv2.line(frame, center, (end_x, end_y), accent_bgr, 2)
-
-    @staticmethod
-    def _draw_dossier_redactions(
-        frame: np.ndarray,
-        width: int,
-        height: int,
-        progress: float,
-        accent_bgr: Tuple[int, int, int],
-    ) -> None:
-        sheet_x1, sheet_y1 = int(width * 0.08), int(height * 0.12)
-        sheet_x2, sheet_y2 = int(width * 0.92), int(height * 0.88)
-        cv2.rectangle(frame, (sheet_x1, sheet_y1), (sheet_x2, sheet_y2), (26, 24, 22), -1)
-        cv2.rectangle(frame, (sheet_x1, sheet_y1), (sheet_x2, sheet_y2), accent_bgr, 2)
-        for row in range(3):
-            y = int(height * (0.46 + row * 0.11))
-            reveal_frac = min(1.0, max(0.0, progress * 1.6 - row * 0.25))
-            bar_w = int((width * 0.62) * (1.0 - reveal_frac * 0.82))
-            if bar_w > 8:
-                cv2.rectangle(frame, (int(width * 0.14), y), (int(width * 0.14) + bar_w, y + max(16, height // 24)), (8, 8, 8), -1)
-
-    @staticmethod
-    def _draw_lower_third_plate(
-        frame: np.ndarray,
-        width: int,
-        height: int,
-        progress: float,
-        accent_bgr: Tuple[int, int, int],
-    ) -> None:
-        slide = min(1.0, progress * 2.5)
-        plate_w = int(width * 0.64 * slide)
-        y1, y2 = int(height * 0.72), int(height * 0.90)
-        x1 = int(width * 0.06)
-        if plate_w > 10:
-            cv2.rectangle(frame, (x1, y1), (x1 + plate_w, y2), (18, 26, 40), -1)
-            cv2.rectangle(frame, (x1, y1), (x1 + max(6, width // 120), y2), accent_bgr, -1)
-
-    @staticmethod
-    def _draw_vertical_dossier_plate(
-        frame: np.ndarray,
-        width: int,
-        height: int,
-        progress: float,
-        accent_bgr: Tuple[int, int, int],
-        seed: int,
-    ) -> None:
-        """Render vertical 9:16 dossier card preserving mobile bottom/right UI safe-zones."""
-        rng = random.Random(seed ^ 0x1983)
-        pad_x = int(width * 0.08)
-        pad_y_top = int(height * 0.24)
-        pad_y_bot = int(height * 0.56)
-        cv2.rectangle(frame, (pad_x, pad_y_top), (width - pad_x, pad_y_bot), (18, 28, 46), -1)
-        cv2.rectangle(frame, (pad_x, pad_y_top), (width - pad_x, pad_y_bot), accent_bgr, 2)
-
-        # Animated horizontal waveform bars inside focal mid-canvas
-        bar_count = 16
-        avail_w = max(80, width - 2 * pad_x - 32)
-        step_x = max(8, avail_w // bar_count)
-        center_y = (pad_y_top + pad_y_bot) // 2
-        for i in range(bar_count):
-            phase = progress * 3.0 * math.pi + i * 0.55 + rng.uniform(0.0, 0.6)
-            amp = max(8, int((pad_y_bot - pad_y_top) * 0.28 * (0.25 + 0.75 * abs(math.sin(phase)))))
-            bx = pad_x + 18 + i * step_x
-            cv2.rectangle(frame, (bx, center_y - amp), (bx + max(4, step_x - 4), center_y + amp), accent_bgr, -1)
 
     @staticmethod
     def _draw_onetake_bento_plate(
@@ -1443,9 +1137,7 @@ class HyperFramesMotionEngine:
         title_font = _load_font(title_size)
         sub_font = _load_font(sub_size)
 
-        if template == "lower_third":
-            tx, ty = int(width * 0.09), int(height * 0.745)
-        elif is_portrait:
+        if is_portrait:
             # Stay cleanly below 9% mobile top chrome and above right-rail UI
             tx, ty = int(width * 0.07), int(height * 0.115)
         else:

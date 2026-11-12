@@ -1,5 +1,5 @@
 """
-Generator of clean, professional SVG icons for StockCont and DarkFactory documentation.
+Generator of clean, professional SVG icons for StockCont documentation.
 """
 from pathlib import Path
 
@@ -36,7 +36,6 @@ ICONS = {
 def install_icons():
     dirs = [
         Path("docs/icons"),
-        Path("../darkfactory/docs/icons"),
     ]
     for d in dirs:
         d.mkdir(parents=True, exist_ok=True)

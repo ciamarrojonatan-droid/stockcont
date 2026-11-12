@@ -1,5 +1,5 @@
 """
-Replace all emojis in stockcont/README.md and darkfactory/README.md with professional SVGs.
+Replace all emojis in stockcont/README.md with professional SVGs.
 """
 import re
 import sys
@@ -13,7 +13,6 @@ if sys.platform.startswith("win"):
         pass
 
 STOCKCONT_README = Path("README.md")
-DARKFACTORY_README = Path("../darkfactory/README.md")
 
 REPLACEMENTS = {
     # Headers
@@ -23,17 +22,11 @@ REPLACEMENTS = {
     "## 🏛️ Arquitetura de Alto Nível & Topologia da Esteira": '## <img src="docs/icons/layers.svg" width="20" height="20" /> Arquitetura de Alto Nível & Topologia da Esteira',
     "## 🏛 Arquitetura de Alto Nível & Topologia da Esteira": '## <img src="docs/icons/layers.svg" width="20" height="20" /> Arquitetura de Alto Nível & Topologia da Esteira',
     "## 🧠 Mapa Mental da Máquina de Retenção & Monetização": '## <img src="docs/icons/mindmap.svg" width="20" height="20" /> Mapa Mental da Máquina de Retenção & Monetização',
-    "## 🎥 O Método Christopher Nolan (Os 6 Pilares Cinematográficos)": '## <img src="docs/icons/camera.svg" width="20" height="20" /> O Método Christopher Nolan (Os 6 Pilares Cinematográficos)',
-    "## 📚 DarkFactory Master Knowledge Vault (Os 27 Livros Canônicos)": '## <img src="docs/icons/database.svg" width="20" height="20" /> DarkFactory Master Knowledge Vault (Os 27 Livros Canônicos)',
-    "## ⚙️ Detalhamento Técnico das 5 Fases da Fábrica": '## <img src="docs/icons/gear.svg" width="20" height="20" /> Detalhamento Técnico das 5 Fases da Fábrica',
-    "## ⚙ Detalhamento Técnico das 5 Fases da Fábrica": '## <img src="docs/icons/gear.svg" width="20" height="20" /> Detalhamento Técnico das 5 Fases da Fábrica',
+    "## <img src=\"docs/icons/gear.svg\" width=\"20\" height=\"20\" /> Detalhamento Técnico das Fases do Pipeline": '## <img src="docs/icons/gear.svg" width="20" height="20" /> Detalhamento Técnico das Fases do Pipeline',
     "## ⚙️ Detalhamento Técnico das Fases do Pipeline": '## <img src="docs/icons/gear.svg" width="20" height="20" /> Detalhamento Técnico das Fases do Pipeline',
     "## ⚙ Detalhamento Técnico das Fases do Pipeline": '## <img src="docs/icons/gear.svg" width="20" height="20" /> Detalhamento Técnico das Fases do Pipeline',
     "## 🖥️ Dashboard Web SPA Local (iOS 27 Liquid Glass)": '## <img src="docs/icons/desktop.svg" width="20" height="20" /> Dashboard Web SPA Local (iOS 27 Liquid Glass)',
     "## 🖥 Dashboard Web SPA Local (iOS 27 Liquid Glass)": '## <img src="docs/icons/desktop.svg" width="20" height="20" /> Dashboard Web SPA Local (iOS 27 Liquid Glass)',
-    "## 🖥️ Dashboard Web SPA Nativo (iOS 27 Liquid Glass Cinema Edition :8502)": '## <img src="docs/icons/desktop.svg" width="20" height="20" /> Dashboard Web SPA Nativo (iOS 27 Liquid Glass Cinema Edition :8502)',
-    "## 🖥 Dashboard Web SPA Nativo (iOS 27 Liquid Glass Cinema Edition :8502)": '## <img src="docs/icons/desktop.svg" width="20" height="20" /> Dashboard Web SPA Nativo (iOS 27 Liquid Glass Cinema Edition :8502)',
-    "## 📱 Multiplicador de Tráfego: Gerador de Shorts Verticais 9:16": '## <img src="docs/icons/mobile.svg" width="20" height="20" /> Multiplicador de Tráfego: Gerador de Shorts Verticais 9:16',
     "## 🤖 Daemon Autônomo 24/7 & Watchdog de Produção": '## <img src="docs/icons/robot.svg" width="20" height="20" /> Daemon Autônomo 24/7 & Watchdog de Produção',
     "## 📄 Contratos de Dados (Data Schemas Tipados)": '## <img src="docs/icons/file-text.svg" width="20" height="20" /> Contratos de Dados (Data Schemas Tipados)',
     "## 📄 Contratos de Dados (Data Schemas v3.0)": '## <img src="docs/icons/file-text.svg" width="20" height="20" /> Contratos de Dados (Data Schemas v3.0)',
@@ -125,4 +118,3 @@ def clean_file(path: Path):
 
 if __name__ == "__main__":
     clean_file(STOCKCONT_README)
-    clean_file(DARKFACTORY_README)

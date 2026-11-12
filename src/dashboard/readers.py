@@ -45,7 +45,6 @@ VIDEO_POSTERS_DIR = FINAL_VIDEOS_DIR / "posters"
 VIDEO_PROMPTS_FILE = PROCESSED_DIR / "video_prompts.json"
 ADOBE_VIDEO_CSV = PROCESSED_DIR / "adobe_stock_video_upload.csv"
 POND5_VIDEO_CSV = PROCESSED_DIR / "pond5_video_upload.csv"
-FINAL_AUDIO_DIR = FINAL_DIR / "audio"
 
 
 # ── Low-Level Helpers ────────────────────────────
@@ -1144,25 +1143,3 @@ def build_full_video_status() -> Dict[str, Any]:
         "agencies": agencies,
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
-
-
-def get_audio_items() -> List[Dict[str, Any]]:
-    """List all audio narration files in data/final/audio/."""
-    FINAL_AUDIO_DIR.mkdir(parents=True, exist_ok=True)
-    items = []
-    exts = {".mp3", ".flac", ".wav", ".m4a", ".ogg"}
-    try:
-        for f in sorted(FINAL_AUDIO_DIR.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True):
-            if f.is_file() and f.suffix.lower() in exts:
-                stat = f.stat()
-                dt = datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc).isoformat()
-                items.append({
-                    "filename": f.name,
-                    "path": str(f),
-                    "size_bytes": stat.st_size,
-                    "created_at": dt,
-                    "audio_url": f"/api/audio/file/{f.name}",
-                })
-    except Exception as e:
-        logger.warning("Falha ao listar arquivos de áudio: %s", e)
-    return items

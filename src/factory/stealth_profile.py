@@ -7,7 +7,7 @@ and canvas/WebGL/hardware fingerprint tracking.
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 
 @dataclass
@@ -107,7 +107,7 @@ def get_stealth_fingerprint(account: int = 1) -> StealthFingerprint:
     """Return the designated stealth profile for the account."""
     if account == 2:
         return CONTA_2_FINGERPRINT
-    elif account in (3, 4):
+    elif account == 3:
         return CONTA_3_FINGERPRINT
     return CONTA_1_FINGERPRINT
 

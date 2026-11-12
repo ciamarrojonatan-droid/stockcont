@@ -774,7 +774,6 @@ async function loadRunningTasks() {
 
 async function loadVideoTimeline() {
   bindSprint6TelemetryControls();
-  bindSprint9StudioControls();
   bindSprint10PromoControls();
   const feed = document.getElementById('video-timeline-feed');
   if (!feed) return;
@@ -892,10 +891,10 @@ async function refreshSprint6TelemetryStatus() {
     const kpis = payload.kpis || {};
     setElText('s6-qa-status', 'QA Visual Pronta (4 Perfis)');
     setElText('s6-qa-detail', `Vídeos: ${kpis.videos_total ?? 0} • Seed determinístico ativo`);
-    setElText('s6-svg-status', 'SVG Deconstructor Ativo');
-    setElText('s6-svg-detail', 'Endpoint: /api/v1/video/svg-deconstruct');
-    setElText('s6-cadence-status', 'Cadence Blueprint & Beat-Sync');
-    setElText('s6-cadence-detail', 'Endpoint: /api/v1/video/cadence-blueprint');
+    setElText('s6-svg-status', 'Motor Stock B2B (-an) Ativo');
+    setElText('s6-svg-detail', 'Endpoint: /api/v1/video/promo-motion-pack');
+    setElText('s6-cadence-status', 'Unit Economics & ADR-05');
+    setElText('s6-cadence-detail', 'Endpoint: /api/v1/analytics/unit-economics');
   } catch (err) {
     setElText('s6-qa-detail', `Falha ao atualizar: ${err.message}`);
   }
@@ -911,10 +910,10 @@ async function runSprint6MotionQADemo() {
       method: 'POST',
       headers: buildSprint6Headers(),
       body: JSON.stringify({
-        template: 'blueprint_notebook',
+        template: 'saas_fintech_telemetry_ui',
         title: 'TELEMETRY CHECK',
         subtitle: 'ZERO-BLOB WCAG QA PASS',
-        personality: 'cold_war_noir',
+        personality: 'clinical_fintech',
         seed: 2026,
         duration_sec: 3.0,
         fps: 24,
@@ -925,7 +924,7 @@ async function runSprint6MotionQADemo() {
     if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
     const qaPassed = Boolean(data.qa_report && data.qa_report.passed);
     setElText('s6-qa-status', qaPassed ? 'QA Visual: APROVADO' : 'QA Visual: ALERTA');
-    setElText('s6-qa-detail', `Personality: ${data.personality || 'cold_war_noir'} • Seed ${data.seed ?? 2026}`);
+    setElText('s6-qa-detail', `Personality: ${data.personality || 'clinical_fintech'} • Seed ${data.seed ?? 2026}`);
     if (out) {
       out.style.display = 'block';
       out.textContent = `Overlay rendered: ${data.output_video_path || data.html_path || 'ok'} | QA Passed: ${qaPassed}`;
@@ -941,172 +940,11 @@ async function runSprint6MotionQADemo() {
   }
 }
 
-function bindSprint9StudioControls() {
-  const mapBtn = document.getElementById('btn-s9-map-demo');
-  const sbBtn = document.getElementById('btn-s9-storyboard-demo');
-  const thumbBtn = document.getElementById('btn-s9-thumbs-demo');
-  if (mapBtn && !mapBtn.dataset.bound) {
-    mapBtn.dataset.bound = '1';
-    mapBtn.addEventListener('click', runSprint9MapDemo);
-  }
-  if (sbBtn && !sbBtn.dataset.bound) {
-    sbBtn.dataset.bound = '1';
-    sbBtn.addEventListener('click', runSprint9StoryboardDemo);
-  }
-  if (thumbBtn && !thumbBtn.dataset.bound) {
-    thumbBtn.dataset.bound = '1';
-    thumbBtn.addEventListener('click', runSprint9ThumbnailsDemo);
-  }
-}
-
-async function runSprint9MapDemo() {
-  const out = document.getElementById('sprint9-studio-output');
-  setElText('s9-map-status', 'Renderizando mapa vetorial 12fps…');
-  try {
-    const res = await fetch('/api/v1/video/map-animate', {
-      method: 'POST',
-      headers: buildSprint6Headers(),
-      body: JSON.stringify({
-        title: 'NORTH ATLANTIC CORRIDOR',
-        subtitle: 'RADAR & TELEMETRY PATH',
-        theater: 'north_atlantic',
-        duration_sec: 2.0,
-        width: 640,
-        height: 360,
-        fps: 24,
-        editorial_12fps: true
-      })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
-    setElText('s9-map-status', 'Mapa MP4 + SVG + GSAP Pronto');
-    if (out) {
-      out.style.display = 'block';
-      out.textContent = `Vector Map: ${data.video_path || data.svg_path || 'ok'}`;
-    }
-  } catch (err) {
-    setElText('s9-map-status', 'Falha no Mapa Vetorial');
-    if (out) {
-      out.style.display = 'block';
-      out.textContent = `Map Error: ${err.message}`;
-    }
-  }
-}
-
-async function runSprint9StoryboardDemo() {
-  const out = document.getElementById('sprint9-studio-output');
-  setElText('s9-storyboard-status', 'Compilando Storyboard & Orçamento…');
-  try {
-    const res = await fetch('/api/v1/video/storyboard-compile', {
-      method: 'POST',
-      headers: buildSprint6Headers(),
-      body: JSON.stringify({
-        title: 'Serpukhov 1983 Protocol',
-        script: 'Classified warning telemetry detected five missiles over Eurasia. Petrov held retaliation order until sunrise exposed orbital glare.',
-        target_niche: 'industrial_automation',
-        target_duration_sec: 16.0
-      })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
-    const overlapOk = Boolean(data.overlap_audit && data.overlap_audit.passed);
-    setElText('s9-storyboard-status', overlapOk ? 'Storyboard Aprovado (0 Colisões)' : 'Storyboard em Revisão');
-    if (out) {
-      out.style.display = 'block';
-      out.textContent = `Storyboard (${(data.scenes || []).length} cenas) | Overlap OK: ${overlapOk} | Custo est.: $${(data.budget_estimate || {}).total_production_cost_usd ?? 0}`;
-    }
-  } catch (err) {
-    setElText('s9-storyboard-status', 'Falha na Compilação');
-    if (out) {
-      out.style.display = 'block';
-      out.textContent = `Storyboard Error: ${err.message}`;
-    }
-  }
-}
-
-async function runSprint9ThumbnailsDemo() {
-  const out = document.getElementById('sprint9-studio-output');
-  setElText('s9-monetize-status', 'Renderizando Thumbnails A/B/C…');
-  try {
-    const res = await fetch('/api/v1/youtube/render-monetization-pack', {
-      method: 'POST',
-      headers: buildSprint6Headers(),
-      body: JSON.stringify({
-        project_id: 'serpukhov_pilot',
-        title: 'The 1983 Soviet Glitch',
-        subtitle: 'DECLASSIFIED ARCHIVE'
-      })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
-    setElText('s9-monetize-status', `${(data.thumbnails || []).length} Thumbnails JPEG 1280×720 Prontas`);
-    if (out) {
-      out.style.display = 'block';
-      out.textContent = `Rendered ${(data.thumbnails || []).length} thumbnails cleanly.`;
-    }
-  } catch (err) {
-    setElText('s9-monetize-status', 'Falha na Renderização');
-    if (out) {
-      out.style.display = 'block';
-      out.textContent = `Monetization Error: ${err.message}`;
-    }
-  }
-}
-
 function bindSprint10PromoControls() {
-  const shortBtn = document.getElementById('btn-s10-repurpose-short');
   const promoBtn = document.getElementById('btn-s11-promo-pack');
-  if (shortBtn && !shortBtn.dataset.bound) {
-    shortBtn.dataset.bound = '1';
-    shortBtn.addEventListener('click', runSprint10RepurposeShort);
-  }
   if (promoBtn && !promoBtn.dataset.bound) {
     promoBtn.dataset.bound = '1';
     promoBtn.addEventListener('click', runSprint11PromoMotionPack);
-  }
-}
-
-async function runSprint10RepurposeShort() {
-  const btn = document.getElementById('btn-s10-repurpose-short');
-  const out = document.getElementById('sprint10-studio-output');
-  const styleEl = document.getElementById('s10-style-select');
-  const zoneEl = document.getElementById('s10-zone-select');
-  if (btn) btn.disabled = true;
-  setElText('s10-repurpose-status', 'Renderizando 9:16 + Safe-Zone…');
-  try {
-    const res = await fetch('/api/v1/video/repurpose-short', {
-      method: 'POST',
-      headers: buildSprint6Headers(),
-      body: JSON.stringify({
-        title: 'SOVEREIGN GRID TELEMETRY BRIEFING',
-        script: 'Zero blind spots. Real time telemetry across automated infrastructure.',
-        style: styleEl ? styleEl.value : 'editorial_karaoke',
-        safe_zone_profile: zoneEl ? zoneEl.value : 'youtube_shorts',
-        target_duration_sec: 4.0,
-        width: 540,
-        height: 960,
-        fps: 24,
-        export_microstock_broll: true,
-      }),
-    });
-    const payload = await res.json();
-    if (!res.ok) throw new Error(payload.detail || `HTTP ${res.status}`);
-    setElText(
-      's10-repurpose-status',
-      `${payload.safe_zone_passed ? 'PASS' : 'WARN'} · ${payload.width}x${payload.height} (${payload.style})`,
-    );
-    if (out) {
-      out.style.display = 'block';
-      out.textContent = `Short: ${payload.short_video_path || 'N/A'} | Muted B-roll: ${payload.stock_broll_path || 'N/A'} | Alamy Blocked: ${payload.alamy_blocked}`;
-    }
-  } catch (err) {
-    setElText('s10-repurpose-status', 'Falha no Repurpose 9:16');
-    if (out) {
-      out.style.display = 'block';
-      out.textContent = `Short Repurpose Error: ${err.message}`;
-    }
-  } finally {
-    if (btn) btn.disabled = false;
   }
 }
 

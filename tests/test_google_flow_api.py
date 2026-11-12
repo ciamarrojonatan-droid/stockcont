@@ -8,32 +8,19 @@ from __future__ import annotations
 
 import asyncio
 import json
-import time
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
 
 from src.integrations.google_flow.api_server import create_app
 from src.integrations.google_flow.auth_manager import GoogleFlowAuthManager
-from src.integrations.google_flow.config import (
-    SUPPORTED_ASPECT_RATIOS,
-    SUPPORTED_DURATIONS,
-    SUPPORTED_MODES,
-    SUPPORTED_VIDEO_MODELS,
-)
 from src.integrations.google_flow.downloader import GoogleFlowDownloader
 from src.integrations.google_flow.models import (
-    AuthStatusResponse,
-    GenerationMode,
     GenerationRequest,
     JobStatus,
-    JobStatusResponse,
     MediaCandidate,
     ProjectCreateRequest,
-    ProjectResponse,
-    UpscaleRequest,
 )
 from src.integrations.google_flow.qc_curator import GoogleFlowQCCurator
 from src.integrations.google_flow.rpc_client import GoogleFlowRPCClient
@@ -108,7 +95,7 @@ def test_auth_manager_token_persistence(tmp_path):
     """Test atomic saving and loading of session tokens and cookies."""
     auth = GoogleFlowAuthManager(session_dir=tmp_path)
     tokens = {
-        "user_email": "director@darkfactory.com",
+        "user_email": "studio@stockcont.local",
         "headers": {
             "Authorization": "Bearer test_oauth_token_123",
             "Cookie": "__Secure-1PSID=valid_cookie_value;",
@@ -122,12 +109,12 @@ def test_auth_manager_token_persistence(tmp_path):
 
     loaded = auth.get_persisted_tokens()
     assert loaded is not None
-    assert loaded["user_email"] == "director@darkfactory.com"
+    assert loaded["user_email"] == "studio@stockcont.local"
 
     status = auth.get_status()
     assert status.authenticated
     assert status.cookies_count == 2
-    assert status.user_email == "director@darkfactory.com"
+    assert status.user_email == "studio@stockcont.local"
 
     headers = auth.get_auth_headers()
     assert headers["Authorization"] == "Bearer test_oauth_token_123"

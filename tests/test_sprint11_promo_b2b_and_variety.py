@@ -51,27 +51,6 @@ def test_sprint10_and_11_templates_render_silent_clean_mp4(tmp_path):
         assert ret is True and frame is not None
         assert float(np.std(frame)) > 5.0
 
-    for vertical_tpl in ("vertical_dossier_short", "vertical_kinetic_quote"):
-        out_v = tmp_path / f"{vertical_tpl}.mp4"
-        res_v = engine.render_motion_clip(
-            template=vertical_tpl,
-            title="CLASSIFIED DOSSIER BRIEF",
-            subtitle="ARCHIVAL RECORD 1983",
-            output_path=out_v,
-            duration_sec=1.5,
-            width=360,
-            height=640,
-            fps=12,
-            force_procedural=True,
-            muted=True,
-            seed=77,
-        )
-        assert res_v.success is True, res_v.error
-        props_v = probe_video(out_v)
-        assert props_v.width == 360
-        assert props_v.height == 640
-        assert props_v.has_audio is False
-
 
 def test_trademark_sanitization_and_strict_enforcement(tmp_path):
     scrubbed, matches = PromoMotionDirector.sanitize_trademark_free(

@@ -9,7 +9,7 @@
 ## 1. Summary
 Transform Google Flow (Google Labs / Veo 2 / Imagen 3) into an industrial REST API service. 
 The architecture uses a **Hybrid Stealth Driver** combining a persistent logged-in Playwright profile (`google_flow_session/`) with direct network interception of Google Labs internal RPC/REST endpoints. 
-Each generation batch creates a dedicated project on Google Flow, provides rich parameter configuration (T2V, I2V, T2I, Frames-to-Video, aspect ratios, durations, variations), performs automated polling, executes AI-curated upscaling via Google Flow's native upscaler (or Gemini QC), and downloads production-grade MP4/JPG assets directly into the StockCont and DarkFactory pipelines.
+Each generation batch creates a dedicated project on Google Flow, provides rich parameter configuration (T2V, I2V, T2I, Frames-to-Video, aspect ratios, durations, variations), performs automated polling, executes AI-curated upscaling via Google Flow's native upscaler (or Gemini QC), and downloads production-grade MP4/JPG assets directly into the StockCont pipeline.
 
 ---
 
@@ -21,8 +21,8 @@ Each generation batch creates a dedicated project on Google Flow, provides rich 
 | **Cryptographic Ledger** | `src/factory/prompt_queue.py:80` | SHA-256 prompt hashing for idempotency and duplicate avoidance (ADR-03) |
 | **Stealth Automation** | `src/factory/stealth_profile.py:20` | User-agent spoofing, evasion flags, persistent Chromium profile context |
 | **FastAPI REST Server** | `src/dashboard/app.py:1` | FastAPI async routers, CORS middleware, Pydantic request validation, Swagger docs |
-| **UTF-8 Console Shield** | `src/video/darkfactory_t2v.py:20` | Explicit `sys.stdout.reconfigure(encoding="utf-8")` on Windows (ADR-01) |
-| **Media Probing & Processing** | `src/video/video_cataloger.py:45` | FFmpeg probe, audio stripping (`-an`), QuickTime atom metadata injection |
+| **UTF-8 Console Shield** | `main.py` | Explicit `sys.stdout.reconfigure(encoding="utf-8")` on Windows (ADR-01) |
+| **Media Probing & Processing** | `src/video/video_metadata.py` | FFmpeg probe, audio stripping (`-an`), QuickTime atom metadata injection |
 
 ---
 
@@ -91,9 +91,9 @@ Each generation batch creates a dedicated project on Google Flow, provides rich 
   - `downloader.py`: Downloads full-res upscaled MP4 / JPG.
   - Ingestion into StockCont:
     - Saves videos into `data/final/videos/` and images into `data/final/images/`.
-    - Strips audio (`-an`) when flagged for stock agency upload, or preserves audio if flagged for YouTube Dark.
+    - Strips audio (`-an`) for microstock agency compliance.
     - Appends metadata to `data/processed/google_flow_history.json` with SHA-256 prompt hash.
-- **Mirror**: Ingestion flow from `src/video/video_cataloger.py`.
+- **Mirror**: Ingestion flow from `src/video/video_metadata.py`.
 - **Validate**: Integration tests verifying file saving and ledger integrity.
 
 ### Task 5: FastAPI REST Server & OpenAPI Documentation (`api_server.py`)
