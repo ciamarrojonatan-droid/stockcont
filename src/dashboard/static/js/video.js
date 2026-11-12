@@ -340,14 +340,14 @@ async function openCinemaVideoModal(filename) {
       <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:14px; margin-top:8px;">
         <div style="font-size:0.75rem; text-transform:uppercase; color:var(--label-secondary); margin-bottom:4px; font-weight:600;">Descrição Comercial de IA</div>
         <p style="font-size:0.86rem; color:#e2e8f0; line-height:1.4; margin-bottom:12px;">
-          ${meta.adobe_csv?.Title || meta.pond5_csv?.Description || 'Generative AI footage. Cinematic 4K commercial b-roll scene.'}
+          ${escapeHtml(meta.adobe_csv?.Title || meta.pond5_csv?.Description || 'Generative AI footage. Cinematic 4K commercial b-roll scene.')}
         </p>
 
         <div style="font-size:0.75rem; text-transform:uppercase; color:var(--label-secondary); margin-bottom:6px; font-weight:600;">Tags & Palavras-chave</div>
         <div style="display:flex; flex-wrap:wrap; gap:4px; max-height:80px; overflow-y:auto;">
           ${(meta.adobe_csv?.Keywords || 'generative ai, ai generated, footage, 4k, cinematic, b-roll, commercial')
             .split(',')
-            .map((k) => `<span class="pill pill-idle" style="font-size:0.68rem; padding:2px 8px;">${k.trim()}</span>`)
+            .map((k) => `<span class="pill pill-idle" style="font-size:0.68rem; padding:2px 8px;">${escapeHtml(k.trim())}</span>`)
             .join('')}
         </div>
 
@@ -775,6 +775,7 @@ async function loadRunningTasks() {
 async function loadVideoTimeline() {
   bindSprint6TelemetryControls();
   bindSprint9StudioControls();
+  bindSprint10PromoControls();
   const feed = document.getElementById('video-timeline-feed');
   if (!feed) return;
 
@@ -1049,5 +1050,108 @@ async function runSprint9ThumbnailsDemo() {
       out.style.display = 'block';
       out.textContent = `Monetization Error: ${err.message}`;
     }
+  }
+}
+
+function bindSprint10PromoControls() {
+  const shortBtn = document.getElementById('btn-s10-repurpose-short');
+  const promoBtn = document.getElementById('btn-s11-promo-pack');
+  if (shortBtn && !shortBtn.dataset.bound) {
+    shortBtn.dataset.bound = '1';
+    shortBtn.addEventListener('click', runSprint10RepurposeShort);
+  }
+  if (promoBtn && !promoBtn.dataset.bound) {
+    promoBtn.dataset.bound = '1';
+    promoBtn.addEventListener('click', runSprint11PromoMotionPack);
+  }
+}
+
+async function runSprint10RepurposeShort() {
+  const btn = document.getElementById('btn-s10-repurpose-short');
+  const out = document.getElementById('sprint10-studio-output');
+  const styleEl = document.getElementById('s10-style-select');
+  const zoneEl = document.getElementById('s10-zone-select');
+  if (btn) btn.disabled = true;
+  setElText('s10-repurpose-status', 'Renderizando 9:16 + Safe-Zone…');
+  try {
+    const res = await fetch('/api/v1/video/repurpose-short', {
+      method: 'POST',
+      headers: buildSprint6Headers(),
+      body: JSON.stringify({
+        title: 'SOVEREIGN GRID TELEMETRY BRIEFING',
+        script: 'Zero blind spots. Real time telemetry across automated infrastructure.',
+        style: styleEl ? styleEl.value : 'editorial_karaoke',
+        safe_zone_profile: zoneEl ? zoneEl.value : 'youtube_shorts',
+        target_duration_sec: 4.0,
+        width: 540,
+        height: 960,
+        fps: 24,
+        export_microstock_broll: true,
+      }),
+    });
+    const payload = await res.json();
+    if (!res.ok) throw new Error(payload.detail || `HTTP ${res.status}`);
+    setElText(
+      's10-repurpose-status',
+      `${payload.safe_zone_passed ? 'PASS' : 'WARN'} · ${payload.width}x${payload.height} (${payload.style})`,
+    );
+    if (out) {
+      out.style.display = 'block';
+      out.textContent = `Short: ${payload.short_video_path || 'N/A'} | Muted B-roll: ${payload.stock_broll_path || 'N/A'} | Alamy Blocked: ${payload.alamy_blocked}`;
+    }
+  } catch (err) {
+    setElText('s10-repurpose-status', 'Falha no Repurpose 9:16');
+    if (out) {
+      out.style.display = 'block';
+      out.textContent = `Short Repurpose Error: ${err.message}`;
+    }
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+async function runSprint11PromoMotionPack() {
+  const btn = document.getElementById('btn-s11-promo-pack');
+  const out = document.getElementById('sprint10-studio-output');
+  const presetEl = document.getElementById('s11-preset-select');
+  const nicheEl = document.getElementById('s11-niche-select');
+  if (btn) btn.disabled = true;
+  setElText('s11-promo-status', 'Renderizando Pack B2B & Variety QA…');
+  try {
+    const res = await fetch('/api/v1/video/promo-motion-pack', {
+      method: 'POST',
+      headers: buildSprint6Headers(),
+      body: JSON.stringify({
+        title: 'ENTERPRISE LIQUIDITY TELEMETRY',
+        subtitle: 'Q4 REALTIME TREASURY OVERVIEW',
+        niche_id: nicheEl ? nicheEl.value : 'finance',
+        count: 3,
+        preset: presetEl ? presetEl.value : 'AUTO',
+        width: 1280,
+        height: 720,
+        duration_sec: 2.0,
+        fps: 24,
+        strict_trademark: true,
+      }),
+    });
+    const payload = await res.json();
+    if (!res.ok) throw new Error(payload.detail || `HTTP ${res.status}`);
+    const va = payload.variety_audit || {};
+    setElText(
+      's11-promo-status',
+      `${va.passed ? 'VARIETY PASS' : 'WARN'} · min_dist=${va.min_pairwise_distance ?? 0} · $${payload.estimated_unit_royalty_usd ?? 0}`,
+    );
+    if (out) {
+      out.style.display = 'block';
+      out.textContent = `B2B Pack (${(payload.assets || []).length} clips, -an) | Agencies: ${(payload.eligible_agencies || []).join(', ')} | Manifest: ${payload.manifest_path || 'N/A'}`;
+    }
+  } catch (err) {
+    setElText('s11-promo-status', 'Falha no Pack B2B');
+    if (out) {
+      out.style.display = 'block';
+      out.textContent = `Promo Pack Error: ${err.message}`;
+    }
+  } finally {
+    if (btn) btn.disabled = false;
   }
 }

@@ -566,3 +566,66 @@ class MonetizationPackResponse(BaseModel):
     thumbnails: List[Dict[str, Any]] = Field(default_factory=list)
     stock_broll_pack: Optional[Dict[str, Any]] = None
     error: Optional[str] = None
+
+
+class ShortsRepurposeRequest(BaseModel):
+    title: str = Field(..., min_length=1, max_length=120)
+    script: str = Field(default="", max_length=5000)
+    source_video_path: Optional[str] = Field(default=None, max_length=320)
+    audio_path: Optional[str] = Field(default=None, max_length=320)
+    style: str = Field(default="editorial_karaoke", max_length=40)
+    safe_zone_profile: str = Field(default="youtube_shorts", max_length=40)
+    target_duration_sec: float = Field(default=15.0, ge=3.0, le=60.0)
+    width: int = Field(default=1080, ge=360, le=2160)
+    height: int = Field(default=1920, ge=640, le=3840)
+    fps: int = Field(default=24, ge=12, le=60)
+    export_microstock_broll: bool = True
+
+
+class ShortsRepurposeResponse(BaseModel):
+    success: bool
+    title: str
+    style: str
+    safe_zone_profile: str
+    short_video_path: Optional[str] = None
+    ass_path: Optional[str] = None
+    stock_broll_path: Optional[str] = None
+    stock_broll_muted: bool = True
+    manifest_path: Optional[str] = None
+    width: int = 1080
+    height: int = 1920
+    duration_sec: float = 0.0
+    window_start_sec: float = 0.0
+    window_end_sec: float = 0.0
+    salient_center_x: float = 0.5
+    safe_zone_passed: bool = False
+    alamy_blocked: bool = True
+    eligible_agencies: List[str] = Field(default_factory=list)
+    overlap_audit: Dict[str, Any] = Field(default_factory=dict)
+    error: Optional[str] = None
+
+
+class PromoMotionBatchRequest(BaseModel):
+    title: str = Field(..., min_length=1, max_length=120)
+    subtitle: str = Field(default="SYNTHETIC TELEMETRY OVERVIEW", max_length=160)
+    niche_id: str = Field(default="finance", max_length=80)
+    count: int = Field(default=3, ge=1, le=8)
+    preset: str = Field(default="AUTO", max_length=64)
+    width: int = Field(default=1920, ge=640, le=3840)
+    height: int = Field(default=1080, ge=360, le=2160)
+    duration_sec: float = Field(default=3.0, ge=1.0, le=15.0)
+    fps: int = Field(default=24, ge=12, le=60)
+    strict_trademark: bool = True
+    min_variety_distance: float = Field(default=0.20, ge=0.0, le=1.5)
+
+
+class PromoMotionBatchResponse(BaseModel):
+    success: bool
+    niche_id: str
+    assets: List[Dict[str, Any]] = Field(default_factory=list)
+    variety_audit: Dict[str, Any] = Field(default_factory=dict)
+    estimated_unit_royalty_usd: float = 0.0
+    alamy_blocked: bool = True
+    eligible_agencies: List[str] = Field(default_factory=list)
+    manifest_path: Optional[str] = None
+    error: Optional[str] = None

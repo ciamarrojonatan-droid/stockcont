@@ -1730,3 +1730,127 @@ async def render_monetization_pack_endpoint(req: schemas.MonetizationPackRequest
         thumbnails=thumbs,
         stock_broll_pack=broll_pack,
     )
+
+
+_VIDEO_RENDER_SEMAPHORES: dict[int, object] = {}
+
+
+def _get_video_render_semaphore():
+    """Bound concurrent Sprint 10-11 FFmpeg/OpenCV render jobs per event loop."""
+    import asyncio
+
+    loop = asyncio.get_running_loop()
+    loop_id = id(loop)
+    sem = _VIDEO_RENDER_SEMAPHORES.get(loop_id)
+    if sem is None:
+        if len(_VIDEO_RENDER_SEMAPHORES) > 16:
+            _VIDEO_RENDER_SEMAPHORES.clear()
+        sem = asyncio.Semaphore(2)
+        _VIDEO_RENDER_SEMAPHORES[loop_id] = sem
+    return sem
+
+
+@app.post("/api/v1/video/repurpose-short", response_model=schemas.ShortsRepurposeResponse)
+async def repurpose_short_endpoint(req: schemas.ShortsRepurposeRequest):
+    """Repurposes a 16:9 master or script into a vertical 9:16 kinetic-captioned Short + muted microstock B-roll."""
+    import asyncio
+    from src.video.kinetic_captions import CAPTION_STYLES
+    from src.video.motion_qa import PLATFORM_SAFE_ZONES
+    from src.video.shorts_repurposer import ShortsRepurposerEngine
+
+    if not req.title.strip():
+        raise HTTPException(status_code=400, detail="title cannot be empty or whitespace-only.")
+
+    style_key = (req.style or "editorial_karaoke").strip().lower()
+    if style_key not in CAPTION_STYLES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown caption style '{req.style}'. Valid: {sorted(CAPTION_STYLES)}",
+        )
+
+    zone_key = (req.safe_zone_profile or "youtube_shorts").strip().lower()
+    if zone_key not in PLATFORM_SAFE_ZONES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown safe_zone_profile '{req.safe_zone_profile}'. Valid: {sorted(PLATFORM_SAFE_ZONES)}",
+        )
+
+    src_target = None
+    if req.source_video_path:
+        src_target = _validate_workspace_file(
+            req.source_video_path,
+            {".mp4", ".mov", ".mkv", ".webm"},
+            "source_video_path",
+        )
+
+    audio_target = None
+    if req.audio_path:
+        audio_target = _validate_workspace_file(
+            req.audio_path,
+            {".wav", ".mp3", ".flac", ".m4a", ".aac", ".ogg"},
+            "audio_path",
+        )
+
+    shorts_dir = (readers.BASE_DIR / "data" / "final" / "shorts").resolve()
+    engine = ShortsRepurposerEngine(output_dir=shorts_dir)
+    try:
+        async with _get_video_render_semaphore():
+            res = await asyncio.to_thread(
+                engine.repurpose_to_vertical_short,
+                title=req.title,
+                script=req.script,
+                source_video_path=src_target,
+                audio_path=audio_target,
+                output_dir=shorts_dir,
+                style=style_key,
+                safe_zone_profile=zone_key,
+                target_duration_sec=req.target_duration_sec,
+                width=req.width,
+                height=req.height,
+                fps=req.fps,
+                export_microstock_broll=req.export_microstock_broll,
+            )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception as exc:
+        logger.exception("repurpose_short_endpoint failed: %s", exc)
+        raise HTTPException(status_code=500, detail=f"Video engine error: {exc}")
+
+    return schemas.ShortsRepurposeResponse(**res.to_dict())
+
+
+@app.post("/api/v1/video/promo-motion-pack", response_model=schemas.PromoMotionBatchResponse)
+async def promo_motion_pack_endpoint(req: schemas.PromoMotionBatchRequest):
+    """Generates zero-trademark B2B SaaS/FinTech silent (-an) stock motion clips with variety audit."""
+    import asyncio
+    from src.video.promo_motion_director import PromoMotionDirector
+
+    if not req.title.strip():
+        raise HTTPException(status_code=400, detail="title cannot be empty or whitespace-only.")
+
+    promo_dir = (readers.BASE_DIR / "data" / "final" / "promo_b2b").resolve()
+    director = PromoMotionDirector(output_dir=promo_dir)
+    try:
+        async with _get_video_render_semaphore():
+            res = await asyncio.to_thread(
+                director.generate_promo_batch,
+                title=req.title,
+                subtitle=req.subtitle,
+                niche_id=req.niche_id,
+                count=req.count,
+                preset=req.preset,
+                width=req.width,
+                height=req.height,
+                duration_sec=req.duration_sec,
+                fps=req.fps,
+                output_dir=promo_dir,
+                strict_trademark=req.strict_trademark,
+                min_variety_distance=req.min_variety_distance,
+            )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception as exc:
+        logger.exception("promo_motion_pack_endpoint failed: %s", exc)
+        raise HTTPException(status_code=500, detail=f"Video engine error: {exc}")
+
+    return schemas.PromoMotionBatchResponse(**res.to_dict())

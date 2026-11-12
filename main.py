@@ -612,6 +612,12 @@ def main() -> None:
     video_group.add_argument("--reverse-mode", type=str, default="AUTO", choices=["AUTO", "T2VA", "I2V", "DUAL"], help="Prompt synthesis mode for --reverse-video")
     video_group.add_argument("--compile-storyboard", type=str, default=None, help="Compile script into budgeted, overlap-audited storyboard JSON (episode title)")
     video_group.add_argument("--storyboard-niche", type=str, default="industrial_automation", help="Target B2B niche ID for --compile-storyboard")
+    video_group.add_argument("--repurpose-short", type=str, default=None, help="Repurpose vertical 9:16 Short + clean -an B-roll (episode title)")
+    video_group.add_argument("--short-style", type=str, default="editorial_karaoke", help="Kinetic caption style (editorial_karaoke, hormozi_pop, terminal_typewriter)")
+    video_group.add_argument("--short-safe-zone", type=str, default="youtube_shorts", choices=["youtube_shorts", "tiktok", "instagram_reels", "none"], help="Mobile UI safe-zone profile for --repurpose-short")
+    video_group.add_argument("--promo-pack", type=str, default=None, help="Generate zero-trademark B2B promo motion stock batch (campaign title)")
+    video_group.add_argument("--promo-preset", type=str, default="AUTO", help="Promo motion preset (AUTO, onetake_bento_launch, cursor_spotlight_demo, kpi_metric_cascade)")
+    video_group.add_argument("--promo-niche", type=str, default="finance", help="Target B2B niche ID for --promo-pack (finance, tech_space, biotech, abstract, podium)")
 
     # Google Flow Industrial API Options
     flow_group = parser.add_argument_group("Google Flow Industrial API Options")
@@ -1066,6 +1072,34 @@ def main() -> None:
             title=args.compile_storyboard,
             script=script_text,
             target_niche=getattr(args, "storyboard_niche", "industrial_automation"),
+        )
+        print(json.dumps(res.to_dict(), indent=2, ensure_ascii=False))
+        return
+
+    if getattr(args, "repurpose_short", None):
+        from src.video.shorts_repurposer import ShortsRepurposerEngine
+
+        script_text = args.video_prompt or f"{args.repurpose_short}. Vertical documentary analysis briefing."
+        repurposer = ShortsRepurposerEngine()
+        res = repurposer.repurpose_to_vertical_short(
+            title=args.repurpose_short,
+            script=script_text,
+            source_video_path=getattr(args, "input_image", None) if str(getattr(args, "input_image", "")).lower().endswith((".mp4", ".mov", ".mkv", ".webm")) else None,
+            audio_path=getattr(args, "dossier_audio", None),
+            style=getattr(args, "short_style", "editorial_karaoke"),
+            safe_zone_profile=getattr(args, "short_safe_zone", "youtube_shorts"),
+        )
+        print(json.dumps(res.to_dict(), indent=2, ensure_ascii=False))
+        return
+
+    if getattr(args, "promo_pack", None):
+        from src.video.promo_motion_director import PromoMotionDirector
+
+        director = PromoMotionDirector()
+        res = director.generate_promo_batch(
+            title=args.promo_pack,
+            niche_id=getattr(args, "promo_niche", "finance"),
+            preset=getattr(args, "promo_preset", "AUTO"),
         )
         print(json.dumps(res.to_dict(), indent=2, ensure_ascii=False))
         return

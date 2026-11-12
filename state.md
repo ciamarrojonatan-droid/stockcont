@@ -1,7 +1,24 @@
 # StockCont Pipeline State
 > Sincronizado automaticamente por hooks e comandos do ecossistema.
 
-## Sprint Atual: Sprints 7–9 — Word-Timed Documentary Sync, CC0 Foley & Reverse-Engineer, 0.5s Spatial Overlap QA & Dual Monetization
+## Sprint Atual: Sprints 10–11 — Vertical 9:16 Shorts, Kinetic Captions, Mobile Safe-Zones & Zero-Trademark B2B Promo Motion
+- **Status das Sprints 10–11**: [CONCLUÍDO & VERIFICADO]:
+  1. **Sprint 10 — Safe-Zones Mobile, Legendas Cinéticas & Shorts 9:16 Dual-Output**:
+     - `src/video/motion_qa.py`: Adição de `PLATFORM_SAFE_ZONES` (`none`, `youtube_shorts`, `tiktok`, `instagram_reels`) e auditoria automática de colisão com UI mobile (`SAFE_ZONE_VIOLATION` em `OverlapAuditResult.bounds_violations`) via `audit_overlay_overlaps(..., safe_zone_profile=...)`.
+     - `src/video/kinetic_captions.py`: `KineticCaptionEngine` com 3 estilos (`editorial_karaoke`, `hormozi_pop`, `terminal_typewriter`), segmentação rítmica por palavras (`WordTiming`), cache LRU de fontes (`@functools.lru_cache`), sanitização de tokens ASS (`{}\r\n\\`), correção de rollover de centésimos em `_format_ass_ts()` (`0:01:00.00`), exportação `.ass` atômica e burn-in com auditoria de safe-zone mobile.
+     - `src/video/shorts_repurposer.py`: `ShortsRepurposerEngine` com detecção de centro saliente (`detect_salient_center_x`), seleção de janela de pico (`select_peak_window`), corte `16:9 -> 9:16` + fallback procedural sem marcas comerciais, além de exportação paralela de B-roll vertical microstock limpo e mudo (`-an`, `stock_broll_muted=True`) com bloqueio ativo da Alamy (ADR-05) e limpeza de temporários.
+     - `src/video/hyperframes_engine.py`: Templates verticais `vertical_dossier_short` e `vertical_kinetic_quote` com tipografia `9:16` adaptativa para áreas seguras.
+  2. **Sprint 11 — Diretor de Promo B2B Zero-Trademark & Auditoria Anti-Sameness**:
+     - `src/video/hyperframes_engine.py`: Templates B2B silenciosos `-an` (`onetake_bento_launch`, `cursor_spotlight_demo`, `kpi_metric_cascade`) sem marca comercial, com sobrescritas cromáticas/câmera (`bg_hex`, `accent_hex`, `camera_vector`) e aprovação 100/100 no MotionQA sob personalidade `high_energy_hook`.
+     - `src/video/promo_motion_director.py`: `PromoMotionDirector` com matriz determinística de tons/câmera (`PROMO_TONE_MATRIX`), sanitizador rigoroso de marcas (`BANNED_TRADEMARK_TERMS` incluindo plurais/infleções como `iPhones`/`ChatGPT4`), auditoria vetorial par-a-par Anti-Sameness (`audit_batch_variety`), cálculo de royalty unitário via `NICHE_ROYALTY_RATES` e bloqueio ativo Alamy (ADR-05).
+  3. **Integração Full-Stack (Exports, REST API, SPA `/video` & CLI)**:
+     - `src/video/__init__.py`: Exportação completa de todos os símbolos e contratos das Sprints 10–11.
+     - `src/dashboard/schemas.py`, `src/dashboard/app.py`, `src/dashboard/static/video.html`, `src/dashboard/static/js/video.js`: Endpoints `POST /api/v1/video/repurpose-short` e `POST /api/v1/video/promo-motion-pack` protegidos por contenção `_validate_workspace_file` e semáforo por event loop (`_get_video_render_semaphore`), painel `#sprint10-shorts-promo-panel` no `/video` e correção de DOM XSS em `openCinemaVideoModal()` com `escapeHtml()`.
+     - `main.py`: Novas flags CLI `--repurpose-short`, `--short-style`, `--short-safe-zone`, `--promo-pack`, `--promo-preset` e `--promo-niche` conectadas com `--dossier-audio`.
+  4. **Validação Automatizada Sprints 10–11**:
+     - `tests/test_sprint10_shorts_and_captions.py` (4/4), `tests/test_sprint11_promo_b2b_and_variety.py` (4/4), `tests/test_motion_qa_and_copy.py` (9/9) e `tests/test_spa_look_and_fix.py` (2/2 — total **19/19 passing** incluindo auditoria Playwright desktop/mobile com `#sprint10-shorts-promo-panel` visível e zero erros de console); suíte completa (**392 passed**, apenas 3 falhas pré-existentes em `tests/test_kokoro_voice.py` por ausência local de modelos binários Kokoro).
+
+### Marco Anterior: Sprints 7–9 — Word-Timed Documentary Sync, CC0 Foley & Reverse-Engineer, 0.5s Spatial Overlap QA & Dual Monetization
 - **Status das Sprints 7–9**: [CONCLUÍDO & VERIFICADO]:
   1. **Sprint 7 — Voice Aligner Palavra-a-Palavra, Map Animator Offline & Documentary World Composer**:
      - `src/video/ffmpeg_processor.py` & `src/video/voice_router.py`: `decode_audio_pcm_mono()` + `probe_audio_duration()` em WAV/MP3/FFmpeg; remoção da duração hardcoded de 10s no CosyVoice/Kokoro com alinhamento automático `word_timings` e `word_triggers` preservando integralmente o invariante `NarratorLock` (ADR-09).
@@ -48,7 +65,7 @@
      - `src/video/research_engine.py`: `PublicDomainResearchEngine` consultando Wikipedia REST, Wikimedia Commons (filtro rígido de licenças `Public Domain` / `CC0` / `PD-USGov`), Internet Archive e NASA Open APIs com cache em `data/raw/research_cache/`, dossiês atômicos em `data/processed/research_dossiers/` e fallback offline para `data/raw/dossiers/`.
      - `src/analyzer/seasonal_radar.py`: `fetch_live_signal_boosters()` e `get_merged_seasonal_opportunities()` mantendo a âncora D+75 `SEASONAL_CALENDAR` com fallback offline resiliente.
      - Blindagem & Telemetria: `DASHBOARD_ACCESS_TOKEN` middleware (Bearer / `X-Dashboard-Token`) em rotas mutáveis `/api/*` (`src/dashboard/app.py`), `AlertNotifier` por transição de estado e ping dead-man em `src/orchestrator/daemon.py`, guia `docs/REMOTE_TUNNEL_SETUP.md` e flags CLI unificadas em `main.py`.
-- **Última Atualização**: 2026-11-11
+- **Última Atualização**: 2026-11-11 (Sprints 10–11 Verificadas)
 - **Modo Operacional**: Dual-Mode (Antigravity & Claude Code via SSOT `AGENTS.md`)
 
 ### Sprint Anterior: MiniMax Music 3 & MiniMax H3 Cinematic — Pipeline de Produção Multitrack (ADR-10/11)
@@ -80,6 +97,8 @@
 
 | **Fase / Módulo** | Status | Contagem / Métricas | Próxima Ação Recomendada |
 | :--- | :--- | :--- | :--- |
+| **Shorts 9:16 & Kinetic Captions** | 🟢 Operacional | **`src/video/kinetic_captions.py` + `shorts_repurposer.py` + `motion_qa.py`**: Safe-zones (`youtube_shorts`/`tiktok`/`instagram_reels`), 3 estilos ASS/burn-in, salience crop `9:16` + B-roll `-an` com bloqueio Alamy | `python main.py --repurpose-short "..."` |
+| **Promo B2B Zero-Trademark & Variety QA** | 🟢 Operacional | **`src/video/promo_motion_director.py` + `hyperframes_engine.py`**: 3 templates SaaS (`onetake_bento_launch`, `cursor_spotlight_demo`, `kpi_metric_cascade`), filtro `BANNED_TRADEMARK_TERMS` e auditoria Anti-Sameness | `python main.py --promo-pack "..."` |
 | **Documentary Sync & Map Animator** | 🟢 Operacional | **`src/video/voice_aligner.py` + `map_animator.py` + `documentary_composer.py`**: Alinhamento silábico/RMS por palavra, 6 teatros offline SVG/GSAP/MP4 12fps, gatilhos de selos e `.otio` | `python main.py --map-animate "..."` / `--compose-dossier "..."` |
 | **Foley CC0, J/L-Cuts & Reverse Video** | 🟢 Operacional | **`src/video/foley_library.py` + `video_reverse_engineer.py` + `audio_engine.py`**: 5 efeitos CC0-1.0, corte de dead-air `>350ms`, split edits J/L-cut e extração `AUTO/T2VA/I2V/DUAL` | `python main.py --reverse-video <clip.mp4>` |
 | **Storyboard Budget & Dual Monetization** | 🟢 Operacional | **`src/video/storyboard_compiler.py` + `motion_qa.py` + `youtube_booster.py`**: Auditoria espacial 0.5s (`audit_overlay_overlaps`), 3 thumbs JPEG 1280×720 e `>=3` B-rolls `-an` com bloqueio Alamy | `python main.py --compile-storyboard "..."` |

@@ -133,6 +133,26 @@ from src.video.motion_qa import (
     OverlayPlacement,
     OverlapFinding,
     OverlapAuditResult,
+    PLATFORM_SAFE_ZONES,
+)
+from src.video.kinetic_captions import (
+    CAPTION_STYLES,
+    CaptionPhraseSegment,
+    KineticCaptionResult,
+    KineticCaptionEngine,
+)
+from src.video.shorts_repurposer import (
+    ShortsRepurposeResult,
+    ShortsRepurposerEngine,
+)
+from src.video.promo_motion_director import (
+    PROMO_PRESETS,
+    PROMO_TONE_MATRIX,
+    BANNED_TRADEMARK_TERMS,
+    PromoMotionAsset,
+    VarietyAuditResult,
+    PromoBatchResult,
+    PromoMotionDirector,
 )
 
 __all__ = [
@@ -229,4 +249,18 @@ __all__ = [
     "OverlayPlacement",
     "OverlapFinding",
     "OverlapAuditResult",
+    "PLATFORM_SAFE_ZONES",
+    "CAPTION_STYLES",
+    "CaptionPhraseSegment",
+    "KineticCaptionResult",
+    "KineticCaptionEngine",
+    "ShortsRepurposeResult",
+    "ShortsRepurposerEngine",
+    "PROMO_PRESETS",
+    "PROMO_TONE_MATRIX",
+    "BANNED_TRADEMARK_TERMS",
+    "PromoMotionAsset",
+    "VarietyAuditResult",
+    "PromoBatchResult",
+    "PromoMotionDirector",
 ]

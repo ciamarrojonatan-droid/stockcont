@@ -234,6 +234,68 @@ MOTION_TEMPLATES: Dict[str, Dict[str, Any]] = {
         "bg_hex": "#060E17",
         "description": "Enterprise HUD data telemetry loop engineered with 40% central copy-space.",
     },
+    # Sprint 10 Vertical 9:16 Shorts & Social Templates
+    "vertical_dossier_short": {
+        "category": "shorts_social",
+        "personality": "high_energy_hook",
+        "default_width": 1080,
+        "default_height": 1920,
+        "default_fps": 30,
+        "default_duration_sec": 15.0,
+        "muted": False,
+        "accent_hex": "#F59E0B",
+        "bg_hex": "#090F1A",
+        "description": "Vertical 9:16 DarkFactory signal dossier with top-safe headline and kinetic subtitle lane.",
+    },
+    "vertical_kinetic_quote": {
+        "category": "shorts_social",
+        "personality": "executive_corporate",
+        "default_width": 1080,
+        "default_height": 1920,
+        "default_fps": 30,
+        "default_duration_sec": 15.0,
+        "muted": False,
+        "accent_hex": "#38BDF8",
+        "bg_hex": "#0B1324",
+        "description": "Vertical 9:16 typographic reel backdrop preserving mobile safe-zones.",
+    },
+    # Sprint 11 Zero-Trademark B2B Promo & Demo Templates (4K silent -an stock ready)
+    "onetake_bento_launch": {
+        "category": "stock_b2b",
+        "personality": "clinical_fintech",
+        "default_width": 3840,
+        "default_height": 2160,
+        "default_fps": 30,
+        "default_duration_sec": 8.0,
+        "muted": True,
+        "accent_hex": "#38BDF8",
+        "bg_hex": "#070D19",
+        "description": "Continuous zero-cut OneTake camera glide across abstract SaaS Bento UI modules (trademark-free).",
+    },
+    "cursor_spotlight_demo": {
+        "category": "stock_b2b",
+        "personality": "clinical_fintech",
+        "default_width": 3840,
+        "default_height": 2160,
+        "default_fps": 30,
+        "default_duration_sec": 8.0,
+        "muted": True,
+        "accent_hex": "#F59E0B",
+        "bg_hex": "#0A101E",
+        "description": "Animated cursor spotlight zooming across synthetic wireframe analytics charts (trademark-free).",
+    },
+    "kpi_metric_cascade": {
+        "category": "stock_b2b",
+        "personality": "executive_corporate",
+        "default_width": 3840,
+        "default_height": 2160,
+        "default_fps": 30,
+        "default_duration_sec": 8.0,
+        "muted": True,
+        "accent_hex": "#10B981",
+        "bg_hex": "#08141B",
+        "description": "Sequential executive KPI growth cascade with spline trajectories and 40% editorial copy-space.",
+    },
 }
 
 
@@ -834,6 +896,9 @@ class HyperFramesMotionEngine:
         cmd: List[str] = [
             ffmpeg_bin,
             "-y",
+            "-v",
+            "error",
+            "-nostats",
             "-f",
             "rawvideo",
             "-vcodec",
@@ -901,7 +966,15 @@ class HyperFramesMotionEngine:
                 return False, f"FFmpeg exited {proc.returncode}: {err_txt}"
             return True, None
         except (OSError, subprocess.SubprocessError) as exc:
-            return False, str(exc)
+            err_detail = str(exc)
+            if proc is not None and proc.stderr:
+                try:
+                    stderr_tail = proc.stderr.read().decode("utf-8", errors="replace")[-500:]
+                    if stderr_tail.strip():
+                        err_detail = f"{err_detail}: {stderr_tail}"
+                except Exception:
+                    pass
+            return False, err_detail
         finally:
             if proc is not None:
                 if proc.stdin and not proc.stdin.closed:
@@ -911,7 +984,10 @@ class HyperFramesMotionEngine:
                         pass
                 if proc.poll() is None:
                     proc.kill()
-                    proc.wait(timeout=5)
+                    try:
+                        proc.wait(timeout=5)
+                    except Exception:
+                        pass
 
     def _compose_frame(
         self,
@@ -927,9 +1003,11 @@ class HyperFramesMotionEngine:
         personality: Optional[str] = None,
     ) -> np.ndarray:
         """Render one BGR24 numpy frame parameterized by template family."""
-        bg_bgr = _hex_to_bgr(spec["bg_hex"])
-        accent_bgr = _hex_to_bgr(spec["accent_hex"])
-        accent_rgb = _hex_to_rgb(spec["accent_hex"])
+        bg_hex = str((data or {}).get("bg_hex") or spec["bg_hex"])
+        accent_hex = str((data or {}).get("accent_hex") or spec["accent_hex"])
+        bg_bgr = _hex_to_bgr(bg_hex)
+        accent_bgr = _hex_to_bgr(accent_hex)
+        accent_rgb = _hex_to_rgb(accent_hex)
         resolved_seed = _derive_seed(template, title, subtitle, explicit_seed=seed)
         personality_key = personality or spec.get("personality", "cold_war_noir")
         eased = _apply_easing(progress, personality_key)
@@ -951,6 +1029,14 @@ class HyperFramesMotionEngine:
             self._draw_risograph_declassified_plate(frame, width, height, eased, accent_bgr, resolved_seed)
         elif template == "cut_paper_editorial":
             self._draw_cut_paper_editorial_plate(frame, width, height, eased, accent_bgr, resolved_seed)
+        elif template in ("vertical_dossier_short", "vertical_kinetic_quote"):
+            self._draw_vertical_dossier_plate(frame, width, height, eased, accent_bgr, resolved_seed)
+        elif template == "onetake_bento_launch":
+            self._draw_onetake_bento_plate(frame, width, height, eased, accent_bgr, resolved_seed, data)
+        elif template == "cursor_spotlight_demo":
+            self._draw_cursor_spotlight_plate(frame, width, height, eased, accent_bgr, resolved_seed, data)
+        elif template == "kpi_metric_cascade":
+            self._draw_kpi_metric_cascade_plate(frame, width, height, eased, accent_bgr, resolved_seed, data)
         else:
             self._draw_b2b_telemetry_cards(frame, width, height, eased, accent_bgr)
 
@@ -1174,6 +1260,151 @@ class HyperFramesMotionEngine:
             cv2.rectangle(frame, (x1, y1), (x1 + max(6, width // 120), y2), accent_bgr, -1)
 
     @staticmethod
+    def _draw_vertical_dossier_plate(
+        frame: np.ndarray,
+        width: int,
+        height: int,
+        progress: float,
+        accent_bgr: Tuple[int, int, int],
+        seed: int,
+    ) -> None:
+        """Render vertical 9:16 dossier card preserving mobile bottom/right UI safe-zones."""
+        rng = random.Random(seed ^ 0x1983)
+        pad_x = int(width * 0.08)
+        pad_y_top = int(height * 0.24)
+        pad_y_bot = int(height * 0.56)
+        cv2.rectangle(frame, (pad_x, pad_y_top), (width - pad_x, pad_y_bot), (18, 28, 46), -1)
+        cv2.rectangle(frame, (pad_x, pad_y_top), (width - pad_x, pad_y_bot), accent_bgr, 2)
+
+        # Animated horizontal waveform bars inside focal mid-canvas
+        bar_count = 16
+        avail_w = max(80, width - 2 * pad_x - 32)
+        step_x = max(8, avail_w // bar_count)
+        center_y = (pad_y_top + pad_y_bot) // 2
+        for i in range(bar_count):
+            phase = progress * 3.0 * math.pi + i * 0.55 + rng.uniform(0.0, 0.6)
+            amp = max(8, int((pad_y_bot - pad_y_top) * 0.28 * (0.25 + 0.75 * abs(math.sin(phase)))))
+            bx = pad_x + 18 + i * step_x
+            cv2.rectangle(frame, (bx, center_y - amp), (bx + max(4, step_x - 4), center_y + amp), accent_bgr, -1)
+
+    @staticmethod
+    def _draw_onetake_bento_plate(
+        frame: np.ndarray,
+        width: int,
+        height: int,
+        progress: float,
+        accent_bgr: Tuple[int, int, int],
+        seed: int,
+        data: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """Render continuous zero-cut OneTake camera glide across generic Bento SaaS cards."""
+        camera_vec = str((data or {}).get("camera_vector") or "pan_left")
+        pan_shift_x = int(width * (0.10 - 0.20 * progress)) if "pan" in camera_vec else int(width * (0.04 * math.sin(progress * math.pi)))
+        pan_shift_y = int(height * (0.06 - 0.12 * progress)) if "diagonal" in camera_vec else 0
+        zoom = 1.0 + 0.12 * progress
+
+        cards = [
+            (0.42, 0.24, 0.23, 0.26),
+            (0.68, 0.24, 0.24, 0.26),
+            (0.42, 0.54, 0.30, 0.26),
+            (0.75, 0.54, 0.17, 0.26),
+        ]
+        cx0, cy0 = width * 0.66, height * 0.50
+        for idx, (xf, yf, wf, hf) in enumerate(cards):
+            x1 = int(cx0 + (xf * width - cx0) * zoom + pan_shift_x)
+            y1 = int(cy0 + (yf * height - cy0) * zoom + pan_shift_y)
+            cw = max(30, int(wf * width * zoom))
+            ch = max(24, int(hf * height * zoom))
+            fill_bgr = (20 + idx * 6, 32 + idx * 5, 52 + idx * 4)
+            cv2.rectangle(frame, (x1, y1), (x1 + cw, y1 + ch), fill_bgr, -1)
+            cv2.rectangle(frame, (x1, y1), (x1 + cw, y1 + ch), accent_bgr if idx % 2 == 0 else (100, 116, 139), 2)
+            # Abstract metric bar inside card
+            pulse = 0.25 + 0.7 * min(1.0, max(0.0, progress * 1.4 - idx * 0.12))
+            cv2.rectangle(
+                frame,
+                (x1 + 14, y1 + int(ch * 0.62)),
+                (x1 + 14 + int((cw - 28) * pulse), y1 + int(ch * 0.78)),
+                accent_bgr,
+                -1,
+            )
+
+    @staticmethod
+    def _draw_cursor_spotlight_plate(
+        frame: np.ndarray,
+        width: int,
+        height: int,
+        progress: float,
+        accent_bgr: Tuple[int, int, int],
+        seed: int,
+        data: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """Render generic wireframe analytics board with smooth cursor focus + zoom ring."""
+        bx1, by1 = int(width * 0.44), int(height * 0.22)
+        bx2, by2 = int(width * 0.92), int(height * 0.84)
+        cv2.rectangle(frame, (bx1, by1), (bx2, by2), (18, 28, 44), -1)
+        cv2.rectangle(frame, (bx1, by1), (bx2, by2), (71, 85, 105), 2)
+
+        # Synthetic sparkline waypoints inside UI canvas
+        pts: List[Tuple[int, int]] = []
+        n_pts = 8
+        for i in range(n_pts):
+            px = bx1 + 28 + int((bx2 - bx1 - 56) * (i / (n_pts - 1)))
+            py = by2 - 42 - int((by2 - by1 - 96) * (0.2 + 0.65 * (0.5 + 0.5 * math.sin(i * 0.9 + (seed % 7)))))
+            pts.append((px, py))
+        for i in range(1, len(pts)):
+            cv2.line(frame, pts[i - 1], pts[i], accent_bgr, 3)
+
+        # Smooth animated pointer hovering across chart waypoints + live telemetry bars
+        cur_f = progress * (len(pts) - 1)
+        i0 = min(len(pts) - 2, max(0, int(cur_f)))
+        frac = cur_f - i0
+        cx = int(pts[i0][0] + (pts[i0 + 1][0] - pts[i0][0]) * frac)
+        cy = int(pts[i0][1] + (pts[i0 + 1][1] - pts[i0][1]) * frac)
+
+        # Animated column bars under sparkline + sweeping cursor beam so motion delta clears high-energy QA
+        bar_w = max(14, (bx2 - bx1 - 96) // n_pts)
+        for bi, (px, py) in enumerate(pts):
+            pulse = 0.55 + 0.45 * math.sin(progress * math.pi * 3.0 + bi * 0.7)
+            col_top = max(by1 + 24, int(py + (by2 - 24 - py) * (0.45 - 0.28 * pulse)))
+            is_focused = abs(px - cx) <= bar_w
+            col_color = accent_bgr if is_focused else (36, 52, 74)
+            cv2.rectangle(frame, (px - bar_w // 3, col_top), (px + bar_w // 3, by2 - 18), col_color, -1)
+
+        cv2.line(frame, (cx, by1 + 14), (cx, by2 - 14), accent_bgr, 2)
+        ring_r = max(16, int(min(width, height) * (0.05 + 0.02 * math.sin(progress * 4.0 * math.pi))))
+        cv2.circle(frame, (cx, cy), ring_r, accent_bgr, 2)
+        cursor_poly = np.array(
+            [[cx, cy], [cx + 22, cy + 16], [cx + 9, cy + 20], [cx + 15, cy + 32], [cx + 8, cy + 35], [cx + 2, cy + 22], [cx - 6, cy + 28]],
+            np.int32,
+        )
+        cv2.fillPoly(frame, [cursor_poly], (248, 250, 252))
+        cv2.polylines(frame, [cursor_poly], True, (15, 23, 42), 2)
+
+    @staticmethod
+    def _draw_kpi_metric_cascade_plate(
+        frame: np.ndarray,
+        width: int,
+        height: int,
+        progress: float,
+        accent_bgr: Tuple[int, int, int],
+        seed: int,
+        data: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """Render staggered abstract KPI rows + ascending spline leaving left 40% clean copy-space."""
+        row_count = 4
+        start_x = int(width * 0.48)
+        end_x = int(width * 0.92)
+        row_h = max(24, int(height * 0.11))
+        for r in range(row_count):
+            slide = min(1.0, max(0.0, progress * 1.5 - r * 0.16))
+            rx1 = start_x + int((1.0 - slide) * width * 0.12)
+            ry1 = int(height * (0.24 + r * 0.15))
+            cv2.rectangle(frame, (rx1, ry1), (end_x, ry1 + row_h), (20, 34, 48), -1)
+            cv2.rectangle(frame, (rx1, ry1), (rx1 + 8, ry1 + row_h), accent_bgr, -1)
+            fill_w = max(20, int((end_x - rx1 - 40) * (0.40 + 0.14 * r) * slide))
+            cv2.rectangle(frame, (rx1 + 24, ry1 + int(row_h * 0.35)), (rx1 + 24 + fill_w, ry1 + int(row_h * 0.70)), accent_bgr, -1)
+
+    @staticmethod
     def _draw_b2b_telemetry_cards(
         frame: np.ndarray,
         width: int,
@@ -1205,23 +1436,32 @@ class HyperFramesMotionEngine:
         img = Image.fromarray(rgb)
         draw = ImageDraw.Draw(img)
 
-        title_size = max(18, int(height * 0.055))
-        sub_size = max(13, int(height * 0.032))
+        is_portrait = height > width
+        base_dim = min(width, height) if is_portrait else height
+        title_size = max(18, int(base_dim * 0.055))
+        sub_size = max(13, int(base_dim * 0.032))
         title_font = _load_font(title_size)
         sub_font = _load_font(sub_size)
 
         if template == "lower_third":
             tx, ty = int(width * 0.09), int(height * 0.745)
+        elif is_portrait:
+            # Stay cleanly below 9% mobile top chrome and above right-rail UI
+            tx, ty = int(width * 0.07), int(height * 0.115)
         else:
             tx, ty = int(width * 0.07), int(height * 0.14)
 
-        draw.text((tx, ty), title[:64], fill=(241, 245, 249), font=title_font)
+        max_title_chars = 32 if is_portrait else 64
+        max_sub_chars = 48 if is_portrait else 96
+        draw.text((tx, ty), title[:max_title_chars], fill=(241, 245, 249), font=title_font)
         if subtitle:
-            draw.text((tx, ty + int(title_size * 1.32)), subtitle[:96], fill=accent_rgb, font=sub_font)
+            draw.text((tx, ty + int(title_size * 1.32)), subtitle[:max_sub_chars], fill=accent_rgb, font=sub_font)
 
-        # Timecode stamp in top-right HUD corner
+        # Timecode stamp inside safe header corner
         tc_text = f"HF-FRAME {int(progress * 100):03d}%"
-        draw.text((int(width * 0.76), int(height * 0.08)), tc_text, fill=accent_rgb, font=sub_font)
+        tc_x = int(width * 0.07) if is_portrait else int(width * 0.76)
+        tc_y = int(height * 0.092) if is_portrait else int(height * 0.08)
+        draw.text((tc_x, tc_y), tc_text, fill=accent_rgb, font=sub_font)
 
         return cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
 

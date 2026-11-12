@@ -38,6 +38,38 @@ PERSONALITY_MIN_MOTION_DELTAS: Dict[str, float] = {
     "high_energy_hook": 0.30,
 }
 
+# Normalized UI obstruction zones for vertical 9:16 social platforms (x, y, width, height)
+PLATFORM_SAFE_ZONES: Dict[str, Dict[str, Any]] = {
+    "none": {
+        "description": "No platform chrome reservation.",
+        "blocked_rects": [],
+    },
+    "youtube_shorts": {
+        "description": "YouTube Shorts mobile HUD (bottom channel/title + right engagement rail + top header).",
+        "blocked_rects": [
+            ("yt_shorts_top_chrome", "YouTube Shorts Top Chrome", 0.0, 0.0, 1.0, 0.08),
+            ("yt_shorts_right_actions", "YouTube Shorts Right Action Rail", 0.84, 0.44, 0.16, 0.56),
+            ("yt_shorts_bottom_meta", "YouTube Shorts Bottom Metadata", 0.0, 0.78, 0.84, 0.22),
+        ],
+    },
+    "tiktok": {
+        "description": "TikTok vertical HUD (bottom caption/sound + right interaction rail + top tabs).",
+        "blocked_rects": [
+            ("tiktok_top_tabs", "TikTok Top Navigation Tabs", 0.0, 0.0, 1.0, 0.09),
+            ("tiktok_right_actions", "TikTok Right Engagement Rail", 0.84, 0.40, 0.16, 0.60),
+            ("tiktok_bottom_caption", "TikTok Bottom Caption Area", 0.0, 0.76, 0.84, 0.24),
+        ],
+    },
+    "instagram_reels": {
+        "description": "Instagram Reels vertical HUD (bottom profile/caption + right actions + top header).",
+        "blocked_rects": [
+            ("reels_top_header", "Instagram Reels Top Header", 0.0, 0.0, 1.0, 0.08),
+            ("reels_right_actions", "Instagram Reels Right Engagement Rail", 0.85, 0.46, 0.15, 0.54),
+            ("reels_bottom_meta", "Instagram Reels Bottom Caption Area", 0.0, 0.78, 0.85, 0.22),
+        ],
+    },
+}
+
 
 @dataclass
 class MotionQAFinding:
@@ -112,6 +144,7 @@ class OverlapAuditResult:
     samples_checked: int
     collisions: List[Dict[str, Any]] = field(default_factory=list)
     bounds_violations: List[Dict[str, Any]] = field(default_factory=list)
+    safe_zone_profile: str = "none"
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -602,8 +635,15 @@ class MotionQAInspector:
         step_sec: float = 0.5,
         canvas_width: int = 1920,
         canvas_height: int = 1080,
+        safe_zone_profile: str = "none",
     ) -> OverlapAuditResult:
-        """Inspect overlay bounding boxes every step_sec (0.5s) for collisions and clipping."""
+        """Inspect overlay bounding boxes every step_sec (0.5s) for collisions, clipping, and UI safe-zones."""
+        profile_key = (safe_zone_profile or "none").strip().lower()
+        if profile_key not in PLATFORM_SAFE_ZONES:
+            raise ValueError(
+                f"Unknown safe_zone_profile '{safe_zone_profile}'. Valid: {sorted(PLATFORM_SAFE_ZONES)}"
+            )
+
         step = max(0.1, float(step_sec))
         max_end = max((float(p.end_sec) for p in placements), default=0.0)
         horizon = max(step, float(total_duration_sec) if total_duration_sec is not None else max_end)
@@ -611,9 +651,11 @@ class MotionQAInspector:
         collisions: List[Dict[str, Any]] = []
         bounds_violations: List[Dict[str, Any]] = []
         seen_bounds: set[str] = set()
+        seen_safe_zones: set[Tuple[str, str]] = set()
         seen_pairs: set[Tuple[str, str]] = set()
+        blocked_rects = PLATFORM_SAFE_ZONES[profile_key]["blocked_rects"]
 
-        # Check static bounds on every placement first
+        # Check static bounds and vertical platform UI safe-zones on every placement
         norm_boxes: Dict[str, Tuple[float, float, float, float]] = {}
         for p in placements:
             nx, ny, nw, nh = self._normalize_box(p, canvas_width=canvas_width, canvas_height=canvas_height)
@@ -631,6 +673,31 @@ class MotionQAInspector:
                                 code="OUT_OF_BOUNDS",
                                 severity="error",
                                 message=f"Overlay '{p.overlay_id}' ({p.label}) extends past 100% frame canvas.",
+                            )
+                        )
+                    )
+
+            for zone_id, zone_label, zx, zy, zw, zh in blocked_rects:
+                ix = max(0.0, min(nx + nw, zx + zw) - max(nx, zx))
+                iy = max(0.0, min(ny + nh, zy + zh) - max(ny, zy))
+                inter = ix * iy
+                if inter > 1e-4 and (p.overlay_id, zone_id) not in seen_safe_zones:
+                    seen_safe_zones.add((p.overlay_id, zone_id))
+                    box_area = max(1e-9, nw * nh)
+                    ratio = round(min(1.0, inter / box_area), 4)
+                    bounds_violations.append(
+                        asdict(
+                            OverlapFinding(
+                                time_sec=round(float(p.start_sec), 2),
+                                overlay_a=p.overlay_id,
+                                overlay_b=zone_id,
+                                overlap_ratio=ratio,
+                                code="SAFE_ZONE_VIOLATION",
+                                severity="error",
+                                message=(
+                                    f"Overlay '{p.overlay_id}' ({p.label}) intrudes {ratio:.1%} into "
+                                    f"reserved '{profile_key}' UI zone '{zone_label}'."
+                                ),
                             )
                         )
                     )
@@ -680,4 +747,5 @@ class MotionQAInspector:
             samples_checked=samples_checked,
             collisions=collisions,
             bounds_violations=bounds_violations,
+            safe_zone_profile=profile_key,
         )
